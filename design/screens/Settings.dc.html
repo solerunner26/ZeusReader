@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings — appearance and AppUiConfig</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Literata:opsz,wght@7..72,600&family=Noto+Sans+Devanagari:wght@400&family=Noto+Sans+Gujarati:wght@400&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width:390px;height:1120px;overflow:hidden;background:{{bg}};color:{{ink}};font-family:'Atkinson Hyperlegible',sans-serif;padding:16px 16px 0;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;gap:4px"><button aria-label="Back" style="width:48px;height:48px;border:0;border-radius:24px;background:transparent;color:{{ink}};display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button><h1 style="margin:0;font-family:'Literata',serif;font-size:24px;font-weight:600">Appearance &amp; theming</h1></div>
+
+<div style="border-radius:24px;background:{{hueSoft}};padding:14px;display:flex;flex-direction:column;gap:10px">
+<div style="font-size:13px;font-weight:700;color:{{inkSoft}}">App theme</div>
+<div style="display:flex;gap:4px;padding:4px;border-radius:999px;background:{{line}}">
+<button style="flex:1;height:44px;border:0;border-radius:999px;background:transparent;font:inherit;font-size:14px">Light</button>
+<button style="flex:1;height:44px;border:0;border-radius:999px;background:transparent;font:inherit;font-size:14px">Dark</button>
+<button style="flex:1;height:44px;border:0;border-radius:999px;background:{{hue}};color:{{onHue}};font:inherit;font-size:14px;font-weight:700">System</button>
+</div>
+<div style="font-size:13px;font-weight:700;color:{{inkSoft}}">App language</div>
+<div style="display:flex;gap:4px;padding:4px;border-radius:999px;background:{{line}}">
+<button style="flex:1;height:44px;border:0;border-radius:999px;background:{{hue}};color:{{onHue}};font:inherit;font-size:14px;font-weight:700">English</button>
+<button lang="hi" style="flex:1;height:44px;border:0;border-radius:999px;background:transparent;font-family:'Noto Sans Devanagari',sans-serif;font-size:14px">हिंदी</button>
+<button lang="gu" style="flex:1;height:44px;border:0;border-radius:999px;background:transparent;font-family:'Noto Sans Gujarati',sans-serif;font-size:14px">ગુજરાતી</button>
+</div>
+</div>
+
+<div style="border-radius:24px;background:{{paper}};border:1px solid {{line}};padding:14px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px;font-weight:700;color:{{inkSoft}}">Theme hue</span><span style="font-size:12px;color:{{inkSoft}}">two tones: ink + hue</span></div>
+<div role="radiogroup" aria-label="Theme hue" style="display:flex;justify-content:space-between">
+<sc-for list="{{swatches}}" as="w" hint-placeholder-count="7"><button role="radio" aria-checked="{{w.on}}" aria-label="{{w.name}}" onClick="{{w.pick}}" style="width:44px;height:44px;border-radius:22px;border:{{w.ring}};padding:0;background:{{w.c}};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">{{w.mark}}</button></sc-for>
+</div>
+<label style="display:flex;align-items:center;gap:12px;min-height:48px"><span style="flex:1;display:flex;flex-direction:column"><span style="font-size:15px;font-weight:700">Hue from book cover</span><span style="font-size:12px;color:{{inkSoft}}">App takes the hue of what you are reading</span></span><span style="width:52px;height:32px;border-radius:16px;background:{{hue}};padding:4px;box-sizing:border-box;display:flex;justify-content:flex-end"><span style="width:24px;height:24px;border-radius:12px;background:#FFFFFF"></span></span></label>
+<div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;font-size:13px"><b>Hue aura</b><span style="color:{{inkSoft}}">Soft · drifts ±10°</span></div><div style="height:6px;border-radius:3px;background:{{line}};position:relative"><div style="width:40%;height:6px;border-radius:3px;background:{{hue}}"></div><span style="position:absolute;left:40%;top:-9px;width:24px;height:24px;margin-left:-12px;border-radius:12px;background:{{hue}};box-shadow:0 0 0 4px {{paper}}"></span></div></div>
+</div>
+<div style="border-radius:24px;background:{{hueSoft}};padding:4px 14px;display:flex;flex-direction:column">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+<label style="min-height:58px;display:flex;align-items:center;gap:12px;border-bottom:1px solid {{line}}">
+<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:15px;font-weight:700">{{r.title}}</span><span style="font-size:12px;color:{{inkSoft}}">{{r.sub}}</span></span>
+<button role="switch" aria-checked="{{r.on}}" onClick="{{r.flip}}" aria-label="{{r.title}}" style="flex:none;width:52px;height:32px;border-radius:16px;border:0;padding:4px;box-sizing:border-box;display:flex;justify-content:{{r.justify}};background:{{r.track}}"><span style="width:24px;height:24px;border-radius:12px;background:#FFFFFF"></span></button>
+</label>
+</sc-for>
+</div>
+<div style="font-size:12px;color:{{inkSoft}};padding:0 6px">Reduce Motion, Battery Saver and E-ink theme force animations off. Glass falls back to a 90% frosted tint below Android 12.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"hue":{"editor":"range","min":0,"max":359,"step":1,"unit":"°","default":250},"$preview":{"width":390,"height":1120}}'>
+class Component extends DCLogic {
+constructor(p){ super(p); this.state = { pickHue:null, glass:true, aes:true, glare:false, borders:false, anim:true, emboss:false, hover:true }; }
+renderVals() {
+const h = this.state.pickHue ?? this.props.hue ?? 250; const P = {bg:`hsl(${h},28%,95%)`,paper:`hsl(${h},30%,98%)`,ink:`hsl(${h},32%,13%)`,inkSoft:`hsl(${h},14%,34%)`,hue:`hsl(${h},52%,38%)`,onHue:'#FFFFFF',hueSoft:`hsl(${h},45%,91%)`,line:`hsl(${h},20%,85%)`,hl:`hsl(${h},60%,88%)`,glass:`hsla(${h},30%,98%,0.86)`,blobA:`hsla(${h},75%,76%,0.9)`,blobB:`hsla(${h+16},70%,82%,0.9)`};
+const defs = [
+['glass','Glass UI mode','Liquid Glass chrome; off = Material 3 tonal'],
+['aes','Aesthetic elements','Ambient blobs behind library and settings'],
+['glare','Animated glare','Slow light sweep on hero cards'],
+['borders','Animated borders','Sweeping border on the active book'],
+['anim','Master animations','Springs and shared-element motion'],
+['emboss','Embossed effects','Soft bevel on buttons and pills'],
+['hover','Pointer & hover','Lift and glow with mouse or stylus']
+];
+const sw=[['Indigo',250],['Saffron',32],['Moss',140],['Lagoon',186],['Rose',345],['Plum',290]];
+return { ...P, swatches: [...sw.map(([n,x])=>({name:n,c:`hsl(${x},52%,38%)`,mark:x===h?'✓':'',on:x===h?'true':'false',ring:x===h?`3px solid hsl(${x},32%,13%)`:'0',pick:()=>this.setState({pickHue:x})})),{name:'Auto from cover',c:`conic-gradient(hsl(250,52%,38%),hsl(32,52%,38%),hsl(140,52%,38%),hsl(250,52%,38%))`,mark:'A',on:'false',ring:'0',pick:()=>{}}], rows: defs.map(([k,t,s]) => { const on = !!this.state[k]; return { title:t, sub:s, on: on ? 'true' : 'false', justify: on ? 'flex-end' : 'flex-start', track: on ? P.hue : P.inkSoft, flip: () => this.setState({ [k]: !on }) }; }) };
+}
+}
+</script>
+</body>
+</html>

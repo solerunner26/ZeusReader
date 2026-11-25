@@ -25,3 +25,23 @@ def test_legacy_converter_rejects_drm_and_routes_azw3_and_docx(tmp_path: Path) -
     res_docx = converter.convert(docx, "DOCX", tmp_path / "out")
     assert res_docx.success is True
     assert res_docx.target_format == "EPUB"
+
+
+def test_convert_endpoint_rejects_drm_and_accepts_azw3(tmp_path: Path) -> None:
+    from fastapi.testclient import TestClient
+    from app.config import ServerSettings
+    from app.main import create_app
+
+    cfg = ServerSettings(pairing_token="tok", data_dir=tmp_path)
+    app = create_app(cfg)
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer tok"}
+
+    (cfg.books_dir / "locked.azw").write_bytes(b"EA0DRM_LOCKED")
+    r_drm = client.post("/v1/convert?filename=locked.azw&source_format=AZW", headers=headers)
+    assert r_drm.status_code == 422
+
+    (cfg.books_dir / "clean.azw3").write_bytes(b"BOOKMOBI_OK")
+    r_ok = client.post("/v1/convert?filename=clean.azw3&source_format=AZW3", headers=headers)
+    assert r_ok.status_code == 200
+    assert r_ok.json()["target_format"] == "EPUB"

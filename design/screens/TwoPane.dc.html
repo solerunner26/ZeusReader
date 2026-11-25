@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Landscape two-pane translation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Literata:opsz,wght@7..72,400;7..72,600&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width:932px;height:430px;position:relative;overflow:hidden;background:#000000;color:{{ink}};font-family:'Atkinson Hyperlegible',sans-serif;display:flex;flex-direction:column">
+<div style="height:52px;flex:none;display:flex;align-items:center;gap:10px;padding:0 20px;border-bottom:1px solid {{line}}">
+<span style="flex:1;font-size:14px;font-weight:700">Soil Science for Beginners · 4.2</span>
+<span style="font-size:12px;padding:4px 10px;border-radius:999px;background:{{hueSoft}};color:{{hue}}">EN ⇄ HI · scroll synced</span>
+<button aria-label="Close two-pane view" style="width:48px;height:48px;border:0;border-radius:24px;background:transparent;color:{{ink}};display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+<div style="flex:1;display:flex;min-height:0">
+<div style="flex:1;padding:20px 28px;display:flex;flex-direction:column;gap:14px;border-right:1px solid {{line}}">
+<p style="margin:0;font-family:'Literata',serif;font-size:17px;line-height:1.65;opacity:0.7">Soil is not a solid block but a maze of particles and the spaces between them.</p>
+<p style="margin:0;font-family:'Literata',serif;font-size:17px;line-height:1.65;background:{{hueSoft}};border-radius:10px;padding:8px 10px;box-shadow:inset 3px 0 0 {{hue}}">Capillary action draws water upward through narrow soil pores against gravity, supplying plant roots during dry intervals.</p>
+<p style="margin:0;font-family:'Literata',serif;font-size:17px;line-height:1.65;opacity:0.7">The finer the pores, the higher the water climbs.</p>
+</div>
+<div style="flex:1;padding:20px 28px;display:flex;flex-direction:column;gap:14px">
+<p lang="hi" style="margin:0;font-family:'Noto Sans Devanagari',sans-serif;font-size:17px;line-height:1.85;opacity:0.7">मिट्टी कोई ठोस खंड नहीं, बल्कि कणों और उनके बीच की जगहों का जाल है।</p>
+<p lang="hi" style="margin:0;font-family:'Noto Sans Devanagari',sans-serif;font-size:17px;line-height:1.85;background:{{hueSoft}};border-radius:10px;padding:8px 10px;box-shadow:inset 3px 0 0 {{hue}}">केशिका क्रिया गुरुत्वाकर्षण के विरुद्ध मिट्टी के संकीर्ण छिद्रों से पानी को ऊपर की ओर खींचती है, जिससे शुष्क अंतराल के दौरान पौधों की जड़ों को पानी मिलता है।</p>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"hue":{"editor":"range","min":0,"max":359,"step":1,"unit":"°","default":250},"$preview":{"width":932,"height":430}}'>
+class Component extends DCLogic {
+renderVals() {
+const h = this.props.hue ?? 250; const P = {ink:`hsl(${h},10%,78%)`,line:`hsl(${h},10%,14%)`,hueSoft:`hsl(${h},30%,12%)`,hue:`hsl(${h},62%,72%)`}; return { ...P }; }
+}
+</script>
+</body>
+</html>

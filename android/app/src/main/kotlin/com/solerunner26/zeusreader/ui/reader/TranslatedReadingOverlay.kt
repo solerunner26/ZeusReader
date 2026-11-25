@@ -43,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -90,6 +91,7 @@ fun TranslatedReadingOverlay(
     val revealedEnglishIndices = remember(passageResult?.passageHash) { mutableStateMapOf<Int, Boolean>() }
 
     var ttsReady by remember { mutableStateOf(false) }
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     val tts = remember(context) {
         var instance: TextToSpeech? = null
         instance = TextToSpeech(context) { status ->
@@ -99,8 +101,16 @@ fun TranslatedReadingOverlay(
         }
         instance
     }
+    val sleepTimer = remember(coroutineScope, tts) {
+        TtsSleepTimerController(
+            scope = coroutineScope,
+            onExpired = { runCatching { tts.stop() } }
+        )
+    }
+    val sleepState by sleepTimer.state.collectAsStateWithLifecycle()
     DisposableEffect(tts) {
         onDispose {
+            sleepTimer.cancel()
             runCatching {
                 tts.stop()
                 tts.shutdown()
@@ -208,6 +218,22 @@ fun TranslatedReadingOverlay(
                                 label = { Text(pref.label) }
                             )
                         }
+                        AssistChip(
+                            onClick = {
+                                val entries = TtsSleepTimerOption.entries
+                                val nextIdx = (entries.indexOf(sleepState.selectedOption) + 1) % entries.size
+                                sleepTimer.select(entries[nextIdx])
+                            },
+                            label = {
+                                val text = if (sleepState.isActive) {
+                                    "Sleep: ${(sleepState.remainingSeconds + 59) / 60}m"
+                                } else {
+                                    sleepState.selectedOption.label
+                                }
+                                Text(text)
+                            },
+                            modifier = Modifier.testTag("tts_sleep_timer_chip")
+                        )
                     }
                 }
             }

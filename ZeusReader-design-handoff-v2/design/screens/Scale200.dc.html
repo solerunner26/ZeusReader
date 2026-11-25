@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>200 percent font scale in three scripts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Literata:opsz,wght@7..72,400;7..72,600&family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Gujarati:wght@400;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;background:{{paper}};color:{{ink}};font-family:'Atkinson Hyperlegible',sans-serif">
+<div style="padding:20px 20px 0;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:{{inkSoft}}"><span style="padding:4px 10px;border-radius:999px;background:{{hueSoft}};color:{{hue}};font-weight:700">Font scale 200%</span><span>numbers = TalkBack order</span></div>
+
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="flex:none;width:24px;height:24px;border-radius:12px;background:{{hue}};color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;margin-top:12px">1</span>
+<p style="margin:0;font-family:'Literata',serif;font-size:36px;line-height:1.6">Capillary action draws water upward…</p></div>
+
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="flex:none;width:24px;height:24px;border-radius:12px;background:{{hue}};color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;margin-top:16px">2</span>
+<p lang="hi" style="margin:0;font-family:'Noto Sans Devanagari',sans-serif;font-size:36px;line-height:1.85">केशिका क्रिया पानी को ऊपर खींचती है…</p></div>
+
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="flex:none;width:24px;height:24px;border-radius:12px;background:{{ink}};color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;margin-top:16px">3</span>
+<p lang="gu" style="margin:0;font-family:'Noto Sans Gujarati',sans-serif;font-size:36px;line-height:1.8">કેશિકા ક્રિયા પાણીને ઉપર ખેંચે છે…</p></div>
+
+<div style="font-size:13px;line-height:1.5;color:{{inkSoft}};border-left:0;padding:10px 12px;border-radius:12px;background:{{hueSoft}}">Text reflows; no fixed heights. Indic lines get extra line height so matras and shirorekha never clip.</div>
+</div>
+
+<div style="position:absolute;left:12px;right:12px;bottom:16px;border-radius:28px;padding:8px;display:flex;gap:6px;background:{{glass}};border:1px solid {{line}}">
+<button style="flex:1;min-height:64px;border:0;border-radius:20px;background:transparent;color:{{ink}};font:inherit;font-size:15px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="width:22px;height:22px;border-radius:11px;background:{{hue}};color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center">4</span>Contents</button>
+<button style="flex:1;min-height:64px;border:0;border-radius:20px;background:{{hue}};color:{{onHue}};font:inherit;font-size:15px;font-weight:700">Translate</button>
+<button style="flex:1;min-height:64px;border:0;border-radius:20px;background:transparent;color:{{ink}};font:inherit;font-size:15px">More</button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"hue":{"editor":"range","min":0,"max":359,"step":1,"unit":"°","default":250},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const h = this.props.hue ?? 250; const P = {bg:`hsl(${h},28%,95%)`,paper:`hsl(${h},30%,98%)`,ink:`hsl(${h},32%,13%)`,inkSoft:`hsl(${h},14%,34%)`,hue:`hsl(${h},52%,38%)`,onHue:'#FFFFFF',hueSoft:`hsl(${h},45%,91%)`,line:`hsl(${h},20%,85%)`,hl:`hsl(${h},60%,88%)`,glass:`hsla(${h},30%,98%,0.86)`,blobA:`hsla(${h},75%,76%,0.9)`,blobB:`hsla(${h+16},70%,82%,0.9)`}; return { ...P }; }
+}
+</script>
+</body>
+</html>

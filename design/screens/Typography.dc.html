@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reader display panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;background:{{paper}};color:{{ink}};font-family:'Atkinson Hyperlegible',sans-serif">
+<p style="margin:0;padding:56px 24px 0;font-family:'Literata',serif;font-size:18px;line-height:1.65;opacity:0.9">Capillary action draws water upward through narrow soil pores against gravity, supplying plant roots during dry intervals. The finer the pores, the higher the water climbs.</p>
+
+<div role="dialog" aria-label="Display settings" style="position:absolute;left:0;right:0;bottom:0;height:560px;border-radius:28px 28px 0 0;background:{{glass}};backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid #FFFFFF;box-shadow:0 -12px 40px rgba(28,27,25,0.14);padding:10px 20px 20px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+<div style="align-self:center;width:36px;height:4px;border-radius:2px;background:{{line}}"></div>
+
+<div style="display:flex;align-items:center;gap:12px">
+<button aria-label="Smaller text" style="width:48px;height:48px;border-radius:24px;border:1px solid {{line}};background:#fff;font-family:'Literata',serif;font-size:14px">A</button>
+<div style="flex:1;height:6px;border-radius:3px;background:{{line}};position:relative"><div style="width:45%;height:6px;border-radius:3px;background:{{hue}}"></div><span style="position:absolute;left:45%;top:-9px;width:24px;height:24px;margin-left:-12px;border-radius:12px;background:{{hue}};box-shadow:0 0 0 4px #fff"></span></div>
+<button aria-label="Larger text" style="width:48px;height:48px;border-radius:24px;border:1px solid {{line}};background:#fff;font-family:'Literata',serif;font-size:22px">A</button>
+</div>
+
+<div style="display:flex;gap:8px">
+<button style="flex:1;height:48px;border-radius:16px;border:2px solid {{hue}};background:#fff;font-family:'Literata',serif;font-size:15px">Literata</button>
+<button style="flex:1;height:48px;border-radius:16px;border:1px solid {{line}};background:#fff;font-family:'Atkinson Hyperlegible',sans-serif;font-size:15px">Atkinson</button>
+<button style="flex:1;height:48px;border-radius:16px;border:1px solid {{line}};background:#fff;font-family:Georgia,serif;font-size:15px">Serif</button>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-size:13px;font-weight:700;color:{{inkSoft}}">Page theme</div>
+<div style="display:flex;gap:10px">
+<button aria-label="Day theme, selected" style="width:52px;height:52px;border-radius:26px;background:{{paper}};border:3px solid {{hue}}"></button>
+<button aria-label="Dusk theme" style="width:52px;height:52px;border-radius:26px;background:{{dusk}};border:1px solid {{line}}"></button>
+<button aria-label="Night theme" style="width:52px;height:52px;border-radius:26px;background:{{night}};border:1px solid {{night}}"></button>
+<button aria-label="Pure black OLED theme" style="width:52px;height:52px;border-radius:26px;background:#000;border:1px solid #000"></button>
+<button aria-label="E-ink theme" style="width:52px;height:52px;border-radius:26px;background:#fff;border:2px dashed #000"></button>
+</div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+<div style="border-radius:18px;background:{{hueSoft}};padding:12px;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:{{inkSoft}}">Line height</span><span style="font-size:15px;font-weight:700">1.65 · Indic 1.85</span></div>
+<div style="border-radius:18px;background:{{hueSoft}};padding:12px;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:{{inkSoft}}">Margins</span><span style="font-size:15px;font-weight:700">24 dp</span></div>
+<div style="border-radius:18px;background:{{hueSoft}};padding:12px;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:{{inkSoft}}">Layout</span><span style="font-size:15px;font-weight:700">Paginated</span></div>
+<div style="border-radius:18px;background:{{hueSoft}};padding:12px;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:{{inkSoft}}">Justify · hyphenate</span><span style="font-size:15px;font-weight:700">On · On</span></div>
+</div>
+
+<label style="display:flex;align-items:center;gap:12px;min-height:56px">
+<span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:15px;font-weight:700">Override publisher styles</span><span style="font-size:12px;color:{{inkSoft}}">Use my font and spacing in every book</span></span>
+<span style="width:52px;height:32px;border-radius:16px;background:{{hue}};padding:4px;box-sizing:border-box;display:flex;justify-content:flex-end"><span style="width:24px;height:24px;border-radius:12px;background:#fff"></span></span>
+</label>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"hue":{"editor":"range","min":0,"max":359,"step":1,"unit":"°","default":250},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const h = this.props.hue ?? 250; const P = {bg:`hsl(${h},28%,95%)`,paper:`hsl(${h},30%,98%)`,ink:`hsl(${h},32%,13%)`,inkSoft:`hsl(${h},14%,34%)`,hue:`hsl(${h},52%,38%)`,onHue:'#FFFFFF',hueSoft:`hsl(${h},45%,91%)`,line:`hsl(${h},20%,85%)`,hl:`hsl(${h},60%,88%)`,glass:`hsla(${h},30%,98%,0.86)`,blobA:`hsla(${h},75%,76%,0.9)`,blobB:`hsla(${h+16},70%,82%,0.9)`}; return { ...P, dusk:`hsl(${h},18%,88%)`, night:`hsl(${h},18%,12%)` }; }
+}
+</script>
+</body>
+</html>

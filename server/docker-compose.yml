@@ -1,13 +1,39 @@
 services:
-  zeusreader-server:
-    build: .
+  zeus-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: zeusreader-server
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8787:8787"
+      - "8765:8765"
     environment:
-      ZEUS_PAIRING_TOKEN: "${ZEUS_PAIRING_TOKEN:-zeus-dev-pairing-token}"
-      ZEUS_SERVER_DATA_DIR: "/srv/zeusreader/data"
-      ZEUS_AI_ENABLED: "${ZEUS_AI_ENABLED:-false}"
+      - ZEUS_PAIRING_TOKEN=${ZEUS_PAIRING_TOKEN:?Set ZEUS_PAIRING_TOKEN in .env}
+      - ZEUS_SERVER_DATA_DIR=/data
+      - ZEUS_DOH_ENABLED=${ZEUS_DOH_ENABLED:-true}
+      - ZEUS_METADATA_LOOKUP_ENABLED=${ZEUS_METADATA_LOOKUP_ENABLED:-true}
+      - ZEUS_AI_ENABLED=${ZEUS_AI_ENABLED:-false}
+      - ZEUS_OLLAMA_URL=${ZEUS_OLLAMA_URL:-http://host.docker.internal:11434}
     volumes:
-      - ./data:/srv/zeusreader/data
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Strictly offline conversion worker (Calibre + LibreOffice, no network)
+  converter:
+    image: linuxserver/calibre:latest
+    container_name: zeusreader-converter
+    network_mode: none
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=512m
+    volumes:
+      - ./data/converted:/output:rw
+      - ./data/books:/input:ro
+    mem_limit: 1536m
+    cpus: "1.5"
+    profiles:
+      - conversion

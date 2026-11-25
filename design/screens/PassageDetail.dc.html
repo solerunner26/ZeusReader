@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Passage detail and editing</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,400&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;background:{{bg}};color:{{ink}};font-family:'Atkinson Hyperlegible',sans-serif">
+<div style="padding:12px 12px 0;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:center;gap:4px">
+<button aria-label="Back to passages" style="width:48px;height:48px;border:0;border-radius:24px;background:transparent;color:{{ink}};display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+<span style="flex:1;font-size:17px;font-weight:700">Edit passage</span>
+<button style="height:40px;padding:0 16px;border:0;border-radius:20px;background:{{ink}};color:{{paper}};font:inherit;font-size:14px;font-weight:700">Done</button>
+</div>
+<div style="padding:0 8px;display:flex;flex-direction:column;gap:14px">
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:{{inkSoft}}">Passage text</span>
+<textarea style="min-height:150px;resize:none;border-radius:20px;border:2px solid {{hue}};background:{{paper}};padding:14px 16px;font-family:'Fraunces',serif;font-style:italic;font-size:17px;line-height:1.5;color:{{ink}};box-sizing:border-box">Capillary action draws water upward through narrow soil pores against gravity, supplying plant roots during dry intervals. The finer the pores, the higher the water climbs.</textarea>
+<span style="font-size:12px;color:{{inkSoft}}">Trim freely — the link to page 84 is kept</span></label>
+
+<div style="display:flex;gap:12px;align-items:center;padding:12px;border-radius:20px;background:{{paper}};border:1px solid {{line}}">
+<div aria-hidden="true" style="width:48px;height:68px;flex:none;border-radius:8px;background:linear-gradient(160deg,hsl(140,30%,38%),hsl(140,35%,22%))"></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><b style="font-size:15px">Soil Science for Beginners</b><span style="font-size:13px;color:{{inkSoft}}">R. Mehta · Chapter 4 · p. 84</span></div>
+<button style="height:40px;padding:0 12px;border-radius:20px;border:1px solid {{line}};background:transparent;color:{{hueText}};font:inherit;font-size:13px;font-weight:700">Open</button>
+</div>
+
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:{{inkSoft}}">Note</span><input value="Use for chapter 4 summary" style="height:48px;border-radius:14px;border:1px solid {{line}};background:{{paper}};padding:0 14px;font:inherit;font-size:14px;color:{{ink}}"></label>
+
+<div style="display:flex;gap:10px">
+<label style="flex:1;display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:{{inkSoft}}">Folder</span><select style="height:48px;border-radius:14px;border:1px solid {{line}};background:{{paper}};padding:0 12px;font:inherit;font-size:14px;color:{{ink}}"><option>Soil science</option><option>Exam quotes</option><option>To share</option></select></label>
+<div style="flex:1;display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:{{inkSoft}}">Tags</span><div style="display:flex;gap:6px;flex-wrap:wrap"><span style="height:32px;padding:0 10px;border-radius:10px;background:{{hueSoft}};color:{{hueText}};font-size:13px;font-weight:700;line-height:32px">water</span><span style="height:32px;padding:0 10px;border-radius:10px;border:1px dashed {{line}};font-size:13px;line-height:30px">+ tag</span></div></div>
+</div>
+<div style="font-size:12px;color:{{inkSoft}}">Saved 25 Nov 2026 · edited just now · shared 2×</div>
+</div>
+</div>
+
+<div role="group" aria-label="Passage actions" style="position:absolute;left:16px;right:16px;bottom:20px;display:flex;gap:8px">
+<button aria-label="Delete passage" style="width:56px;height:56px;flex:none;border-radius:18px;border:1px solid {{line}};background:{{paper}};color:{{ink}};display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"></path></svg></button>
+<button style="flex:1;height:56px;border-radius:18px;border:1px solid {{line}};background:{{paper}};color:{{ink}};font:inherit;font-size:15px;font-weight:700">Move</button>
+<button style="flex:1.6;height:56px;border-radius:18px;border:0;background:{{hue}};color:{{onHue}};font:inherit;font-size:15px;font-weight:700">Create card</button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"hue":{"editor":"range","min":0,"max":359,"step":1,"unit":"°","default":250},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const h = this.props.hue ?? 250;
+return { bg:`hsl(${h},28%,95%)`, paper:`hsl(${h},30%,98%)`, ink:`hsl(${h},32%,13%)`, inkSoft:`hsl(${h},14%,34%)`, hue:`hsl(${h},52%,38%)`, hueText:`hsl(${h},55%,32%)`, onHue:'#FFFFFF', hueSoft:`hsl(${h},45%,90%)`, line:`hsl(${h},20%,84%)` };
+}
+}
+</script>
+</body>
+</html>

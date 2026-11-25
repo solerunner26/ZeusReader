@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from app.auth import verify_pairing_token
 from app.config import ServerSettings
+from app.converter import OfflineLegacyConverter
 from app.db import ServerDatabase
 from spike.provider import MemoryOfTheWorldConnector, validate_magic_bytes_and_container
 from spike.slum_status import fetch_slum_status
@@ -544,6 +545,23 @@ def create_app(
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Server AI is disabled")
         words = [w.strip(".,;:!?\"'").lower() for w in req.passage_text.split() if len(w) > 5]
         return {"tags": list(dict.fromkeys(words))[:4], "model": cfg.ollama_instruct_model}
+
+    @app.post("/v1/convert")
+    def convert_legacy_book(
+        filename: str,
+        source_format: str,
+        _: str = Depends(require_token),
+    ) -> dict[str, Any]:
+        safe_name = Path(filename).name
+        source_path = cfg.books_dir / safe_name
+        result = OfflineLegacyConverter().convert(source_path, source_format, cfg.converted_dir)
+        if not result.success:
+            raise HTTPException(status_code=422, detail=result.error_message or "Conversion failed")
+        return {
+            "success": True,
+            "target_format": result.target_format,
+            "output_file": result.output_path.name if result.output_path else "",
+        }
 
     return app
 

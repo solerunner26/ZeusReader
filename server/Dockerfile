@@ -1,14 +1,19 @@
+# Multi-arch (linux/amd64 Windows 11 & linux/arm64 Oracle Always Free)
 FROM python:3.12-slim
 
-WORKDIR /srv/zeusreader
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./
-RUN pip install --no-cache-dir fastapi uvicorn[standard] pydantic sqlalchemy python-multipart httpx lxml
+RUN pip install --no-cache-dir .
 
 COPY app ./app
 COPY spike ./spike
 
-ENV ZEUS_SERVER_DATA_DIR=/srv/zeusreader/data
-EXPOSE 8787
+ENV ZEUS_SERVER_DATA_DIR=/data
+EXPOSE 8765
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8787"]
+CMD ["uvicorn", "app.main:app", "--factory", "--host", "0.0.0.0", "--port", "8765"]

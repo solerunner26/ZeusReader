@@ -30,7 +30,11 @@ import com.solerunner26.zeusreader.ui.passages.PassageDetailScreen
 import com.solerunner26.zeusreader.ui.passages.PassagesScreen
 import com.solerunner26.zeusreader.ui.passages.PassagesViewModel
 import com.solerunner26.zeusreader.ui.reader.ReaderActivity
+import com.solerunner26.zeusreader.ui.online.OnlineAcquisitionScreen
+import com.solerunner26.zeusreader.ui.online.OnlineAcquisitionViewModel
 import com.solerunner26.zeusreader.ui.settings.SettingsScreen
+import com.solerunner26.zeusreader.ui.stats.StatsScreen
+import com.solerunner26.zeusreader.ui.stats.StatsViewModel
 import com.solerunner26.zeusreader.ui.theme.AppUiConfigViewModel
 import com.solerunner26.zeusreader.ui.vocab.PrepareOfflineScreen
 import com.solerunner26.zeusreader.ui.vocab.VocabularyScreen
@@ -168,6 +172,24 @@ fun MainNavigation(
                     entry<SettingsRoute> {
                         val viewModel: AppUiConfigViewModel = hiltViewModel()
                         SettingsScreen(
+                            viewModel = viewModel,
+                            onBack = { backStack.removeLastOrNull() },
+                            onOpenStats = { backStack.add(StatsRoute) },
+                            onOpenOnlineSearch = { backStack.add(OnlineRoute) }
+                        )
+                    }
+
+                    entry<OnlineRoute> {
+                        val viewModel: OnlineAcquisitionViewModel = hiltViewModel()
+                        OnlineAcquisitionScreen(
+                            viewModel = viewModel,
+                            onBack = { backStack.removeLastOrNull() }
+                        )
+                    }
+
+                    entry<StatsRoute> {
+                        val viewModel: StatsViewModel = hiltViewModel()
+                        StatsScreen(
                             viewModel = viewModel,
                             onBack = { backStack.removeLastOrNull() }
                         )

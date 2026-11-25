@@ -6,6 +6,7 @@
 - **Integrated Harness & Hooks:** Added `HARNESS_AND_HOOKS.md` covering Gemini CLI safety/UI hooks, Git pre-commit guards, and the PowerShell test/ADB harness.
 - **Unified Open SLUM & online acquisition:** Integrated Open SLUM status monitoring, pluggable provider connectors (with optional DoH/proxy for Indian ISP blocks), two-stage transfer states (`ReadyOnServer` vs `AvailableOffline`), and browser handoff (`Share → ZeusReader`) directly into Phase 0 and Phase 7.
 
+"Scope is extended by docs/SCOPE-ADDENDUM-v2.md; UI follows design/DESIGN.md v2 (replaces v1)."
 ---
 
 ## 2. How Gemini Will Build & Push This App (Feasibility & Setup Plan)

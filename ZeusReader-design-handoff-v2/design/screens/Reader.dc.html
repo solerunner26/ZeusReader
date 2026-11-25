@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reader — immersive with fore-edge progress</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fraunces:opsz,wght@9..144,500&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;background:{{bg}};color:{{fg}};font-family:'Atkinson Hyperlegible',sans-serif">
+<div aria-hidden="true" style="position:absolute;inset:0;background:{{vignette}};pointer-events:none"></div>
+<button onClick="{{toggle}}" aria-label="Show or hide reading controls" style="position:absolute;inset:0;width:100%;height:100%;background:transparent;border:0;padding:0;cursor:pointer"></button>
+
+<div style="position:absolute;left:0;right:22px;top:0;padding:60px 26px 0 28px;display:flex;flex-direction:column;gap:18px;pointer-events:none">
+<div style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:2px;background:{{accent}}"></span><span style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:{{soft}}">Chapter 4 · Water in Soil</span></div>
+<h1 style="margin:0;font-family:'Fraunces',serif;font-weight:500;font-size:30px;line-height:1.15">How water moves upward</h1>
+<div style="position:relative;display:flex;flex-direction:column;gap:16px">
+<p style="margin:0;font-family:'Literata',serif;font-size:18px;line-height:1.65;opacity:{{dimA}}">Soil is not a solid block but a maze of particles and the spaces between them.</p>
+<p style="margin:0;font-family:'Literata',serif;font-size:18px;line-height:1.65;position:relative"><span style="background:{{hl}};border-radius:4px;box-decoration-break:clone;-webkit-box-decoration-break:clone;padding:0 2px">Capillary action draws water upward through narrow soil pores against gravity, supplying plant roots during dry intervals.</span><span aria-label="Saved passage" style="position:absolute;left:-16px;top:8px;width:4px;height:52px;border-radius:2px;background:{{accent}}"></span></p>
+<p style="margin:0;font-family:'Literata',serif;font-size:18px;line-height:1.65;opacity:{{dimB}}">The finer the pores, the higher the water climbs. In sandy soil the pores are wide, so water drains quickly and rises only a little.</p>
+<p style="margin:0;font-family:'Literata',serif;font-size:18px;line-height:1.65;opacity:{{dimB}}">Clay holds water close to the roots for longer, which is why gardeners mix the two.</p>
+<sc-if value="{{focus}}" hint-placeholder-val="{{ false }}">
+<div aria-hidden="true" style="position:absolute;left:-28px;right:-26px;top:100px;height:126px;border-top:1px solid {{accent}};border-bottom:1px solid {{accent}};opacity:0.5"></div>
+</sc-if>
+</div>
+</div>
+
+<div aria-label="Fore-edge progress, 37 percent read" role="img" style="position:absolute;right:6px;top:120px;bottom:130px;width:12px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none">
+<sc-for list="{{edges}}" as="e" hint-placeholder-count="40"><div style="height:{{e.h}};border-radius:1px;background:{{e.c}}"></div></sc-for>
+</div>
+
+<div aria-hidden="true" style="position:absolute;right:46px;top:0;width:16px;height:{{ribbonH}};background:{{accent}};clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%);pointer-events:none"></div>
+
+<sc-if value="{{chromeHidden}}" hint-placeholder-val="{{ true }}">
+<div style="position:absolute;left:28px;right:40px;bottom:22px;display:flex;justify-content:space-between;font-size:12px;color:{{soft}};pointer-events:none"><span>p. 84</span><span>12 min left in chapter</span></div>
+</sc-if>
+
+<sc-if value="{{chromeShown}}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:14px;right:14px;top:14px;height:56px;border-radius:28px;display:flex;align-items:center;gap:2px;padding:0 6px;background:{{bar}};border:1px solid {{barLine}};backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)">
+<button aria-label="Back to library" style="width:48px;height:48px;border:0;border-radius:24px;background:transparent;color:{{fg}};display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Soil Science for Beginners</span><span style="font-size:11px;color:{{soft}}">R. Mehta · 37%</span></div>
+<button aria-label="Search in book" style="width:48px;height:48px;border:0;border-radius:24px;background:transparent;color:{{fg}};display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg></button>
+<button aria-label="Bookmark this page" style="width:48px;height:48px;border:0;border-radius:24px;background:transparent;color:{{fg}};display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"></path></svg></button>
+</div>
+<div style="position:absolute;left:50%;transform:translateX(-50%);bottom:20px;display:flex;align-items:center;gap:4px;padding:6px;border-radius:32px;background:{{bar}};border:1px solid {{barLine}};backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);box-shadow:0 10px 30px rgba(0,0,0,0.12)">
+<button aria-label="Contents" style="width:52px;height:52px;border:0;border-radius:26px;background:transparent;color:{{fg}};display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg></button>
+<button aria-label="Display settings" style="width:52px;height:52px;border:0;border-radius:26px;background:transparent;color:{{fg}};font-family:'Fraunces',serif;font-size:20px">Aa</button>
+<button style="height:52px;padding:0 18px;border:0;border-radius:26px;background:{{accent}};color:{{onAccent}};font:inherit;font-size:15px;font-weight:700">Translate</button>
+<button aria-label="Passages" style="width:52px;height:52px;border:0;border-radius:26px;background:transparent;color:{{fg}};display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 7h4v6H5v-4a2 2 0 012-2zM17 7h4v6h-6v-4a2 2 0 012-2zM5 13c0 3 1 4 4 5M15 13c0 3 1 4 4 5"></path></svg></button>
+<button aria-label="Listen" style="width:52px;height:52px;border:0;border-radius:26px;background:transparent;color:{{fg}};display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg></button>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"hue":{"editor":"range","min":0,"max":359,"step":1,"unit":"°","default":250},"surface":{"editor":"enum","options":["Paper","Dusk","Night","OLED","E-ink"],"default":"Paper"},"focusRibbon":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(p){ super(p); this.state = { chrome: false }; }
+renderVals() {
+const h = this.props.hue ?? 250, s = this.props.surface ?? 'Paper';
+const S = {
+Paper:{bg:`hsl(${h},30%,98%)`,fg:`hsl(${h},32%,13%)`,soft:`hsl(${h},14%,38%)`,hl:`hsl(${h},60%,90%)`,accent:`hsl(${h},52%,40%)`,on:'#fff',bar:`hsla(${h},30%,98%,0.74)`,bl:'rgba(255,255,255,0.9)',vig:`radial-gradient(120% 60% at 50% -10%, hsla(${h},70%,80%,0.35), transparent 60%)`,edgeR:`hsl(${h},20%,84%)`},
+Dusk:{bg:`hsl(${h},18%,88%)`,fg:`hsl(${h},30%,14%)`,soft:`hsl(${h},14%,32%)`,hl:`hsl(${h},50%,79%)`,accent:`hsl(${h},50%,36%)`,on:'#fff',bar:`hsla(${h},18%,90%,0.78)`,bl:'rgba(255,255,255,0.7)',vig:`radial-gradient(120% 60% at 50% -10%, hsla(${h},60%,70%,0.3), transparent 60%)`,edgeR:`hsl(${h},14%,74%)`},
+Night:{bg:`hsl(${h},18%,12%)`,fg:`hsl(${h},14%,84%)`,soft:`hsl(${h},10%,64%)`,hl:`hsl(${h},35%,26%)`,accent:`hsl(${h},62%,72%)`,on:`hsl(${h},35%,10%)`,bar:`hsla(${h},18%,16%,0.78)`,bl:'rgba(255,255,255,0.12)',vig:`radial-gradient(120% 60% at 50% -10%, hsla(${h},70%,40%,0.25), transparent 60%)`,edgeR:`hsl(${h},12%,24%)`},
+OLED:{bg:'#000000',fg:`hsl(${h},10%,78%)`,soft:`hsl(${h},8%,60%)`,hl:`hsl(${h},35%,20%)`,accent:`hsl(${h},62%,70%)`,on:`hsl(${h},35%,10%)`,bar:'rgba(14,14,16,0.85)',bl:'rgba(255,255,255,0.1)',vig:'none',edgeR:'#1E1F22'},
+'E-ink':{bg:'#FFFFFF',fg:'#000000',soft:'#333333',hl:'#E6E6E6',accent:'#000000',on:'#FFFFFF',bar:'#FFFFFF',bl:'#000000',vig:'none',edgeR:'#BBBBBB'}
+};
+const t = S[s] || S.Paper;
+const f = this.props.focusRibbon ?? false;
+const edges = Array.from({length:40}, (_, i) => ({ h: i < 15 ? '1px' : '2px', c: i < 15 ? t.edgeR : t.soft }));
+edges[15] = { h:'3px', c:t.accent };
+return { bg:t.bg, fg:t.fg, soft:t.soft, hl:t.hl, accent:t.accent, onAccent:t.on, bar:t.bar, barLine:t.bl, vignette:t.vig,
+edges, ribbonH: this.state.chrome ? '64px' : '40px', focus: f, dimA: f ? 0.35 : 1, dimB: f ? 0.35 : 1,
+chromeShown: this.state.chrome, chromeHidden: !this.state.chrome, toggle: () => this.setState({ chrome: !this.state.chrome }) };
+}
+}
+</script>
+</body>
+</html>

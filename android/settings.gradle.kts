@@ -34,3 +34,4 @@ plugins {
 rootProject.name = "ZeusReader"
 
 include(":app")
+include(":benchmark")

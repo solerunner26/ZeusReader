@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scanned PDF with OCR confidence</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Noto+Sans+Gujarati:wght@400;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;background:{{bg}};color:{{ink}};font-family:'Atkinson Hyperlegible',sans-serif">
+<div style="padding:16px 12px 0;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;gap:6px;align-items:center">
+<button style="height:40px;padding:0 12px;border-radius:20px;border:1px solid {{line}};background:{{paper}};color:{{ink}};font:inherit;font-size:13px">Crop margins ✓</button>
+<button style="height:40px;padding:0 12px;border-radius:20px;border:1px solid {{line}};background:transparent;color:{{ink}};font:inherit;font-size:13px">Fit width</button>
+<span style="flex:1"></span>
+<span style="font-size:13px;opacity:0.8">140% · kept</span>
+</div>
+
+<div style="position:relative;border-radius:6px;background:#2B2A27;padding:18px 16px;display:flex;gap:12px;height:330px;box-sizing:border-box;filter:none">
+<div style="flex:1;display:flex;flex-direction:column;gap:7px">
+<div style="height:9px;width:70%;background:#8C877C;border-radius:2px"></div>
+<div style="height:7px;background:#6E6A61;border-radius:2px"></div><div style="height:7px;background:#6E6A61;border-radius:2px"></div><div style="height:7px;width:88%;background:#6E6A61;border-radius:2px"></div>
+<div style="position:relative;display:flex;flex-direction:column;gap:7px;padding:6px;margin:0 -6px;border-radius:6px;outline:2px solid {{hue}};background:{{hueSel}}"><div style="height:7px;background:#B9B2A3;border-radius:2px"></div><div style="height:7px;background:#B9B2A3;border-radius:2px"></div><div style="height:7px;width:60%;background:#B9B2A3;border-radius:2px"></div></div>
+<div style="height:7px;background:#6E6A61;border-radius:2px"></div><div style="height:7px;width:80%;background:#6E6A61;border-radius:2px"></div><div style="height:7px;background:#6E6A61;border-radius:2px"></div><div style="height:7px;width:72%;background:#6E6A61;border-radius:2px"></div>
+</div>
+<div style="width:1px;background:#45433E"></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:7px">
+<div style="height:84px;border-radius:4px;border:1px solid #6E6A61;display:flex;align-items:flex-end;justify-content:space-around;padding:6px;box-sizing:border-box" aria-hidden="true"><span style="width:5px;height:60px;background:#7FA3C2"></span><span style="width:9px;height:38px;background:#7FA3C2"></span><span style="width:16px;height:16px;background:#7FA3C2"></span></div>
+<div style="height:6px;width:80%;background:#5E5A53;border-radius:2px"></div>
+<div style="height:7px;background:#6E6A61;border-radius:2px"></div><div style="height:7px;background:#6E6A61;border-radius:2px"></div><div style="height:7px;width:66%;background:#6E6A61;border-radius:2px"></div><div style="height:7px;background:#6E6A61;border-radius:2px"></div>
+</div>
+<div style="position:absolute;right:10px;bottom:10px;font-size:11px;padding:3px 8px;border-radius:999px;background:{{bg}};color:{{ink}}">2 columns · reading order L→R</div>
+</div>
+
+<div style="border-radius:24px;background:{{paper}};border:1px solid {{line}};padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:8px">
+<span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:{{hueSoft}};color:{{hue}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 3l10 18H2z"></path><path d="M12 10v5M12 18v.5"></path></svg>OCR 78% · check</span>
+<span style="flex:1"></span>
+<div style="display:flex;gap:2px;padding:3px;border-radius:999px;background:{{bg}}">
+<button style="height:36px;padding:0 12px;border:0;border-radius:999px;background:{{hue}};color:{{onHue}};font:inherit;font-size:12px;font-weight:700">OCR text</button>
+<button style="height:36px;padding:0 12px;border:0;border-radius:999px;background:transparent;color:{{ink}};font:inherit;font-size:12px">Original crop</button>
+</div>
+</div>
+<p style="margin:0;font-size:15px;line-height:1.55">Capillary action draws water upward through narrow soil <span style="text-decoration:underline wavy {{hue}}">pores</span> against gravity, supplying plant roots during dry intervals.</p>
+<div style="height:1px;background:{{line}}"></div>
+<div style="display:flex;gap:10px;align-items:flex-start"><span style="flex:none;font-size:11px;font-weight:700;padding:3px 7px;border-radius:6px;background:{{ink}};color:{{bg}}">GU</span><p lang="gu" style="margin:0;font-family:'Noto Sans Gujarati',sans-serif;font-size:16px;line-height:1.8">કેશિકા ક્રિયા ગુરુત્વાકર્ષણની વિરુદ્ધ માટીના સાંકડા છિદ્રોમાંથી પાણીને ઉપર તરફ ખેંચે છે, જેનાથી શુષ્ક સમયગાળા દરમિયાન છોડના મૂળને પાણી મળે છે.</p></div>
+<div style="font-size:12px;opacity:0.75">Low-confidence words are underlined · tap one to correct it before translating</div>
+</div>
+</div>
+<div style="position:absolute;left:20px;right:20px;bottom:18px;display:flex;justify-content:space-between;font-size:12px;opacity:0.65"><span>p. 84 / 312 · Night</span><span>Pinch to zoom diagram</span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"hue":{"editor":"range","min":0,"max":359,"step":1,"unit":"°","default":250},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const h = this.props.hue ?? 250; const P = {bg:`hsl(${h},18%,12%)`,paper:`hsl(${h},16%,17%)`,ink:`hsl(${h},14%,86%)`,line:`hsl(${h},12%,26%)`,hue:`hsl(${h},62%,72%)`,onHue:`hsl(${h},35%,10%)`,hueSoft:`hsl(${h},30%,22%)`,hueSel:`hsla(${h},62%,72%,0.16)`}; return { ...P }; }
+}
+</script>
+</body>
+</html>

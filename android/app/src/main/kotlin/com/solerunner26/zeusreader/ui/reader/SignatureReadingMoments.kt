@@ -278,7 +278,7 @@ fun ChapterBreathCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 BreathStat("Time read", "${minutesRead.coerceAtLeast(1)} min")
-                BreathStat("Passages saved", "$passagesSaved")
+                BreathStat("Passages saved this chapter", "$passagesSaved")
                 BreathStat("Words learned", "$wordsLearned")
             }
             Spacer(Modifier.height(4.dp))

@@ -36,3 +36,9 @@ data class PassageDetailRoute(val passageId: String) : NavKey
 
 @Serializable
 data class CardStudioRoute(val passageId: String) : NavKey
+
+@Serializable
+data object StatsRoute : NavKey
+
+@Serializable
+data object OnlineRoute : NavKey

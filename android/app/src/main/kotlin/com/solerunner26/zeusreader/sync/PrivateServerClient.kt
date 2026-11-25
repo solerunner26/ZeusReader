@@ -52,6 +52,74 @@ data class BackupSummaryDto(
     val created_at_ms: Long
 )
 
+@Serializable
+data class SlumDomainDto(
+    val host: String,
+    val role: String,
+    val health: String
+)
+
+@Serializable
+data class SlumProviderDto(
+    val name: String,
+    val overall_status: String,
+    val domains: List<SlumDomainDto> = emptyList()
+)
+
+@Serializable
+data class SlumStatusDto(
+    val fetched_at_utc: String = "",
+    val stale: Boolean = false,
+    val providers: List<SlumProviderDto> = emptyList()
+)
+
+@Serializable
+data class OnlineSearchResultDto(
+    val source: String,
+    val title: String,
+    val authors: List<String> = emptyList(),
+    val language: String = "",
+    val year: String = "",
+    val format: String,
+    val byte_size: Long? = null,
+    val download_url: String,
+    val idempotency_key: String
+)
+
+@Serializable
+data class OnlineSearchResponseDto(
+    val query: String,
+    val results: List<OnlineSearchResultDto> = emptyList(),
+    val warnings: List<String> = emptyList()
+)
+
+@Serializable
+data class TransferCreateDto(
+    val idempotency_key: String,
+    val source: String,
+    val title: String,
+    val authors: List<String> = emptyList(),
+    val language: String = "",
+    val year: String = "",
+    val format: String,
+    val download_url: String
+)
+
+@Serializable
+data class TransferJobDto(
+    val job_id: String,
+    val idempotency_key: String,
+    val source: String,
+    val title: String,
+    val format: String,
+    val state: String,
+    val progress_percent: Int = 0,
+    val error_message: String? = null,
+    val browser_url: String? = null,
+    val file_sha256: String? = null,
+    val byte_size: Long? = null
+)
+
 @Singleton
 class PrivateServerClient @Inject constructor() {
 
@@ -100,6 +168,94 @@ class PrivateServerClient @Inject constructor() {
                     if (code !in 200..299) error("Backup upload failed with HTTP $code")
                     val body = BufferedReader(InputStreamReader(conn.inputStream, Charsets.UTF_8)).use { it.readText() }
                     json.decodeFromString(BackupSummaryDto.serializer(), body)
+                } finally {
+                    conn.disconnect()
+                }
+            }
+        }
+
+    suspend fun getSlumStatus(baseUrl: String, token: String): Result<SlumStatusDto> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val conn = openConnection("${baseUrl.trimEnd('/')}/v1/slum/status", "GET", token)
+                try {
+                    val code = conn.responseCode
+                    if (code !in 200..299) error("SLUM status failed with HTTP $code")
+                    val body = BufferedReader(InputStreamReader(conn.inputStream, Charsets.UTF_8)).use { it.readText() }
+                    json.decodeFromString(SlumStatusDto.serializer(), body)
+                } finally {
+                    conn.disconnect()
+                }
+            }
+        }
+
+    suspend fun searchOnline(baseUrl: String, token: String, query: String): Result<OnlineSearchResponseDto> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val encoded = java.net.URLEncoder.encode(query, "UTF-8")
+                val conn = openConnection("${baseUrl.trimEnd('/')}/v1/search?q=$encoded", "GET", token)
+                try {
+                    val code = conn.responseCode
+                    if (code !in 200..299) error("Search failed with HTTP $code")
+                    val body = BufferedReader(InputStreamReader(conn.inputStream, Charsets.UTF_8)).use { it.readText() }
+                    json.decodeFromString(OnlineSearchResponseDto.serializer(), body)
+                } finally {
+                    conn.disconnect()
+                }
+            }
+        }
+
+    suspend fun enqueueTransfer(baseUrl: String, token: String, request: TransferCreateDto): Result<TransferJobDto> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val conn = openConnection("${baseUrl.trimEnd('/')}/v1/transfers", "POST", token)
+                try {
+                    conn.doOutput = true
+                    OutputStreamWriter(conn.outputStream, Charsets.UTF_8).use { writer ->
+                        writer.write(json.encodeToString(TransferCreateDto.serializer(), request))
+                    }
+                    val code = conn.responseCode
+                    if (code !in 200..299) error("Enqueue transfer failed with HTTP $code")
+                    val body = BufferedReader(InputStreamReader(conn.inputStream, Charsets.UTF_8)).use { it.readText() }
+                    json.decodeFromString(TransferJobDto.serializer(), body)
+                } finally {
+                    conn.disconnect()
+                }
+            }
+        }
+
+    suspend fun listTransfers(baseUrl: String, token: String): Result<List<TransferJobDto>> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val conn = openConnection("${baseUrl.trimEnd('/')}/v1/transfers", "GET", token)
+                try {
+                    val code = conn.responseCode
+                    if (code !in 200..299) error("List transfers failed with HTTP $code")
+                    val body = BufferedReader(InputStreamReader(conn.inputStream, Charsets.UTF_8)).use { it.readText() }
+                    json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(TransferJobDto.serializer()), body)
+                } finally {
+                    conn.disconnect()
+                }
+            }
+        }
+
+    suspend fun cancelTransfer(baseUrl: String, token: String, jobId: String): Result<TransferJobDto> =
+        postEmpty("${baseUrl.trimEnd('/')}/v1/transfers/$jobId/cancel", token)
+
+    suspend fun retryTransfer(baseUrl: String, token: String, jobId: String): Result<TransferJobDto> =
+        postEmpty("${baseUrl.trimEnd('/')}/v1/transfers/$jobId/retry", token)
+
+    private suspend fun postEmpty(url: String, token: String): Result<TransferJobDto> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val conn = openConnection(url, "POST", token)
+                try {
+                    conn.doOutput = true
+                    conn.outputStream.close()
+                    val code = conn.responseCode
+                    if (code !in 200..299) error("Transfer action failed with HTTP $code")
+                    val body = BufferedReader(InputStreamReader(conn.inputStream, Charsets.UTF_8)).use { it.readText() }
+                    json.decodeFromString(TransferJobDto.serializer(), body)
                 } finally {
                     conn.disconnect()
                 }

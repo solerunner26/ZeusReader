@@ -59,6 +59,8 @@ import kotlin.math.roundToInt
 fun SettingsScreen(
     viewModel: AppUiConfigViewModel,
     onBack: () -> Unit,
+    onOpenStats: () -> Unit = {},
+    onOpenOnlineSearch: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val config by viewModel.config.collectAsStateWithLifecycle()
@@ -72,6 +74,8 @@ fun SettingsScreen(
         config = config,
         darkTheme = dark,
         onBack = onBack,
+        onOpenStats = onOpenStats,
+        onOpenOnlineSearch = onOpenOnlineSearch,
         onSelectAppTheme = viewModel::setAppTheme,
         onSelectLanguage = viewModel::setAppLanguage,
         onSelectPreset = viewModel::setPreset,
@@ -92,6 +96,8 @@ internal fun SettingsScreenContent(
     config: AppUiConfig,
     darkTheme: Boolean,
     onBack: () -> Unit,
+    onOpenStats: () -> Unit = {},
+    onOpenOnlineSearch: () -> Unit = {},
     onSelectAppTheme: (AppTheme) -> Unit,
     onSelectLanguage: (AppLanguage) -> Unit,
     onSelectPreset: (HuePreset) -> Unit,
@@ -251,6 +257,36 @@ internal fun SettingsScreenContent(
                         SettingsSwitchRow("Glass UI", config.glassUi, onToggleGlassUi)
                         SettingsSwitchRow("Aesthetic elements (Aura)", config.aestheticElements, onToggleAestheticElements)
                         SettingsSwitchRow("Master animations", config.masterAnimations, onToggleMasterAnimations)
+                    }
+                }
+
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("Tools & Private Server", style = MaterialTheme.typography.titleMedium)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            androidx.compose.material3.OutlinedButton(
+                                onClick = onOpenStats,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(min = 48.dp)
+                            ) {
+                                Text("Reading Stats")
+                            }
+                            androidx.compose.material3.Button(
+                                onClick = onOpenOnlineSearch,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(min = 48.dp)
+                            ) {
+                                Text("Online & Sync")
+                            }
+                        }
                     }
                 }
 
