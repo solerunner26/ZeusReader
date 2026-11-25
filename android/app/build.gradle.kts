@@ -106,6 +106,7 @@ dependencies {
     // Images & MuPDF
     implementation(libs.coil.compose)
     implementation(libs.mupdf.fitz)
+    implementation(libs.androidx.palette.ktx)
 
     // Google ML Kit (Offline Translation, Latin OCR, Language ID)
     implementation(libs.mlkit.translate)
