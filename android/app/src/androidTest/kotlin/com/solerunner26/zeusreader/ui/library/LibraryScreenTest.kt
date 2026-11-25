@@ -20,13 +20,19 @@ class LibraryScreenTest {
             ZeusReaderTheme {
                 LibraryScreenContent(
                     uiState = LibraryUiState.Empty,
+                    isImporting = false,
                     snackbarHostState = SnackbarHostState(),
-                    onImportClick = {}
+                    onImportClick = {},
+                    onOpenWatchedFolders = {},
+                    onSearchQueryChange = {},
+                    onFilterSelected = {},
+                    onOpenBook = {}
                 )
             }
         }
 
         composeTestRule.onNodeWithText("Your library is empty").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Import from device").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Import files").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Watched folders").assertIsDisplayed()
     }
 }

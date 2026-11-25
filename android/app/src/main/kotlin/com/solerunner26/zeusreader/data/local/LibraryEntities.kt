@@ -112,3 +112,106 @@ data class FileAssetEntity(
     @ColumnInfo(name = "created_at_epoch_ms")
     val createdAtEpochMs: Long
 )
+
+/** Ordered page entry inside an image book Edition (JPG/PNG). */
+@Entity(
+    tableName = "image_book_pages",
+    foreignKeys = [
+        ForeignKey(
+            entity = EditionEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["edition_id"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = FileAssetEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["file_asset_id"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [
+        Index(value = ["edition_id", "page_order"]),
+        Index(value = ["file_asset_id"])
+    ]
+)
+data class ImageBookPageEntity(
+    @PrimaryKey
+    val id: String,
+    @ColumnInfo(name = "edition_id")
+    val editionId: String,
+    @ColumnInfo(name = "file_asset_id")
+    val fileAssetId: String,
+    @ColumnInfo(name = "page_order")
+    val pageOrder: Int,
+    @ColumnInfo(name = "display_name")
+    val displayName: String,
+    @ColumnInfo(name = "local_path")
+    val localPath: String
+)
+
+/** Persisted SAF tree URI monitored for automatic local imports. */
+@Entity(
+    tableName = "watched_folders",
+    indices = [Index(value = ["tree_uri"], unique = true)]
+)
+data class WatchedFolderEntity(
+    @PrimaryKey
+    val id: String,
+    @ColumnInfo(name = "tree_uri")
+    val treeUri: String,
+    @ColumnInfo(name = "display_name")
+    val displayName: String,
+    @ColumnInfo(name = "added_at_epoch_ms")
+    val addedAtEpochMs: Long,
+    @ColumnInfo(name = "last_scanned_epoch_ms")
+    val lastScannedEpochMs: Long? = null
+)
+
+/** Persisted viewport & page resume state per Edition. */
+@Entity(
+    tableName = "reading_progress",
+    foreignKeys = [
+        ForeignKey(
+            entity = EditionEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["edition_id"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
+data class ReadingProgressEntity(
+    @PrimaryKey
+    @ColumnInfo(name = "edition_id")
+    val editionId: String,
+    @ColumnInfo(name = "page_index")
+    val pageIndex: Int = 0,
+    @ColumnInfo(name = "viewport_scale")
+    val viewportScale: Float = 1f,
+    @ColumnInfo(name = "scroll_x")
+    val scrollX: Float = 0f,
+    @ColumnInfo(name = "scroll_y")
+    val scrollY: Float = 0f,
+    @ColumnInfo(name = "updated_at_epoch_ms")
+    val updatedAtEpochMs: Long
+)
+
+/** Read-model summary displayed in the Library screen. */
+data class LibraryBookSummary(
+    val workId: String,
+    val editionId: String,
+    val title: String,
+    val authors: String,
+    val language: String,
+    val publicationYear: Int?,
+    val primaryFormat: String,
+    val totalByteSize: Long,
+    val assetCount: Int,
+    val imagePageCount: Int,
+    val primaryLocalPath: String?,
+    val lastPageIndex: Int?,
+    val updatedAtEpochMs: Long
+) {
+    val isImageBook: Boolean
+        get() = imagePageCount > 0 || primaryFormat.uppercase() in setOf("JPG", "JPEG", "PNG", "IMAGE_BOOK")
+}

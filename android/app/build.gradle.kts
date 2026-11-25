@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.roborazzi)
 }
 
 android {
@@ -41,11 +42,21 @@ android {
         shaders = false
     }
 
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+roborazzi {
+    outputDir.set(layout.projectDirectory.dir("src/test/snapshots"))
 }
 
 kotlin {
@@ -60,6 +71,7 @@ ksp {
 dependencies {
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
+    testImplementation(composeBom)
     androidTestImplementation(composeBom)
 
     // Core Android
@@ -67,6 +79,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.documentfile)
+    implementation(libs.androidx.work.runtime.ktx)
 
     // Compose & Material 3 Expressive
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -76,8 +90,13 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    testImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    // Images & MuPDF
+    implementation(libs.coil.compose)
+    implementation(libs.mupdf.fitz)
 
     // Navigation 3
     implementation(libs.androidx.navigation3.ui)
@@ -87,7 +106,9 @@ dependencies {
     // Hilt DI
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.hilt.work)
     ksp(libs.hilt.compiler)
+    ksp(libs.androidx.hilt.compiler)
 
     // Room + FTS4
     implementation(libs.androidx.room.runtime)
@@ -95,9 +116,15 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.androidx.room.testing)
 
-    // Unit Tests
+    // Unit, Robolectric & Roborazzi Visual Regression Tests
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
 
     // Instrumented Tests
     androidTestImplementation(libs.androidx.test.core)

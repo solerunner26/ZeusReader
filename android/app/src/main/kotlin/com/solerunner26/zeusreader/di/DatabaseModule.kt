@@ -25,7 +25,9 @@ object DatabaseModule {
             context,
             ZeusReaderDatabase::class.java,
             "zeusreader.db"
-        ).build()
+        )
+            .addMigrations(ZeusReaderDatabase.MIGRATION_1_2)
+            .build()
 
     @Provides
     fun provideLibraryDao(database: ZeusReaderDatabase): LibraryDao = database.libraryDao()
