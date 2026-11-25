@@ -30,6 +30,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Translate
@@ -97,6 +98,13 @@ fun PdfReaderScreen(
     val dictionaryResult by viewModel.dictionaryResult.collectAsStateWithLifecycle()
     val sentenceTranslation by viewModel.sentenceTranslation.collectAsStateWithLifecycle()
     val targetLanguage by viewModel.targetLanguage.collectAsStateWithLifecycle()
+    val translatedModeEnabled by viewModel.translatedModeEnabled.collectAsStateWithLifecycle()
+    val translatedDisplayMode by viewModel.translatedDisplayMode.collectAsStateWithLifecycle()
+    val translationEnginePreference by viewModel.translationEnginePreference.collectAsStateWithLifecycle()
+    val translatedPassage by viewModel.translatedPassage.collectAsStateWithLifecycle()
+    val isTranslatingPassage by viewModel.isTranslatingPassage.collectAsStateWithLifecycle()
+    val ocrNotice by viewModel.ocrNotice.collectAsStateWithLifecycle()
+    val bookGlossary by viewModel.bookGlossary.collectAsStateWithLifecycle()
     val activity = LocalActivity.current
 
     var showTocSheet by remember { mutableStateOf(false) }
@@ -209,6 +217,13 @@ fun PdfReaderScreen(
                         Icon(Icons.Rounded.BookmarkAdd, contentDescription = "Highlights & notes")
                     }
                     IconButton(
+                        onClick = { viewModel.toggleTranslatedReadingMode(!translatedModeEnabled) },
+                        enabled = ready != null,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(Icons.Rounded.AutoStories, contentDescription = "Translated reading mode")
+                    }
+                    IconButton(
                         onClick = {
                             viewModel.lookupWord("capillary", ready?.reflowedText?.take(220).orEmpty())
                             showDictionarySheet = true
@@ -294,7 +309,26 @@ fun PdfReaderScreen(
                 }
 
                 is PdfReaderUiState.Ready -> {
-                    if (settings.pdfReflowMode && state.reflowedText != null) {
+                    if (translatedModeEnabled) {
+                        TranslatedReadingOverlay(
+                            sectionLabel = "Page ${state.currentPage + 1} / ${state.pageCount}",
+                            passageResult = translatedPassage,
+                            isTranslating = isTranslatingPassage,
+                            ocrNotice = ocrNotice,
+                            targetLanguage = targetLanguage,
+                            displayMode = translatedDisplayMode,
+                            enginePreference = translationEnginePreference,
+                            glossaryTerms = bookGlossary,
+                            settings = settings,
+                            onSelectTargetLanguage = { viewModel.setTargetLanguage(it) },
+                            onSelectDisplayMode = viewModel::setTranslatedDisplayMode,
+                            onSelectEnginePreference = viewModel::setTranslationEnginePreference,
+                            onRetranslatePassage = viewModel::retranslateCurrentPassage,
+                            onAddGlossaryTerm = viewModel::addGlossaryTerm,
+                            onRemoveGlossaryTerm = viewModel::removeGlossaryTerm,
+                            onExitTranslatedMode = { viewModel.toggleTranslatedReadingMode(false) }
+                        )
+                    } else if (settings.pdfReflowMode && state.reflowedText != null) {
                         val baseSp = (16f * settings.fontSizePercent / 100f).sp
                         Column(
                             modifier = Modifier

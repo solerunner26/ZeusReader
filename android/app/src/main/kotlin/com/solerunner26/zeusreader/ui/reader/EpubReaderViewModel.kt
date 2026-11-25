@@ -5,8 +5,10 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.solerunner26.zeusreader.data.LibraryRepository
+import com.solerunner26.zeusreader.data.local.BookGlossaryEntity
 import com.solerunner26.zeusreader.data.local.HighlightEntity
 import com.solerunner26.zeusreader.data.local.ReadingProgressEntity
+import com.solerunner26.zeusreader.ml.StudyTargetLanguage
 import com.solerunner26.zeusreader.reader.core.ReaderCapabilities
 import com.solerunner26.zeusreader.reader.core.UnifiedLocator
 import com.solerunner26.zeusreader.reader.epub.EpubSearchResultItem
@@ -15,6 +17,10 @@ import com.solerunner26.zeusreader.reader.epub.ReadiumEpubSession
 import com.solerunner26.zeusreader.reader.prefs.ReaderPreferencesRepository
 import com.solerunner26.zeusreader.reader.prefs.ReaderSettings
 import com.solerunner26.zeusreader.reader.prefs.ReaderThemeMode
+import com.solerunner26.zeusreader.translation.TranslatedDisplayMode
+import com.solerunner26.zeusreader.translation.TranslatedPassageResult
+import com.solerunner26.zeusreader.translation.TranslatedReadingEngine
+import com.solerunner26.zeusreader.translation.TranslationEnginePreference
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -57,11 +63,13 @@ sealed interface EpubReaderUiState {
 class EpubReaderViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val libraryRepository: LibraryRepository,
-    private val preferencesRepository: ReaderPreferencesRepository
+    private val preferencesRepository: ReaderPreferencesRepository,
+    private val translatedReadingEngine: TranslatedReadingEngine
 ) : ViewModel() {
 
     private var session: ReadiumEpubSession? = null
     private val editionIdFlow = MutableStateFlow<String?>(null)
+    private var fileVersionSha256: String = ""
     private var latestLocator: Locator? = null
 
     val settings: StateFlow<ReaderSettings> = preferencesRepository.settings
@@ -89,6 +97,33 @@ class EpubReaderViewModel @Inject constructor(
     private val _isSearching = MutableStateFlow(false)
     val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
 
+    val bookGlossary: StateFlow<List<BookGlossaryEntity>> = editionIdFlow
+        .filterNotNull()
+        .flatMapLatest { libraryRepository.observeBookGlossary(it) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
+
+    private val _translatedModeEnabled = MutableStateFlow(false)
+    val translatedModeEnabled: StateFlow<Boolean> = _translatedModeEnabled.asStateFlow()
+
+    private val _targetLanguage = MutableStateFlow(StudyTargetLanguage.HINDI)
+    val targetLanguage: StateFlow<StudyTargetLanguage> = _targetLanguage.asStateFlow()
+
+    private val _translatedDisplayMode = MutableStateFlow(TranslatedDisplayMode.INTERLINEAR)
+    val translatedDisplayMode: StateFlow<TranslatedDisplayMode> = _translatedDisplayMode.asStateFlow()
+
+    private val _translationEnginePreference = MutableStateFlow(TranslationEnginePreference.ON_DEVICE_MLKIT)
+    val translationEnginePreference: StateFlow<TranslationEnginePreference> = _translationEnginePreference.asStateFlow()
+
+    private val _translatedPassage = MutableStateFlow<TranslatedPassageResult?>(null)
+    val translatedPassage: StateFlow<TranslatedPassageResult?> = _translatedPassage.asStateFlow()
+
+    private val _isTranslatingPassage = MutableStateFlow(false)
+    val isTranslatingPassage: StateFlow<Boolean> = _isTranslatingPassage.asStateFlow()
+
     fun openBook(editionId: String, title: String, localPath: String) {
         if (editionIdFlow.value == editionId && session?.publication != null) return
         editionIdFlow.value = editionId
@@ -98,6 +133,7 @@ class EpubReaderViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = EpubReaderUiState.Loading
+            fileVersionSha256 = libraryRepository.getPrimaryFileSha256(editionId).orEmpty().ifBlank { editionId }
             val openResult = newSession.open(localPath)
             openResult.fold(
                 onSuccess = { pub ->
@@ -180,6 +216,9 @@ class EpubReaderViewModel @Inject constructor(
                 )
             )
         }
+        if (_translatedModeEnabled.value) {
+            translateCurrentChapter(forceRetranslate = false)
+        }
     }
 
     fun addHighlight(selectedText: String, note: String) {
@@ -216,6 +255,96 @@ class EpubReaderViewModel @Inject constructor(
                 _searchResults.value = active.search(query)
             } finally {
                 _isSearching.value = false
+            }
+        }
+    }
+
+    fun toggleTranslatedReadingMode(enabled: Boolean) {
+        _translatedModeEnabled.value = enabled
+        if (enabled) {
+            translateCurrentChapter(forceRetranslate = false)
+        }
+    }
+
+    fun setTargetLanguage(lang: StudyTargetLanguage) {
+        _targetLanguage.value = lang
+        if (_translatedModeEnabled.value) {
+            translateCurrentChapter(forceRetranslate = false)
+        }
+    }
+
+    fun setTranslatedDisplayMode(mode: TranslatedDisplayMode) {
+        _translatedDisplayMode.value = mode
+    }
+
+    fun setTranslationEnginePreference(pref: TranslationEnginePreference) {
+        _translationEnginePreference.value = pref
+        if (_translatedModeEnabled.value) {
+            translateCurrentChapter(forceRetranslate = false)
+        }
+    }
+
+    fun retranslateCurrentPassage() {
+        translateCurrentChapter(forceRetranslate = true)
+    }
+
+    fun addGlossaryTerm(term: String) {
+        val editionId = editionIdFlow.value ?: return
+        viewModelScope.launch {
+            libraryRepository.addGlossaryTerm(editionId, term)
+            if (_translatedModeEnabled.value) {
+                translateCurrentChapter(forceRetranslate = false)
+            }
+        }
+    }
+
+    fun removeGlossaryTerm(termId: String) {
+        val editionId = editionIdFlow.value ?: return
+        viewModelScope.launch {
+            libraryRepository.deleteGlossaryTerm(editionId, termId)
+            if (_translatedModeEnabled.value) {
+                translateCurrentChapter(forceRetranslate = false)
+            }
+        }
+    }
+
+    private fun translateCurrentChapter(forceRetranslate: Boolean) {
+        val active = session ?: return
+        val editionId = editionIdFlow.value ?: return
+        val href = latestLocator?.href?.toString()
+        val sectionId = href ?: "epub_section_0"
+        viewModelScope.launch {
+            _isTranslatingPassage.value = true
+            try {
+                val sectionText = active.extractSectionPlainText(href)
+                if (sectionText.isBlank()) {
+                    _translatedPassage.value = null
+                    return@launch
+                }
+                val result = translatedReadingEngine.translatePassage(
+                    editionId = editionId,
+                    fileVersionSha256 = fileVersionSha256.ifBlank { editionId },
+                    chapterOrSectionId = sectionId,
+                    passageText = sectionText,
+                    targetLang = _targetLanguage.value,
+                    enginePreference = _translationEnginePreference.value,
+                    forceRetranslate = forceRetranslate
+                )
+                _translatedPassage.value = result
+
+                val upcoming = active.extractUpcomingSectionPlainTexts(href, count = 3)
+                if (upcoming.isNotEmpty()) {
+                    translatedReadingEngine.pretranslateUpcomingPages(
+                        scope = viewModelScope,
+                        editionId = editionId,
+                        fileVersionSha256 = fileVersionSha256.ifBlank { editionId },
+                        upcomingSections = upcoming,
+                        targetLang = _targetLanguage.value,
+                        enginePreference = _translationEnginePreference.value
+                    )
+                }
+            } finally {
+                _isTranslatingPassage.value = false
             }
         }
     }

@@ -318,3 +318,70 @@ data class VocabWordEntity(
     @ColumnInfo(name = "deleted_at_epoch_ms")
     val deletedAtEpochMs: Long? = null
 )
+
+/** Passage-anchored sentence translation cache keyed per GEMINI.md §3.2. */
+@Entity(
+    tableName = "translation_cache",
+    primaryKeys = [
+        "file_version_sha256",
+        "chapter_or_section_id",
+        "source_passage_hash",
+        "sentence_index",
+        "target_lang",
+        "engine_id_version",
+        "glossary_revision"
+    ],
+    indices = [
+        Index(value = ["file_version_sha256", "chapter_or_section_id"])
+    ]
+)
+data class TranslationCacheEntity(
+    @ColumnInfo(name = "file_version_sha256")
+    val fileVersionSha256: String,
+    @ColumnInfo(name = "chapter_or_section_id")
+    val chapterOrSectionId: String,
+    @ColumnInfo(name = "source_passage_hash")
+    val sourcePassageHash: String,
+    @ColumnInfo(name = "sentence_index")
+    val sentenceIndex: Int,
+    @ColumnInfo(name = "target_lang")
+    val targetLang: String,
+    @ColumnInfo(name = "engine_id_version")
+    val engineIdVersion: String,
+    @ColumnInfo(name = "glossary_revision")
+    val glossaryRevision: Int,
+    @ColumnInfo(name = "source_sentence")
+    val sourceSentence: String,
+    @ColumnInfo(name = "translated_sentence")
+    val translatedSentence: String,
+    @ColumnInfo(name = "created_at_epoch_ms")
+    val createdAtEpochMs: Long
+)
+
+/** Per-book "Don't translate" glossary term; changing terms bumps glossary revision. */
+@Entity(
+    tableName = "book_glossary",
+    foreignKeys = [
+        ForeignKey(
+            entity = EditionEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["edition_id"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [
+        Index(value = ["edition_id"]),
+        Index(value = ["edition_id", "term"], unique = true)
+    ]
+)
+data class BookGlossaryEntity(
+    @PrimaryKey
+    val id: String,
+    @ColumnInfo(name = "edition_id")
+    val editionId: String,
+    val term: String,
+    @ColumnInfo(name = "glossary_revision")
+    val glossaryRevision: Int,
+    @ColumnInfo(name = "created_at_epoch_ms")
+    val createdAtEpochMs: Long
+)

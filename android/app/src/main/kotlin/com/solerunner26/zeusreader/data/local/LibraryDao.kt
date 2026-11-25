@@ -231,4 +231,49 @@ interface LibraryDao {
         """
     )
     suspend fun softDeleteVocabularyWord(wordId: String, deletedAtEpochMs: Long)
+
+    @Query(
+        """
+        SELECT * FROM translation_cache
+        WHERE file_version_sha256 = :fileSha256
+          AND chapter_or_section_id = :sectionId
+          AND source_passage_hash = :passageHash
+          AND target_lang = :targetLang
+          AND engine_id_version = :engineVersion
+          AND glossary_revision = :glossaryRevision
+        ORDER BY sentence_index ASC
+        """
+    )
+    suspend fun getCachedPassageTranslations(
+        fileSha256: String,
+        sectionId: String,
+        passageHash: String,
+        targetLang: String,
+        engineVersion: String,
+        glossaryRevision: Int
+    ): List<TranslationCacheEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertTranslationCacheEntries(entries: List<TranslationCacheEntity>)
+
+    @Query("SELECT * FROM book_glossary WHERE edition_id = :editionId ORDER BY term ASC")
+    fun observeBookGlossary(editionId: String): Flow<List<BookGlossaryEntity>>
+
+    @Query("SELECT * FROM book_glossary WHERE edition_id = :editionId ORDER BY term ASC")
+    suspend fun getBookGlossary(editionId: String): List<BookGlossaryEntity>
+
+    @Query("SELECT COALESCE(MAX(glossary_revision), 0) FROM book_glossary WHERE edition_id = :editionId")
+    suspend fun getCurrentGlossaryRevision(editionId: String): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertGlossaryTerm(term: BookGlossaryEntity)
+
+    @Query("UPDATE book_glossary SET glossary_revision = :newRevision WHERE edition_id = :editionId")
+    suspend fun bumpGlossaryRevisionForEdition(editionId: String, newRevision: Int)
+
+    @Query("DELETE FROM book_glossary WHERE id = :termId")
+    suspend fun deleteGlossaryTerm(termId: String)
+
+    @Query("SELECT fa.sha256 FROM file_assets fa WHERE fa.edition_id = :editionId ORDER BY fa.created_at_epoch_ms ASC LIMIT 1")
+    suspend fun getPrimaryFileSha256(editionId: String): String?
 }

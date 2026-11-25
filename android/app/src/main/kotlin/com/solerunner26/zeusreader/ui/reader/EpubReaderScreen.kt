@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
+import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Tune
@@ -87,6 +88,13 @@ fun EpubReaderScreen(
     val highlights by viewModel.highlights.collectAsStateWithLifecycle()
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
     val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
+    val translatedModeEnabled by viewModel.translatedModeEnabled.collectAsStateWithLifecycle()
+    val targetLanguage by viewModel.targetLanguage.collectAsStateWithLifecycle()
+    val translatedDisplayMode by viewModel.translatedDisplayMode.collectAsStateWithLifecycle()
+    val translationEnginePreference by viewModel.translationEnginePreference.collectAsStateWithLifecycle()
+    val translatedPassage by viewModel.translatedPassage.collectAsStateWithLifecycle()
+    val isTranslatingPassage by viewModel.isTranslatingPassage.collectAsStateWithLifecycle()
+    val bookGlossary by viewModel.bookGlossary.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
     var navigatorRef by remember { mutableStateOf<EpubNavigatorFragment?>(null) }
@@ -191,6 +199,13 @@ fun EpubReaderScreen(
                         modifier = Modifier.size(48.dp)
                     ) {
                         Icon(Icons.Rounded.BookmarkAdd, contentDescription = "Highlights & notes")
+                    }
+                    IconButton(
+                        onClick = { viewModel.toggleTranslatedReadingMode(!translatedModeEnabled) },
+                        enabled = ready != null,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(Icons.Rounded.AutoStories, contentDescription = "Translated reading mode")
                     }
                     IconButton(
                         onClick = { showTypographySheet = true },
@@ -302,6 +317,28 @@ fun EpubReaderScreen(
                         )
                     }
                 }
+            }
+
+            val readyOverlayState = uiState as? EpubReaderUiState.Ready
+            if (translatedModeEnabled && readyOverlayState != null) {
+                TranslatedReadingOverlay(
+                    sectionLabel = readyOverlayState.currentChapterTitle.ifBlank { "Current chapter" },
+                    passageResult = translatedPassage,
+                    isTranslating = isTranslatingPassage,
+                    ocrNotice = null,
+                    targetLanguage = targetLanguage,
+                    displayMode = translatedDisplayMode,
+                    enginePreference = translationEnginePreference,
+                    glossaryTerms = bookGlossary,
+                    settings = settings,
+                    onSelectTargetLanguage = viewModel::setTargetLanguage,
+                    onSelectDisplayMode = viewModel::setTranslatedDisplayMode,
+                    onSelectEnginePreference = viewModel::setTranslationEnginePreference,
+                    onRetranslatePassage = viewModel::retranslateCurrentPassage,
+                    onAddGlossaryTerm = viewModel::addGlossaryTerm,
+                    onRemoveGlossaryTerm = viewModel::removeGlossaryTerm,
+                    onExitTranslatedMode = { viewModel.toggleTranslatedReadingMode(false) }
+                )
             }
 
             if (settings.warmLightStrength > 0.01f) {

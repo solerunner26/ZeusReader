@@ -16,15 +16,61 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ReadingProgressEntity::class,
         HighlightEntity::class,
         UnsupportedFileEntity::class,
-        VocabWordEntity::class
+        VocabWordEntity::class,
+        TranslationCacheEntity::class,
+        BookGlossaryEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 abstract class ZeusReaderDatabase : RoomDatabase() {
     abstract fun libraryDao(): LibraryDao
 
     companion object {
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `translation_cache` (
+                        `file_version_sha256` TEXT NOT NULL,
+                        `chapter_or_section_id` TEXT NOT NULL,
+                        `source_passage_hash` TEXT NOT NULL,
+                        `sentence_index` INTEGER NOT NULL,
+                        `target_lang` TEXT NOT NULL,
+                        `engine_id_version` TEXT NOT NULL,
+                        `glossary_revision` INTEGER NOT NULL,
+                        `source_sentence` TEXT NOT NULL,
+                        `translated_sentence` TEXT NOT NULL,
+                        `created_at_epoch_ms` INTEGER NOT NULL,
+                        PRIMARY KEY(`file_version_sha256`, `chapter_or_section_id`, `source_passage_hash`, `sentence_index`, `target_lang`, `engine_id_version`, `glossary_revision`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_translation_cache_file_version_sha256_chapter_or_section_id` ON `translation_cache` (`file_version_sha256`, `chapter_or_section_id`)"
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `book_glossary` (
+                        `id` TEXT NOT NULL,
+                        `edition_id` TEXT NOT NULL,
+                        `term` TEXT NOT NULL,
+                        `glossary_revision` INTEGER NOT NULL,
+                        `created_at_epoch_ms` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`edition_id`) REFERENCES `editions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_book_glossary_edition_id` ON `book_glossary` (`edition_id`)"
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_book_glossary_edition_id_term` ON `book_glossary` (`edition_id`, `term`)"
+                )
+            }
+        }
+
         val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(

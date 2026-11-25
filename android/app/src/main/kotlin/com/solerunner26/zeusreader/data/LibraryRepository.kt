@@ -1,5 +1,6 @@
 package com.solerunner26.zeusreader.data
 
+import com.solerunner26.zeusreader.data.local.BookGlossaryEntity
 import com.solerunner26.zeusreader.data.local.HighlightEntity
 import com.solerunner26.zeusreader.data.local.ImageBookPageEntity
 import com.solerunner26.zeusreader.data.local.LibraryBookSummary
@@ -10,6 +11,7 @@ import com.solerunner26.zeusreader.data.local.VocabWordEntity
 import com.solerunner26.zeusreader.data.local.WatchedFolderEntity
 import com.solerunner26.zeusreader.data.local.WorkEntity
 import kotlinx.coroutines.flow.Flow
+import java.util.UUID
 import javax.inject.Inject
 
 interface LibraryRepository {
@@ -31,6 +33,10 @@ interface LibraryRepository {
     fun observeVocabularyWords(): Flow<List<VocabWordEntity>>
     suspend fun saveVocabularyWord(word: VocabWordEntity)
     suspend fun deleteVocabularyWord(wordId: String)
+    suspend fun getPrimaryFileSha256(editionId: String): String?
+    fun observeBookGlossary(editionId: String): Flow<List<BookGlossaryEntity>>
+    suspend fun addGlossaryTerm(editionId: String, term: String)
+    suspend fun deleteGlossaryTerm(editionId: String, termId: String)
 }
 
 class RoomLibraryRepository @Inject constructor(
@@ -95,6 +101,34 @@ class RoomLibraryRepository @Inject constructor(
 
     override suspend fun deleteVocabularyWord(wordId: String) {
         libraryDao.softDeleteVocabularyWord(wordId, System.currentTimeMillis())
+    }
+
+    override suspend fun getPrimaryFileSha256(editionId: String): String? =
+        libraryDao.getPrimaryFileSha256(editionId)
+
+    override fun observeBookGlossary(editionId: String): Flow<List<BookGlossaryEntity>> =
+        libraryDao.observeBookGlossary(editionId)
+
+    override suspend fun addGlossaryTerm(editionId: String, term: String) {
+        val cleaned = term.trim()
+        if (cleaned.isBlank()) return
+        val nextRev = libraryDao.getCurrentGlossaryRevision(editionId) + 1
+        libraryDao.bumpGlossaryRevisionForEdition(editionId, nextRev)
+        libraryDao.upsertGlossaryTerm(
+            BookGlossaryEntity(
+                id = UUID.randomUUID().toString(),
+                editionId = editionId,
+                term = cleaned,
+                glossaryRevision = nextRev,
+                createdAtEpochMs = System.currentTimeMillis()
+            )
+        )
+    }
+
+    override suspend fun deleteGlossaryTerm(editionId: String, termId: String) {
+        val nextRev = libraryDao.getCurrentGlossaryRevision(editionId) + 1
+        libraryDao.deleteGlossaryTerm(termId)
+        libraryDao.bumpGlossaryRevisionForEdition(editionId, nextRev)
     }
 
     companion object {

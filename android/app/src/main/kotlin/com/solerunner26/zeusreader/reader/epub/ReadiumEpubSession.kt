@@ -4,6 +4,7 @@ import android.content.Context
 import com.solerunner26.zeusreader.reader.core.ReaderCapabilities
 import com.solerunner26.zeusreader.reader.core.ReaderEngine
 import com.solerunner26.zeusreader.reader.core.ReaderEngineType
+import com.solerunner26.zeusreader.translation.SentenceSegmenter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.readium.r2.shared.publication.Link
@@ -179,6 +180,51 @@ class ReadiumEpubSession(
             }
             results
         }
+
+    suspend fun extractSectionPlainText(href: String?): String = withContext(Dispatchers.IO) {
+        val pub = publication ?: return@withContext ""
+        val order = pub.readingOrder
+        val targetLink = order.firstOrNull { it.href.toString() == href } ?: order.firstOrNull() ?: return@withContext ""
+        readPlainTextFromLink(pub, targetLink)
+    }
+
+    suspend fun extractUpcomingSectionPlainTexts(
+        currentHref: String?,
+        count: Int = 3
+    ): List<Pair<String, String>> = withContext(Dispatchers.IO) {
+        val pub = publication ?: return@withContext emptyList()
+        val order = pub.readingOrder
+        val idx = order.indexOfFirst { it.href.toString() == currentHref }.coerceAtLeast(0)
+        order.drop(idx + 1).take(count).mapNotNull { link ->
+            val plain = readPlainTextFromLink(pub, link)
+            if (plain.isBlank()) null else link.href.toString() to plain
+        }
+    }
+
+    private suspend fun readPlainTextFromLink(pub: Publication, link: Link): String {
+        val resource = pub.get(link) ?: return ""
+        val rawHtml = try {
+            when (val res = resource.read()) {
+                is Try.Success -> res.value.toString(Charsets.UTF_8)
+                is Try.Failure -> ""
+            }
+        } finally {
+            runCatching { resource.close() }
+        }
+        if (rawHtml.isBlank()) return ""
+        val bodyOnly = rawHtml
+            .replace(Regex("(?is)<(script|style|head)\\b[^>]*>.*?</\\1>"), " ")
+            .replace(Regex("(?i)</(p|div|li|h[1-6]|blockquote|tr)>"), "\n")
+            .replace(Regex("(?i)<br\\s*/?>"), "\n")
+            .replace(Regex("<[^>]+>"), " ")
+            .replace("&nbsp;", " ")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'")
+        return SentenceSegmenter.stripHeadersAndFooters(bodyOnly)
+    }
 
     override fun close() {
         runCatching { publication?.close() }

@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.solerunner26.zeusreader.data.LibraryRepository
+import com.solerunner26.zeusreader.data.local.BookGlossaryEntity
 import com.solerunner26.zeusreader.data.local.HighlightEntity
 import com.solerunner26.zeusreader.data.local.ReadingProgressEntity
 import com.solerunner26.zeusreader.data.local.VocabWordEntity
@@ -17,6 +18,11 @@ import com.solerunner26.zeusreader.reader.pdf.PdfOutlineEntry
 import com.solerunner26.zeusreader.reader.pdf.PdfSearchHit
 import com.solerunner26.zeusreader.reader.prefs.ReaderPreferencesRepository
 import com.solerunner26.zeusreader.reader.prefs.ReaderSettings
+import com.solerunner26.zeusreader.translation.SentenceSegmenter
+import com.solerunner26.zeusreader.translation.TranslatedDisplayMode
+import com.solerunner26.zeusreader.translation.TranslatedPassageResult
+import com.solerunner26.zeusreader.translation.TranslatedReadingEngine
+import com.solerunner26.zeusreader.translation.TranslationEnginePreference
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,11 +62,13 @@ class PdfReaderViewModel @Inject constructor(
     private val libraryRepository: LibraryRepository,
     private val preferencesRepository: ReaderPreferencesRepository,
     private val dictionaryRepository: OfflineDictionaryRepository,
-    private val translationService: TranslationService
+    private val translationService: TranslationService,
+    private val translatedReadingEngine: TranslatedReadingEngine
 ) : ViewModel() {
 
     private var session: MuPdfDocumentSession? = null
     private val editionIdFlow = MutableStateFlow<String?>(null)
+    private var fileVersionSha256: String = ""
     private var currentTitle: String = ""
     private var totalPages: Int = 0
     private var targetRenderWidthPx: Int = 1080
@@ -103,11 +111,83 @@ class PdfReaderViewModel @Inject constructor(
     private val _targetLanguage = MutableStateFlow(StudyTargetLanguage.HINDI)
     val targetLanguage: StateFlow<StudyTargetLanguage> = _targetLanguage.asStateFlow()
 
+    val bookGlossary: StateFlow<List<BookGlossaryEntity>> = editionIdFlow
+        .filterNotNull()
+        .flatMapLatest { libraryRepository.observeBookGlossary(it) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
+
+    private val _translatedModeEnabled = MutableStateFlow(false)
+    val translatedModeEnabled: StateFlow<Boolean> = _translatedModeEnabled.asStateFlow()
+
+    private val _translatedDisplayMode = MutableStateFlow(TranslatedDisplayMode.INTERLINEAR)
+    val translatedDisplayMode: StateFlow<TranslatedDisplayMode> = _translatedDisplayMode.asStateFlow()
+
+    private val _translationEnginePreference = MutableStateFlow(TranslationEnginePreference.ON_DEVICE_MLKIT)
+    val translationEnginePreference: StateFlow<TranslationEnginePreference> = _translationEnginePreference.asStateFlow()
+
+    private val _translatedPassage = MutableStateFlow<TranslatedPassageResult?>(null)
+    val translatedPassage: StateFlow<TranslatedPassageResult?> = _translatedPassage.asStateFlow()
+
+    private val _isTranslatingPassage = MutableStateFlow(false)
+    val isTranslatingPassage: StateFlow<Boolean> = _isTranslatingPassage.asStateFlow()
+
+    private val _ocrNotice = MutableStateFlow<String?>(null)
+    val ocrNotice: StateFlow<String?> = _ocrNotice.asStateFlow()
+
     fun setTargetLanguage(lang: StudyTargetLanguage, sentenceContext: String = "") {
         _targetLanguage.value = lang
         if (sentenceContext.isNotBlank()) {
             viewModelScope.launch {
                 _sentenceTranslation.value = translationService.translateFromEnglish(sentenceContext, lang).getOrNull()
+            }
+        }
+        if (_translatedModeEnabled.value) {
+            translateCurrentPdfPage(forceRetranslate = false)
+        }
+    }
+
+    fun toggleTranslatedReadingMode(enabled: Boolean) {
+        _translatedModeEnabled.value = enabled
+        if (enabled) {
+            translateCurrentPdfPage(forceRetranslate = false)
+        }
+    }
+
+    fun setTranslatedDisplayMode(mode: TranslatedDisplayMode) {
+        _translatedDisplayMode.value = mode
+    }
+
+    fun setTranslationEnginePreference(pref: TranslationEnginePreference) {
+        _translationEnginePreference.value = pref
+        if (_translatedModeEnabled.value) {
+            translateCurrentPdfPage(forceRetranslate = false)
+        }
+    }
+
+    fun retranslateCurrentPassage() {
+        translateCurrentPdfPage(forceRetranslate = true)
+    }
+
+    fun addGlossaryTerm(term: String) {
+        val editionId = editionIdFlow.value ?: return
+        viewModelScope.launch {
+            libraryRepository.addGlossaryTerm(editionId, term)
+            if (_translatedModeEnabled.value) {
+                translateCurrentPdfPage(forceRetranslate = false)
+            }
+        }
+    }
+
+    fun removeGlossaryTerm(termId: String) {
+        val editionId = editionIdFlow.value ?: return
+        viewModelScope.launch {
+            libraryRepository.deleteGlossaryTerm(editionId, termId)
+            if (_translatedModeEnabled.value) {
+                translateCurrentPdfPage(forceRetranslate = false)
             }
         }
     }
@@ -169,6 +249,7 @@ class PdfReaderViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = PdfReaderUiState.Loading
+            fileVersionSha256 = libraryRepository.getPrimaryFileSha256(editionId).orEmpty().ifBlank { editionId }
             val openResult = newSession.open()
             openResult.fold(
                 onSuccess = { count ->
@@ -342,6 +423,9 @@ class PdfReaderViewModel @Inject constructor(
                             outline = outlineEntries
                         )
                         updateViewport(pageIndex, scale, scrollX, scrollY)
+                        if (_translatedModeEnabled.value) {
+                            translateCurrentPdfPage(forceRetranslate = false)
+                        }
                     },
                     onFailure = { err ->
                         _uiState.value = PdfReaderUiState.Ready(
@@ -382,6 +466,9 @@ class PdfReaderViewModel @Inject constructor(
                             outline = outlineEntries
                         )
                         updateViewport(pageIndex, scale, scrollX, scrollY)
+                        if (_translatedModeEnabled.value) {
+                            translateCurrentPdfPage(forceRetranslate = false)
+                        }
                     },
                     onFailure = { err ->
                         _uiState.value = PdfReaderUiState.Ready(
@@ -402,6 +489,72 @@ class PdfReaderViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    private fun translateCurrentPdfPage(forceRetranslate: Boolean) {
+        val activeSession = session ?: return
+        val editionId = editionIdFlow.value ?: return
+        val pageIndex = (_uiState.value as? PdfReaderUiState.Ready)?.currentPage ?: 0
+        viewModelScope.launch {
+            _isTranslatingPassage.value = true
+            _ocrNotice.value = null
+            try {
+                var pageText = extractCleanPdfPageText(activeSession, pageIndex)
+                if (pageText.isBlank()) {
+                    val bmp = activeSession.renderPage(pageIndex, targetWidthPx = 1280, autoCropMargins = false).getOrNull()
+                    if (bmp != null) {
+                        val ocrRaw = translationService.recognizeLatinText(bmp).getOrNull().orEmpty()
+                        pageText = SentenceSegmenter.stripHeadersAndFooters(ocrRaw)
+                        if (pageText.isNotBlank()) {
+                            _ocrNotice.value = "Scanned page detected: extracted text via offline ML Kit OCR."
+                        }
+                    }
+                }
+                if (pageText.isBlank()) {
+                    _translatedPassage.value = null
+                    return@launch
+                }
+                val result = translatedReadingEngine.translatePassage(
+                    editionId = editionId,
+                    fileVersionSha256 = fileVersionSha256.ifBlank { editionId },
+                    chapterOrSectionId = "pdf_page_$pageIndex",
+                    passageText = pageText,
+                    targetLang = _targetLanguage.value,
+                    enginePreference = _translationEnginePreference.value,
+                    forceRetranslate = forceRetranslate
+                )
+                _translatedPassage.value = result
+
+                // Pre-translate next 2-3 pages asynchronously
+                val upcoming = (1..3).mapNotNull { offset ->
+                    val nextPage = pageIndex + offset
+                    if (nextPage < totalPages) {
+                        val text = extractCleanPdfPageText(activeSession, nextPage)
+                        if (text.isNotBlank()) "pdf_page_$nextPage" to text else null
+                    } else null
+                }
+                if (upcoming.isNotEmpty()) {
+                    translatedReadingEngine.pretranslateUpcomingPages(
+                        scope = viewModelScope,
+                        editionId = editionId,
+                        fileVersionSha256 = fileVersionSha256.ifBlank { editionId },
+                        upcomingSections = upcoming,
+                        targetLang = _targetLanguage.value,
+                        enginePreference = _translationEnginePreference.value
+                    )
+                }
+            } finally {
+                _isTranslatingPassage.value = false
+            }
+        }
+    }
+
+    private suspend fun extractCleanPdfPageText(activeSession: MuPdfDocumentSession, pageIndex: Int): String {
+        val raw = activeSession.extractReflowedPageText(pageIndex).getOrNull().orEmpty()
+        if (raw.isBlank() || raw.startsWith("No selectable text detected")) {
+            return ""
+        }
+        return SentenceSegmenter.stripHeadersAndFooters(raw)
     }
 
     override fun onCleared() {

@@ -23,6 +23,7 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 enum class StudyTargetLanguage(val code: String, val displayName: String, val mlKitCode: String) {
     HINDI("hi", "Hindi (हिन्दी)", TranslateLanguage.HINDI),
@@ -100,10 +101,7 @@ class MlKitTranslationService @Inject constructor(
                     translator.translate(text)
                         .addOnSuccessListener { out -> if (cont.isActive) cont.resume(out) }
                         .addOnFailureListener { exc ->
-                            if (cont.isActive) {
-                                cont.resume("")
-                                throw exc
-                            }
+                            if (cont.isActive) cont.resumeWithException(exc)
                         }
                 }
             } finally {
@@ -124,8 +122,7 @@ class MlKitTranslationService @Inject constructor(
                                 if (cont.isActive) cont.resume(visionText.text)
                             }
                             .addOnFailureListener { exc ->
-                                if (cont.isActive) cont.resume("")
-                                throw exc
+                                if (cont.isActive) cont.resumeWithException(exc)
                             }
                     }
                 } finally {
