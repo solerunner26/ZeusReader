@@ -50,6 +50,8 @@ fun PassageDetailScreen(
     onBack: () -> Unit,
     onOpenInBook: (editionId: String, locatorJson: String) -> Unit,
     onCreateCard: (String) -> Unit,
+    onExplainPassage: ((String) -> Unit)? = null,
+    onSuggestTags: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val passage by viewModel.observePassage(passageId).collectAsStateWithLifecycle(initialValue = null)
@@ -194,6 +196,30 @@ fun PassageDetailScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            if (onExplainPassage != null || onSuggestTags != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    onExplainPassage?.let { explain ->
+                        OutlinedButton(
+                            onClick = { explain(current.text) },
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                        ) {
+                            Text("Explain this passage")
+                        }
+                    }
+                    onSuggestTags?.let { suggest ->
+                        OutlinedButton(
+                            onClick = { suggest(current.text) },
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                        ) {
+                            Text("Suggest tags")
+                        }
+                    }
+                }
+            }
 
             Spacer(Modifier.height(8.dp))
             Row(
