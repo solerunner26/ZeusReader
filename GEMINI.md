@@ -1,5 +1,7 @@
 # GEMINI.md — "ZeusReader" Personal Offline-First Android E-Reader & Private Library
 
+"Scope is extended by docs/SCOPE-ADDENDUM-v2.md; UI follows design/DESIGN.md v2 (replaces v1)."
+
 > Authoritative brief for Gemini CLI / Gemini coding agents. Read this file once at project start, then at each phase read only the relevant section, the previous `/docs/phase-N.md` handoff, and changed files.
 > Build **one phase at a time** (§11). Do not start the next phase until the current exit condition passes and evidence is recorded.
 
