@@ -1,5 +1,6 @@
 package com.solerunner26.zeusreader.ui.stats
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.solerunner26.zeusreader.reader.prefs.AppUiConfig
 import com.solerunner26.zeusreader.ui.theme.HueAuraBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,8 +43,11 @@ fun StatsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Box(modifier = modifier.fillMaxSize()) {
-        HueAuraBackground()
+    HueAuraBackground(
+        config = AppUiConfig(),
+        darkTheme = isSystemInDarkTheme(),
+        modifier = modifier
+    ) {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {

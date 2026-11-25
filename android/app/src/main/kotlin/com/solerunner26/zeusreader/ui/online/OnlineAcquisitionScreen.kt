@@ -1,6 +1,7 @@
 package com.solerunner26.zeusreader.ui.online
 
 import android.content.Intent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.solerunner26.zeusreader.reader.prefs.AppUiConfig
 import com.solerunner26.zeusreader.ui.theme.HueAuraBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,8 +54,11 @@ fun OnlineAcquisitionScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    Box(modifier = modifier.fillMaxSize()) {
-        HueAuraBackground()
+    HueAuraBackground(
+        config = AppUiConfig(),
+        darkTheme = isSystemInDarkTheme(),
+        modifier = modifier
+    ) {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {

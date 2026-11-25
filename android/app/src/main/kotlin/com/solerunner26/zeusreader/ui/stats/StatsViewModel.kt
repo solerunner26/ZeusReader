@@ -46,7 +46,7 @@ class StatsViewModel @Inject constructor(
                 val activeDates = buildSet<LocalDate> {
                     books.mapNotNull { it.lastPageIndex?.let { _ -> it.updatedAtEpochMs } }
                         .forEach { add(Instant.ofEpochMilli(it).atZone(zone).toLocalDate()) }
-                    passages.forEach { add(Instant.ofEpochMilli(it.createdAtEpochMs).atZone(zone).toLocalDate()) }
+                    passages.forEach { add(Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate()) }
                     vocab.forEach { add(Instant.ofEpochMilli(it.createdAtEpochMs).atZone(zone).toLocalDate()) }
                 }
                 ReadingStatsUiState(

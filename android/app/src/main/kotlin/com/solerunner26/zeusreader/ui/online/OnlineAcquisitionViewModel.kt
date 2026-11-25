@@ -131,7 +131,7 @@ class OnlineAcquisitionViewModel @Inject constructor(
     fun syncPassagesNow() {
         val state = _uiState.value
         viewModelScope.launch {
-            syncRepository.syncPassages(state.serverUrl, state.pairingToken)
+            syncRepository.syncWithServer(state.serverUrl, state.pairingToken)
                 .onSuccess { count ->
                     _uiState.update { it.copy(statusMessage = "Synced $count passage records") }
                 }
