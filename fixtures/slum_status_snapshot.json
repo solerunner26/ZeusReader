@@ -1,0 +1,242 @@
+{
+  "source_url": "https://open-slum.org/",
+  "fetched_at_utc": "2026-11-25T09:33:17.512951+00:00",
+  "stale": false,
+  "providers": [
+    {
+      "name": "Anna's Archive",
+      "overall_status": "UP",
+      "detail_page": "annas.html",
+      "domains": [
+        {
+          "host": "annas-archive.gl",
+          "url": "https://annas-archive.gl",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "annas-archive.pk",
+          "url": "https://annas-archive.pk",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "annas-archive.gd",
+          "url": "https://annas-archive.gd",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "software.annas-archive.gl",
+          "url": "https://software.annas-archive.gl",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "yqrii5.org",
+          "url": "https://yqrii5.org",
+          "role": "file_delivery",
+          "health": "up"
+        },
+        {
+          "host": "wbsg8v.xyz",
+          "url": "https://wbsg8v.xyz",
+          "role": "file_delivery",
+          "health": "up"
+        }
+      ]
+    },
+    {
+      "name": "Library Genesis",
+      "overall_status": "UP",
+      "detail_page": "libgen.html",
+      "domains": [
+        {
+          "host": "libgen.bz",
+          "url": "https://libgen.bz",
+          "role": "catalogue_search",
+          "health": "up"
+        },
+        {
+          "host": "libgen.gl",
+          "url": "https://libgen.gl",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "libgen.la",
+          "url": "https://libgen.la",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "libgen.vg",
+          "url": "https://libgen.vg",
+          "role": "catalogue_search",
+          "health": "up"
+        },
+        {
+          "host": "libgen.li",
+          "url": "https://libgen.li",
+          "role": "catalogue_search",
+          "health": "up"
+        }
+      ]
+    },
+    {
+      "name": "Z-Library",
+      "overall_status": "UP",
+      "detail_page": "zlibrary.html",
+      "domains": [
+        {
+          "host": "z-library.sk",
+          "url": "https://z-library.sk",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "z-lib.sk",
+          "url": "https://z-lib.sk",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "1lib.sk",
+          "url": "https://1lib.sk",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "z-lib.gl",
+          "url": "https://z-lib.gl",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "z-lib.gd",
+          "url": "https://z-lib.gd",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "go-to-library.sk",
+          "url": "https://go-to-library.sk",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "library-access.sk",
+          "url": "https://library-access.sk",
+          "role": "catalogue_search",
+          "health": "protected"
+        }
+      ]
+    },
+    {
+      "name": "Sci-Hub",
+      "overall_status": "UP",
+      "detail_page": "scihub.html",
+      "domains": [
+        {
+          "host": "sci-hub.ru",
+          "url": "https://sci-hub.ru",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "sci-hub.su",
+          "url": "https://sci-hub.su",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "sci-hub.st",
+          "url": "https://sci-hub.st",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "sci-hub.box",
+          "url": "https://sci-hub.box",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "sci-net.xyz",
+          "url": "https://sci-net.xyz",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "sci-hub.red",
+          "url": "https://sci-hub.red",
+          "role": "catalogue_search",
+          "health": "protected"
+        }
+      ]
+    },
+    {
+      "name": "Randombook",
+      "overall_status": "UP",
+      "detail_page": "Randombook.html",
+      "domains": [
+        {
+          "host": "libgen.pw",
+          "url": "https://libgen.pw",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "libgen.me",
+          "url": "https://libgen.me",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "libgen.xyz",
+          "url": "https://libgen.xyz",
+          "role": "file_delivery",
+          "health": "protected"
+        },
+        {
+          "host": "randombook.org",
+          "url": "https://Randombook.org",
+          "role": "catalogue_search",
+          "health": "protected"
+        }
+      ]
+    },
+    {
+      "name": "Other",
+      "overall_status": "UP",
+      "detail_page": "other.html",
+      "domains": [
+        {
+          "host": "welib.org",
+          "url": "https://welib.org",
+          "role": "file_delivery",
+          "health": "protected"
+        },
+        {
+          "host": "fmhy.net",
+          "url": "https://fmhy.net",
+          "role": "catalogue_search",
+          "health": "protected"
+        },
+        {
+          "host": "liber3.eth.limo",
+          "url": "https://liber3.eth.limo",
+          "role": "catalogue_search",
+          "health": "up"
+        },
+        {
+          "host": "library.memoryoftheworld.org",
+          "url": "https://library.memoryoftheworld.org",
+          "role": "catalogue_and_delivery",
+          "health": "up"
+        }
+      ]
+    }
+  ],
+  "error": null
+}

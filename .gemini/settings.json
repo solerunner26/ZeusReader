@@ -1,0 +1,37 @@
+{
+  "$schema": "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/schemas/settings.schema.json",
+  "hooks": {
+    "BeforeTool": [
+      {
+        "matcher": "write_file|replace",
+        "hooks": [
+          {
+            "name": "guard-secrets",
+            "type": "command",
+            "command": "node \"$GEMINI_PROJECT_DIR/.gemini/hooks/guard-secrets.js\"",
+            "timeout": 5000
+          },
+          {
+            "name": "guard-ui-rules",
+            "type": "command",
+            "command": "node \"$GEMINI_PROJECT_DIR/.gemini/hooks/guard-ui-rules.js\"",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "AfterTool": [
+      {
+        "matcher": "write_file|replace",
+        "hooks": [
+          {
+            "name": "after-edit-log",
+            "type": "command",
+            "command": "node \"$GEMINI_PROJECT_DIR/.gemini/hooks/after-edit-log.js\"",
+            "timeout": 3000
+          }
+        ]
+      }
+    ]
+  }
+}

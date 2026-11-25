@@ -1,0 +1,379 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "273f43fcfd7e37427e02c2bb01ac6723",
+    "entities": [
+      {
+        "tableName": "works",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `authors` TEXT NOT NULL, `description` TEXT NOT NULL, `language` TEXT NOT NULL, `created_at_epoch_ms` INTEGER NOT NULL, `updated_at_epoch_ms` INTEGER NOT NULL, `version` INTEGER NOT NULL, `deleted_at_epoch_ms` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "authors",
+            "columnName": "authors",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "language",
+            "columnName": "language",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMs",
+            "columnName": "created_at_epoch_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMs",
+            "columnName": "updated_at_epoch_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAtEpochMs",
+            "columnName": "deleted_at_epoch_ms",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_works_title",
+            "unique": false,
+            "columnNames": [
+              "title"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_works_title` ON `${TABLE_NAME}` (`title`)"
+          },
+          {
+            "name": "index_works_language",
+            "unique": false,
+            "columnNames": [
+              "language"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_works_language` ON `${TABLE_NAME}` (`language`)"
+          }
+        ]
+      },
+      {
+        "tableName": "editions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `work_id` TEXT NOT NULL, `publisher` TEXT NOT NULL, `publication_year` INTEGER, `language` TEXT NOT NULL, `isbn` TEXT NOT NULL, `edition_notes` TEXT NOT NULL, `version` INTEGER NOT NULL, `deleted_at_epoch_ms` INTEGER, PRIMARY KEY(`id`), FOREIGN KEY(`work_id`) REFERENCES `works`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workId",
+            "columnName": "work_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "publisher",
+            "columnName": "publisher",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "publicationYear",
+            "columnName": "publication_year",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "language",
+            "columnName": "language",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isbn",
+            "columnName": "isbn",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "editionNotes",
+            "columnName": "edition_notes",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAtEpochMs",
+            "columnName": "deleted_at_epoch_ms",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_editions_work_id",
+            "unique": false,
+            "columnNames": [
+              "work_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_editions_work_id` ON `${TABLE_NAME}` (`work_id`)"
+          },
+          {
+            "name": "index_editions_isbn",
+            "unique": false,
+            "columnNames": [
+              "isbn"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_editions_isbn` ON `${TABLE_NAME}` (`isbn`)"
+          },
+          {
+            "name": "index_editions_publication_year",
+            "unique": false,
+            "columnNames": [
+              "publication_year"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_editions_publication_year` ON `${TABLE_NAME}` (`publication_year`)"
+          },
+          {
+            "name": "index_editions_language",
+            "unique": false,
+            "columnNames": [
+              "language"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_editions_language` ON `${TABLE_NAME}` (`language`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "works",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "work_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "file_assets",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `edition_id` TEXT NOT NULL, `format` TEXT NOT NULL, `byte_size` INTEGER NOT NULL, `sha256` TEXT NOT NULL, `origin` TEXT NOT NULL, `source_file_sha256` TEXT, `local_uri` TEXT, `transfer_stage` TEXT NOT NULL, `created_at_epoch_ms` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`edition_id`) REFERENCES `editions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "editionId",
+            "columnName": "edition_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "format",
+            "columnName": "format",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "byteSize",
+            "columnName": "byte_size",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "origin",
+            "columnName": "origin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceFileSha256",
+            "columnName": "source_file_sha256",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "localUri",
+            "columnName": "local_uri",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "transferStage",
+            "columnName": "transfer_stage",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMs",
+            "columnName": "created_at_epoch_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_file_assets_edition_id",
+            "unique": false,
+            "columnNames": [
+              "edition_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_file_assets_edition_id` ON `${TABLE_NAME}` (`edition_id`)"
+          },
+          {
+            "name": "index_file_assets_sha256",
+            "unique": true,
+            "columnNames": [
+              "sha256"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_file_assets_sha256` ON `${TABLE_NAME}` (`sha256`)"
+          },
+          {
+            "name": "index_file_assets_format",
+            "unique": false,
+            "columnNames": [
+              "format"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_file_assets_format` ON `${TABLE_NAME}` (`format`)"
+          },
+          {
+            "name": "index_file_assets_transfer_stage",
+            "unique": false,
+            "columnNames": [
+              "transfer_stage"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_file_assets_transfer_stage` ON `${TABLE_NAME}` (`transfer_stage`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "editions",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "edition_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "works_fts",
+        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS4(`title` TEXT NOT NULL, `authors` TEXT NOT NULL, `description` TEXT NOT NULL, content=`works`)",
+        "fields": [
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "authors",
+            "columnName": "authors",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": []
+        },
+        "ftsVersion": "FTS4",
+        "ftsOptions": {
+          "tokenizer": "simple",
+          "tokenizerArgs": [],
+          "contentTable": "works",
+          "languageIdColumnName": "",
+          "matchInfo": "FTS4",
+          "notIndexedColumns": [],
+          "prefixSizes": [],
+          "preferredOrder": "ASC"
+        },
+        "contentSyncTriggers": [
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_works_fts_BEFORE_UPDATE BEFORE UPDATE ON `works` BEGIN DELETE FROM `works_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_works_fts_BEFORE_DELETE BEFORE DELETE ON `works` BEGIN DELETE FROM `works_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_works_fts_AFTER_UPDATE AFTER UPDATE ON `works` BEGIN INSERT INTO `works_fts`(`docid`, `title`, `authors`, `description`) VALUES (NEW.`rowid`, NEW.`title`, NEW.`authors`, NEW.`description`); END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_works_fts_AFTER_INSERT AFTER INSERT ON `works` BEGIN INSERT INTO `works_fts`(`docid`, `title`, `authors`, `description`) VALUES (NEW.`rowid`, NEW.`title`, NEW.`authors`, NEW.`description`); END"
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '273f43fcfd7e37427e02c2bb01ac6723')"
+    ]
+  }
+}

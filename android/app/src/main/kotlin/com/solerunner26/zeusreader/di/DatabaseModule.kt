@@ -1,0 +1,41 @@
+package com.solerunner26.zeusreader.di
+
+import android.content.Context
+import androidx.room.Room
+import com.solerunner26.zeusreader.data.LibraryRepository
+import com.solerunner26.zeusreader.data.RoomLibraryRepository
+import com.solerunner26.zeusreader.data.local.LibraryDao
+import com.solerunner26.zeusreader.data.local.ZeusReaderDatabase
+import dagger.Binds
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object DatabaseModule {
+
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext context: Context): ZeusReaderDatabase =
+        Room.databaseBuilder(
+            context,
+            ZeusReaderDatabase::class.java,
+            "zeusreader.db"
+        ).build()
+
+    @Provides
+    fun provideLibraryDao(database: ZeusReaderDatabase): LibraryDao = database.libraryDao()
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class RepositoryModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindLibraryRepository(impl: RoomLibraryRepository): LibraryRepository
+}

@@ -1,0 +1,30 @@
+{
+  "slum_fetched_at_utc": "2026-11-25T09:33:17.512951+00:00",
+  "slum_stale": false,
+  "slum_provider_count": 6,
+  "motw_slum_domain_status": "up",
+  "query": "Flatland",
+  "selected_edition": {
+    "source": "Memory of the World",
+    "title": "Flatland",
+    "authors": [
+      "Edwin Abbott Abbott"
+    ],
+    "language": "eng",
+    "year": "2010",
+    "format": "epub",
+    "reported_byte_size": 114558
+  },
+  "download_verification": {
+    "sha256": "91101013678e5ec12fb146a524a9f10e6ba752cff315b9b0b4340cab53719dc9",
+    "actual_byte_size": 114558,
+    "magic_validation": {
+      "valid": true,
+      "detected_type": "epub",
+      "reason": "Valid PK ZIP + application/epub+zip + META-INF/container.xml"
+    },
+    "needs_browser": false,
+    "saved_local_gitignored_file": "Flatland.epub"
+  },
+  "pixel_10_pro_offline_open": "unverified (no physical Pixel 10 Pro attached via ADB during Phase 0 spike)"
+}

@@ -1,0 +1,52 @@
+# Secrets & signing
+.env
+.env.*
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+local.properties
+
+# Book binaries (keep copyrighted/downloaded books out of git)
+*.epub
+*.pdf
+*.azw
+*.azw3
+*.kf8
+*.kfx
+*.mobi
+*.cbz
+*.xps
+*.oxps
+*.oxp
+*.tiff
+*.tif
+*.doc
+*.docx
+!**/androidTest/assets/samples/**
+
+# Android / Gradle
+android/.gradle/
+android/**/build/
+android/.idea/
+android/*.iml
+android/.cxx/
+android/captures/
+
+# Python / Server
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+server/data/
+server/downloads/
+server/*.db
+server/*.sqlite*
+
+# Gemini runtime logs & OS
+.gemini/logs/
+.DS_Store
+Thumbs.db

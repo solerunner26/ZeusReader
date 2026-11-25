@@ -1,0 +1,14 @@
+{
+  "deviceName": "Google Pixel 10 Pro",
+  "targetApiLevel": 36,
+  "minApiLevel": 26,
+  "supportsHardwareGlassBlur": true,
+  "refreshRateHz": 120,
+  "oledTrueBlackSupported": true,
+  "primaryScripts": ["en", "hi", "gu"],
+  "benchmarkTargets": {
+    "coldStartMsMax": 1500,
+    "openCachedBookMsMax": 1000,
+    "pageTurnMsMax": 100
+  }
+}

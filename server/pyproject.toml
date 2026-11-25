@@ -1,0 +1,18 @@
+[project]
+name = "zeusreader-server"
+version = "0.1.0"
+description = "ZeusReader private server and Phase 0 Open SLUM connector spike"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.0",
+    "lxml>=5.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">ZeusReader</string>
+    <string name="library_empty_title">Your library is empty</string>
+    <string name="library_empty_subtitle">Offline-first reading starts here. Local import and reader engines arrive in Phases 1–3.</string>
+    <string name="library_offline_ready_badge">Standalone phone ready</string>
+    <string name="library_import_cta">Import from device</string>
+    <string name="library_import_phase1_hint">Local import arrives in Phase 1.</string>
+</resources>

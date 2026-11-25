@@ -1,0 +1,107 @@
+{
+  "_items": [
+    {
+      "title": "Flatland",
+      "authors": [
+        "Edwin Abbott Abbott"
+      ],
+      "languages": [
+        "eng"
+      ],
+      "pubdate": "2010-04-16T22:00:00Z",
+      "baseurl": "/files/anybody",
+      "formats": [
+        {
+          "format": "epub",
+          "dir_path": "Edwin Abbott Abbott/Flatland (1079)/",
+          "file_name": "Flatland - Edwin Abbott Abbott.epub",
+          "size": 114558
+        }
+      ]
+    },
+    {
+      "title": "Flatterland: Like Flatland Only More So",
+      "authors": [
+        "Ian Stewart"
+      ],
+      "languages": [
+        "eng"
+      ],
+      "pubdate": "2002-04-14T22:00:00Z",
+      "baseurl": "/files/anybody",
+      "formats": [
+        {
+          "format": "epub",
+          "dir_path": "Ian Stewart/Flatterland_ Like Flatland Only More So (1080)/",
+          "file_name": "Flatterland_ Like Flatland Only More So - Ian Stewart.epub",
+          "size": 2972038
+        }
+      ]
+    },
+    {
+      "title": "Flatland: A Romance of Many Dimensions",
+      "authors": [
+        "Edwin Abbott Abbott",
+        "Thomas Banchoff"
+      ],
+      "languages": [
+        "eng"
+      ],
+      "pubdate": "2015-03-22T05:00:00Z",
+      "baseurl": "/files/outernationale",
+      "formats": [
+        {
+          "format": "epub",
+          "dir_path": "Edwin Abbott Abbott/Flatland_ A Romance of Many Dimens (11181)/",
+          "file_name": "Flatland_ A Romance of Many Dim - Edwin Abbott Abbott.epub",
+          "size": 2699316
+        }
+      ]
+    },
+    {
+      "title": "Flatland: A Romance of Many Dimensions",
+      "authors": [
+        "Edwin A. Abbott",
+        "Rosemary Jann"
+      ],
+      "languages": [
+        "eng"
+      ],
+      "pubdate": "2008-08-14T23:00:00Z",
+      "baseurl": "/files/quintus",
+      "formats": [
+        {
+          "format": "pdf",
+          "dir_path": "Edwin A. Abbott/Flatland_ A Romance of Many Dimensions (32764)/",
+          "file_name": "Flatland_ A Romance of Many Dimensions - Edwin A. Abbott.pdf",
+          "size": 879999
+        }
+      ]
+    },
+    {
+      "title": "Flatland: A Romance of Many Dimensions",
+      "authors": [
+        "Edwin Abbott"
+      ],
+      "languages": [
+        "eng"
+      ],
+      "pubdate": "2014-07-01T21:18:11Z",
+      "baseurl": "/files/quintus",
+      "formats": [
+        {
+          "format": "epub",
+          "dir_path": "Edwin Abbott/Flatland_ A Romance of Many Dimensions (43185)/",
+          "file_name": "Flatland_ A Romance of Many Dimensions - Edwin Abbott.epub",
+          "size": 243319
+        },
+        {
+          "format": "mobi",
+          "dir_path": "Edwin Abbott/Flatland_ A Romance of Many Dimensions (43185)/",
+          "file_name": "Flatland_ A Romance of Many Dimensions - Edwin Abbott.mobi",
+          "size": 179884
+        }
+      ]
+    }
+  ]
+}
