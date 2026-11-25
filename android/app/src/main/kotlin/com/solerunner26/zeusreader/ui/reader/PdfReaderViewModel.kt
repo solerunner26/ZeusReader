@@ -4,9 +4,12 @@ import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.solerunner26.zeusreader.data.LibraryRepository
+import com.solerunner26.zeusreader.data.PassageRepository
 import com.solerunner26.zeusreader.data.local.BookGlossaryEntity
 import com.solerunner26.zeusreader.data.local.HighlightEntity
+import com.solerunner26.zeusreader.data.local.PassageFolderEntity
 import com.solerunner26.zeusreader.data.local.ReadingProgressEntity
+import com.solerunner26.zeusreader.ui.theme.ActiveCoverHueHolder
 import com.solerunner26.zeusreader.data.local.VocabWordEntity
 import com.solerunner26.zeusreader.dictionary.DictionaryLookupResult
 import com.solerunner26.zeusreader.dictionary.OfflineDictionaryRepository
@@ -63,7 +66,9 @@ class PdfReaderViewModel @Inject constructor(
     private val preferencesRepository: ReaderPreferencesRepository,
     private val dictionaryRepository: OfflineDictionaryRepository,
     private val translationService: TranslationService,
-    private val translatedReadingEngine: TranslatedReadingEngine
+    private val translatedReadingEngine: TranslatedReadingEngine,
+    private val passageRepository: PassageRepository,
+    private val activeCoverHueHolder: ActiveCoverHueHolder
 ) : ViewModel() {
 
     private var session: MuPdfDocumentSession? = null
@@ -92,6 +97,45 @@ class PdfReaderViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList()
         )
+
+    val passageFolders: StateFlow<List<PassageFolderEntity>> = passageRepository.activeFolders
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
+
+    fun createPassageFolder(name: String) {
+        viewModelScope.launch {
+            passageRepository.createFolder(name)
+        }
+    }
+
+    fun savePassage(
+        text: String,
+        originalText: String,
+        language: String,
+        folderId: String?,
+        note: String?
+    ) {
+        val editionId = editionIdFlow.value ?: return
+        val ready = _uiState.value as? PdfReaderUiState.Ready
+        val pageNum = (ready?.currentPage ?: 0) + 1
+        viewModelScope.launch {
+            passageRepository.savePassage(
+                bookId = editionId,
+                editionId = editionId,
+                folderId = folderId,
+                text = text,
+                originalText = originalText,
+                locatorJson = """{"page":${pageNum - 1}}""",
+                pageLabel = "p. $pageNum",
+                chapterTitle = currentTitle.ifBlank { null },
+                language = language,
+                note = note
+            )
+        }
+    }
 
     private val _uiState = MutableStateFlow<PdfReaderUiState>(PdfReaderUiState.Loading)
     val uiState: StateFlow<PdfReaderUiState> = _uiState.asStateFlow()

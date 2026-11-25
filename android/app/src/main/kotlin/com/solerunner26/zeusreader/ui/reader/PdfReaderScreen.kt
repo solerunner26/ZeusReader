@@ -77,6 +77,7 @@ import com.solerunner26.zeusreader.R
 import com.solerunner26.zeusreader.reader.prefs.PdfFitMode
 import com.solerunner26.zeusreader.reader.prefs.ReaderThemeMode
 import com.solerunner26.zeusreader.ui.dictionary.DictionaryBottomSheet
+import com.solerunner26.zeusreader.ui.passages.SavePassageBottomSheet
 import kotlinx.coroutines.flow.Flow
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -114,6 +115,8 @@ fun PdfReaderScreen(
     var showDictionarySheet by remember { mutableStateOf(false) }
     var focusRibbonEnabled by remember { mutableStateOf(false) }
     var ribbonBookmarked by remember { mutableStateOf(false) }
+    var showSavePassageSheet by remember { mutableStateOf(false) }
+    val passageFolders by viewModel.passageFolders.collectAsStateWithLifecycle()
     var brightnessLevel by remember { mutableFloatStateOf(0.5f) }
 
     val widthPx = LocalWindowInfo.current.containerSize.width.coerceAtLeast(1080)
@@ -645,6 +648,26 @@ fun PdfReaderScreen(
                 viewModel.saveLookupToVocabulary(res, lang, ctxSentence)
             },
             onDismiss = { showDictionarySheet = false }
+        )
+    }
+
+    if (showSavePassageSheet) {
+        val quote = readyState?.reflowedText?.take(220).orEmpty()
+        SavePassageBottomSheet(
+            quotePreview = quote,
+            folders = passageFolders,
+            onCreateFolder = viewModel::createPassageFolder,
+            onSave = { folderId, note, _ ->
+                viewModel.savePassage(
+                    text = quote,
+                    originalText = quote,
+                    language = "en",
+                    folderId = folderId,
+                    note = note
+                )
+                showSavePassageSheet = false
+            },
+            onDismiss = { showSavePassageSheet = false }
         )
     }
 }

@@ -67,6 +67,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.solerunner26.zeusreader.R
 import com.solerunner26.zeusreader.reader.epub.EpubSearchResultItem
 import com.solerunner26.zeusreader.reader.epub.EpubTocItem
+import com.solerunner26.zeusreader.ui.passages.SavePassageBottomSheet
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
@@ -108,6 +109,8 @@ fun EpubReaderScreen(
     var focusRibbonEnabled by remember { mutableStateOf(false) }
     var ribbonBookmarked by remember { mutableStateOf(false) }
     var focusBandIndex by remember { mutableIntStateOf(2) }
+    var showSavePassageSheet by remember { mutableStateOf(false) }
+    val passageFolders by viewModel.passageFolders.collectAsStateWithLifecycle()
 
     LaunchedEffect(editionId, localPath) {
         viewModel.openBook(editionId = editionId, title = title, localPath = localPath)
@@ -431,6 +434,26 @@ fun EpubReaderScreen(
             onAddHighlight = viewModel::addHighlight,
             onDeleteHighlight = viewModel::deleteHighlight,
             onDismiss = { showHighlightsSheet = false }
+        )
+    }
+
+    if (showSavePassageSheet) {
+        val quote = highlightSeedSnippet.ifBlank { readyState?.currentChapterTitle.orEmpty() }
+        SavePassageBottomSheet(
+            quotePreview = quote,
+            folders = passageFolders,
+            onCreateFolder = viewModel::createPassageFolder,
+            onSave = { folderId, note, _ ->
+                viewModel.savePassage(
+                    text = quote,
+                    originalText = quote,
+                    language = if (translatedModeEnabled) targetLanguage.code else "en",
+                    folderId = folderId,
+                    note = note
+                )
+                showSavePassageSheet = false
+            },
+            onDismiss = { showSavePassageSheet = false }
         )
     }
 }

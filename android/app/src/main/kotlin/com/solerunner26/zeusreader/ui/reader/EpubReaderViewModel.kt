@@ -5,9 +5,12 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.solerunner26.zeusreader.data.LibraryRepository
+import com.solerunner26.zeusreader.data.PassageRepository
 import com.solerunner26.zeusreader.data.local.BookGlossaryEntity
 import com.solerunner26.zeusreader.data.local.HighlightEntity
+import com.solerunner26.zeusreader.data.local.PassageFolderEntity
 import com.solerunner26.zeusreader.data.local.ReadingProgressEntity
+import com.solerunner26.zeusreader.ui.theme.ActiveCoverHueHolder
 import com.solerunner26.zeusreader.ml.StudyTargetLanguage
 import com.solerunner26.zeusreader.reader.core.ReaderCapabilities
 import com.solerunner26.zeusreader.reader.core.UnifiedLocator
@@ -64,7 +67,9 @@ class EpubReaderViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val libraryRepository: LibraryRepository,
     private val preferencesRepository: ReaderPreferencesRepository,
-    private val translatedReadingEngine: TranslatedReadingEngine
+    private val translatedReadingEngine: TranslatedReadingEngine,
+    private val passageRepository: PassageRepository,
+    private val activeCoverHueHolder: ActiveCoverHueHolder
 ) : ViewModel() {
 
     private var session: ReadiumEpubSession? = null
@@ -218,6 +223,45 @@ class EpubReaderViewModel @Inject constructor(
         }
         if (_translatedModeEnabled.value) {
             translateCurrentChapter(forceRetranslate = false)
+        }
+    }
+
+    val passageFolders: StateFlow<List<PassageFolderEntity>> = passageRepository.activeFolders
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
+
+    fun createPassageFolder(name: String) {
+        viewModelScope.launch {
+            passageRepository.createFolder(name)
+        }
+    }
+
+    fun savePassage(
+        text: String,
+        originalText: String,
+        language: String,
+        folderId: String?,
+        note: String?
+    ) {
+        val editionId = editionIdFlow.value ?: return
+        val loc = latestLocator
+        val ready = _uiState.value as? EpubReaderUiState.Ready
+        viewModelScope.launch {
+            passageRepository.savePassage(
+                bookId = editionId,
+                editionId = editionId,
+                folderId = folderId,
+                text = text,
+                originalText = originalText,
+                locatorJson = loc?.toJSON()?.toString().orEmpty(),
+                pageLabel = loc?.locations?.progression?.let { "${(it * 100).toInt()}%" },
+                chapterTitle = loc?.title ?: ready?.title,
+                language = language,
+                note = note
+            )
         }
     }
 
