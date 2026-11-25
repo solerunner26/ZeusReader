@@ -18,15 +18,80 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         UnsupportedFileEntity::class,
         VocabWordEntity::class,
         TranslationCacheEntity::class,
-        BookGlossaryEntity::class
+        BookGlossaryEntity::class,
+        PassageFolderEntity::class,
+        PassageEntity::class,
+        PassageTagEntity::class,
+        PassageFtsEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 abstract class ZeusReaderDatabase : RoomDatabase() {
     abstract fun libraryDao(): LibraryDao
+    abstract fun passageDao(): PassageDao
 
     companion object {
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `passage_folders` (
+                        `id` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `sort_order` INTEGER NOT NULL,
+                        `created_at` INTEGER NOT NULL,
+                        `updated_at` INTEGER NOT NULL,
+                        `deleted_at` INTEGER,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `passages` (
+                        `id` TEXT NOT NULL,
+                        `book_id` TEXT NOT NULL,
+                        `edition_id` TEXT,
+                        `folder_id` TEXT,
+                        `text` TEXT NOT NULL,
+                        `original_text` TEXT NOT NULL,
+                        `locator_json` TEXT NOT NULL,
+                        `page_label` TEXT,
+                        `chapter_title` TEXT,
+                        `language` TEXT NOT NULL,
+                        `note` TEXT,
+                        `created_at` INTEGER NOT NULL,
+                        `updated_at` INTEGER NOT NULL,
+                        `deleted_at` INTEGER,
+                        `share_count` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passages_book_id` ON `passages` (`book_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passages_folder_id` ON `passages` (`folder_id`)")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `passage_tags` (
+                        `passage_id` TEXT NOT NULL,
+                        `tag` TEXT NOT NULL,
+                        PRIMARY KEY(`passage_id`, `tag`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE VIRTUAL TABLE IF NOT EXISTS `passage_search_fts` USING FTS4(
+                        `passage_id` TEXT NOT NULL,
+                        `text` TEXT NOT NULL,
+                        `note` TEXT NOT NULL,
+                        `tags_text` TEXT NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
         val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(

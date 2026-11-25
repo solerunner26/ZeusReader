@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.solerunner26.zeusreader.data.LibraryRepository
 import com.solerunner26.zeusreader.data.RoomLibraryRepository
 import com.solerunner26.zeusreader.data.local.LibraryDao
+import com.solerunner26.zeusreader.data.local.PassageDao
 import com.solerunner26.zeusreader.data.local.ZeusReaderDatabase
 import dagger.Binds
 import dagger.Module
@@ -32,13 +33,17 @@ object DatabaseModule {
                 ZeusReaderDatabase.MIGRATION_3_4,
                 ZeusReaderDatabase.MIGRATION_4_5,
                 ZeusReaderDatabase.MIGRATION_5_6,
-                ZeusReaderDatabase.MIGRATION_6_7
+                ZeusReaderDatabase.MIGRATION_6_7,
+                ZeusReaderDatabase.MIGRATION_7_8
             )
             .enableMultiInstanceInvalidation()
             .build()
 
     @Provides
     fun provideLibraryDao(database: ZeusReaderDatabase): LibraryDao = database.libraryDao()
+
+    @Provides
+    fun providePassageDao(database: ZeusReaderDatabase): PassageDao = database.passageDao()
 }
 
 @Module
