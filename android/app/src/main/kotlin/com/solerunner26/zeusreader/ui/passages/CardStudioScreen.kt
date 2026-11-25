@@ -1,0 +1,471 @@
+package com.solerunner26.zeusreader.ui.passages
+
+import android.content.ClipData
+import android.content.ContentValues
+import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.RectF
+import android.graphics.Shader
+import android.graphics.Typeface
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextPaint
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
+import androidx.core.content.res.ResourcesCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.solerunner26.zeusreader.R
+import com.solerunner26.zeusreader.ui.theme.LocalZeusPalette
+import com.solerunner26.zeusreader.ui.theme.contrastRatio
+import com.solerunner26.zeusreader.ui.theme.hslColor
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
+
+enum class CardStyle(val label: String) {
+    COVER_BLUR("Cover blur"),
+    INK("Ink"),
+    PAPER("Paper")
+}
+
+enum class CardSize(val label: String, val widthPx: Int, val heightPx: Int) {
+    SQUARE_1_1("1:1", 1080, 1080),
+    PORTRAIT_4_5("4:5", 1080, 1350),
+    STORY_9_16("9:16", 1080, 1920)
+}
+
+enum class CardFormat(
+    val label: String,
+    val mimeType: String,
+    val extension: String,
+    val compressFormat: Bitmap.CompressFormat,
+    val quality: Int
+) {
+    PNG("PNG", "image/png", "png", Bitmap.CompressFormat.PNG, 100),
+    JPG("JPG", "image/jpeg", "jpg", Bitmap.CompressFormat.JPEG, 92)
+}
+
+data class ShareCardRenderResult(
+    val bitmap: Bitmap,
+    val needsTrimHint: Boolean,
+    val effectiveTextColor: Color,
+    val effectiveBackdropSample: Color
+)
+
+/**
+ * Renders a full-resolution share card bitmap (1080x1080, 1080x1350, or 1080x1920)
+ * strictly offline following DESIGN.md v2 §8 readability rules.
+ */
+fun renderShareCardBitmap(
+    context: Context?,
+    passageText: String,
+    bookTitle: String,
+    author: String,
+    language: String,
+    hueAngle: Float,
+    style: CardStyle,
+    size: CardSize,
+    coverBitmap: Bitmap? = null
+): ShareCardRenderResult {
+    val w = size.widthPx
+    val h = size.heightPx
+    val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+
+    val effectiveStyle = if (style == CardStyle.COVER_BLUR && coverBitmap == null) CardStyle.INK else style
+    val inkBg = hslColor(hueAngle, 0.30f, 0.11f)
+    val paperBg = hslColor(hueAngle, 0.30f, 0.96f)
+    val paperText = hslColor(hueAngle, 0.32f, 0.12f)
+    val hueAccent = hslColor(hueAngle, 0.62f, 0.62f)
+
+    val textColor: Color
+    val backdropSample: Color
+
+    when (effectiveStyle) {
+        CardStyle.COVER_BLUR -> {
+            val blurred = blurDownscale(coverBitmap!!, w, h)
+            canvas.drawBitmap(blurred, null, Rect(0, 0, w, h), Paint(Paint.FILTER_BITMAP_FLAG))
+            val scrimPaint = Paint().apply {
+                shader = LinearGradient(
+                    0f, 0f, 0f, h.toFloat(),
+                    Color.Black.copy(alpha = 0.55f).toArgb(),
+                    Color.Black.copy(alpha = 0.68f).toArgb(),
+                    Shader.TileMode.CLAMP
+                )
+            }
+            canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), scrimPaint)
+            textColor = Color.White
+            backdropSample = Color(0xFF5A5A5A) // Worst-case white cover under 55% black scrim -> >= 4.5:1
+        }
+
+        CardStyle.INK -> {
+            canvas.drawColor(inkBg.toArgb())
+            val glowPaint = Paint().apply {
+                color = hslColor(hueAngle, 0.60f, 0.35f, 0.25f).toArgb()
+            }
+            canvas.drawCircle(w * 0.85f, h * 0.18f, w * 0.45f, glowPaint)
+            textColor = Color.White
+            backdropSample = inkBg
+        }
+
+        CardStyle.PAPER -> {
+            canvas.drawColor(paperBg.toArgb())
+            if (coverBitmap != null) {
+                val topH = (h * 0.46f).toInt()
+                canvas.drawBitmap(coverBitmap, null, Rect(0, 0, w, topH), Paint(Paint.FILTER_BITMAP_FLAG))
+                val fadePaint = Paint().apply {
+                    shader = LinearGradient(
+                        0f, topH * 0.45f, 0f, topH.toFloat(),
+                        Color.Transparent.toArgb(),
+                        paperBg.toArgb(),
+                        Shader.TileMode.CLAMP
+                    )
+                }
+                canvas.drawRect(0f, topH * 0.45f, w.toFloat(), topH.toFloat(), fadePaint)
+            }
+            textColor = paperText
+            backdropSample = paperBg
+        }
+    }
+
+    val padding = (w * 0.086f)
+    val contentWidth = (w - 2f * padding).toInt().coerceAtLeast(100)
+    val quoteMarkColor = if (effectiveStyle == CardStyle.COVER_BLUR) Color.White else hueAccent
+
+    val typeface = loadCardTypeface(context, language)
+    val markPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = quoteMarkColor.toArgb()
+        textSize = 96f
+        this.typeface = typeface
+    }
+    canvas.drawText("“", padding, padding + 76f, markPaint)
+
+    val maxBodyHeight = (h - padding * 2f - 240f).toInt().coerceAtLeast(200)
+    var fontSizePx = 52f
+    var layout: StaticLayout
+    val bodyPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = textColor.toArgb()
+        this.typeface = typeface
+    }
+    while (true) {
+        bodyPaint.textSize = fontSizePx
+        layout = StaticLayout.Builder.obtain(passageText, 0, passageText.length, bodyPaint, contentWidth)
+            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setLineSpacing(0f, if (language == "hi") 1.35f else 1.28f)
+            .setIncludePad(false)
+            .build()
+        if (layout.height <= maxBodyHeight || fontSizePx <= 15f) break
+        fontSizePx -= 3f
+    }
+    val needsTrimHint = layout.height > maxBodyHeight && fontSizePx <= 15f
+
+    canvas.save()
+    canvas.translate(padding, padding + 108f)
+    layout.draw(canvas)
+    canvas.restore()
+
+    val metaPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = textColor.copy(alpha = 0.85f).toArgb()
+        textSize = 32f
+        this.typeface = Typeface.DEFAULT_BOLD
+    }
+    val authorPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = textColor.copy(alpha = 0.68f).toArgb()
+        textSize = 26f
+        this.typeface = Typeface.DEFAULT
+    }
+    val footerY = h - padding - 44f
+    canvas.drawText(bookTitle.ifBlank { "ZeusReader" }, padding, footerY, metaPaint)
+    if (author.isNotBlank()) {
+        canvas.drawText(author, padding, footerY + 34f, authorPaint)
+    }
+
+    return ShareCardRenderResult(
+        bitmap = bitmap,
+        needsTrimHint = needsTrimHint,
+        effectiveTextColor = textColor,
+        effectiveBackdropSample = backdropSample
+    )
+}
+
+private fun blurDownscale(source: Bitmap, targetW: Int, targetH: Int): Bitmap {
+    val smallW = (targetW / 16).coerceAtLeast(16)
+    val smallH = (targetH / 16).coerceAtLeast(16)
+    val downscaled = Bitmap.createScaledBitmap(source, smallW, smallH, true)
+    return Bitmap.createScaledBitmap(downscaled, targetW, targetH, true)
+}
+
+private fun loadCardTypeface(context: Context?, language: String): Typeface {
+    if (context == null) return Typeface.SERIF
+    val resId = when (language.lowercase()) {
+        "hi" -> R.font.noto_serif_devanagari_regular
+        "gu" -> R.font.noto_serif_gujarati_regular
+        else -> R.font.fraunces_italic
+    }
+    return runCatching { ResourcesCompat.getFont(context, resId) }.getOrNull() ?: Typeface.SERIF
+}
+
+fun encodeCardBytes(bitmap: Bitmap, format: CardFormat): ByteArray {
+    val out = ByteArrayOutputStream()
+    bitmap.compress(format.compressFormat, format.quality, out)
+    return out.toByteArray()
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CardStudioScreen(
+    passageId: String,
+    viewModel: PassagesViewModel,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val palette = LocalZeusPalette.current
+    val passage by viewModel.observePassage(passageId).collectAsStateWithLifecycle(initialValue = null)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    var style by remember { mutableStateOf(CardStyle.INK) }
+    var size by remember { mutableStateOf(CardSize.SQUARE_1_1) }
+    var format by remember { mutableStateOf(CardFormat.PNG) }
+
+    val hasCover = false // Cover bitmap wiring optional; Ink preselected when missing cover
+    val rendered = remember(passage?.text, passage?.language, palette.hueAngle, style, size) {
+        passage?.let { p ->
+            renderShareCardBitmap(
+                context = context,
+                passageText = p.text,
+                bookTitle = p.chapterTitle ?: "ZeusReader",
+                author = "",
+                language = p.language,
+                hueAngle = palette.hueAngle,
+                style = style,
+                size = size,
+                coverBitmap = null
+            )
+        }
+    }
+
+    Scaffold(
+        containerColor = Color.Transparent,
+        modifier = modifier
+            .fillMaxSize()
+            .testTag("card_studio_root"),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Card studio") },
+                navigationIcon = {
+                    IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (rendered != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(size.widthPx.toFloat() / size.heightPx.toFloat()),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        bitmap = rendered.bitmap.asImageBitmap(),
+                        contentDescription = "Share card preview",
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                val contrast = contrastRatio(rendered.effectiveTextColor, rendered.effectiveBackdropSample)
+                Text(
+                    text = "Readability contrast: ${String.format("%.1f", contrast)}:1",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (rendered.needsTrimHint) {
+                    Text(
+                        text = "Passage is long — trim it in Passage detail for best legibility.",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Text("Style", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CardStyle.entries.forEach { entry ->
+                    val enabled = entry != CardStyle.COVER_BLUR || hasCover
+                    FilterChip(
+                        selected = style == entry,
+                        enabled = enabled,
+                        onClick = { style = entry },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                        label = { Text(if (!enabled) "${entry.label} (no cover)" else entry.label) }
+                    )
+                }
+            }
+
+            Text("Size", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CardSize.entries.forEach { entry ->
+                    FilterChip(
+                        selected = size == entry,
+                        onClick = { size = entry },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                        label = { Text(entry.label) }
+                    )
+                }
+            }
+
+            Text("Format", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CardFormat.entries.forEach { entry ->
+                    FilterChip(
+                        selected = format == entry,
+                        onClick = { format = entry },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                        label = { Text(entry.label) }
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    enabled = rendered != null,
+                    onClick = {
+                        val bmp = rendered?.bitmap ?: return@OutlinedButton
+                        scope.launch {
+                            val ok = saveToGallery(context, bmp, format)
+                            snackbarHostState.showSnackbar(
+                                if (ok) "Saved to Pictures/ZeusReader" else "Save failed"
+                            )
+                        }
+                    },
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                ) {
+                    Text("Save to gallery")
+                }
+                Button(
+                    enabled = rendered != null,
+                    onClick = {
+                        val bmp = rendered?.bitmap ?: return@Button
+                        val current = passage ?: return@Button
+                        scope.launch {
+                            shareCardViaSheet(context, bmp, format)
+                            viewModel.incrementShareCount(current.id)
+                        }
+                    },
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                ) {
+                    Text("Share…")
+                }
+            }
+        }
+    }
+}
+
+private suspend fun saveToGallery(context: Context, bitmap: Bitmap, format: CardFormat): Boolean =
+    withContext(Dispatchers.IO) {
+        runCatching {
+            val filename = "zeus_card_${System.currentTimeMillis()}.${format.extension}"
+            val values = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+                put(MediaStore.Images.Media.MIME_TYPE, format.mimeType)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/ZeusReader")
+                }
+            }
+            val resolver = context.contentResolver
+            val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                ?: return@withContext false
+            resolver.openOutputStream(uri)?.use { out ->
+                bitmap.compress(format.compressFormat, format.quality, out)
+            } ?: return@withContext false
+            true
+        }.getOrDefault(false)
+    }
+
+private suspend fun shareCardViaSheet(context: Context, bitmap: Bitmap, format: CardFormat) {
+    val uri = withContext(Dispatchers.IO) {
+        val dir = File(context.cacheDir, "share_cards").apply { mkdirs() }
+        val file = File(dir, "zeus_card_${System.currentTimeMillis()}.${format.extension}")
+        FileOutputStream(file).use { out ->
+            bitmap.compress(format.compressFormat, format.quality, out)
+        }
+        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    }
+    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+        type = format.mimeType
+        putExtra(Intent.EXTRA_STREAM, uri)
+        clipData = ClipData.newRawUri("ZeusReader Passage Card", uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    context.startActivity(Intent.createChooser(sendIntent, "Share passage card"))
+}
