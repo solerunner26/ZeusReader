@@ -6,6 +6,7 @@ import java.util.Locale
 import java.util.zip.ZipInputStream
 
 enum class SupportedImportFormat(val extension: String, val dbFormatName: String) {
+    EPUB("epub", "EPUB"),
     PDF("pdf", "PDF"),
     JPG("jpg", "JPG"),
     PNG("png", "PNG");
@@ -52,14 +53,19 @@ object ImportValidator {
         return validateBytes(
             header = prefix,
             declaredFileName = declaredFileName,
-            zipEntriesProvider = { readZipEntries(file) }
+            zipMetadataProvider = { readZipContainerInfo(file) }
         )
     }
+
+    internal data class ZipContainerInfo(
+        val entryNames: Set<String>,
+        val mimetypeContent: String?
+    )
 
     internal fun validateBytes(
         header: ByteArray,
         declaredFileName: String,
-        zipEntriesProvider: (() -> Set<String>)? = null
+        zipMetadataProvider: (() -> ZipContainerInfo)? = null
     ): ImportValidationResult {
         if (header.isEmpty()) {
             return ImportValidationResult.Rejected("Empty file", "empty")
@@ -80,14 +86,27 @@ object ImportValidator {
             )
         }
 
-        // Disguised ZIP/APK detection (e.g., an .apk renamed to .pdf)
+        // ZIP container check: allow valid EPUBs while rejecting disguised APKs or non-EPUB ZIPs
         if (startsWith(header, ZIP_MAGIC)) {
-            val entries = runCatching { zipEntriesProvider?.invoke().orEmpty() }.getOrDefault(emptySet())
+            val zipInfo = runCatching { zipMetadataProvider?.invoke() }.getOrNull()
+            val entries = zipInfo?.entryNames.orEmpty()
             if ("AndroidManifest.xml" in entries || "classes.dex" in entries) {
                 return ImportValidationResult.Rejected(
                     reason = "Disguised Android APK rejected (expected ${ext.ifBlank { "book" }})",
                     detectedSignature = "android_apk"
                 )
+            }
+            if (ext == "epub" || ext.isBlank()) {
+                val mimetype = zipInfo?.mimetypeContent?.trim()
+                if (mimetype == "application/epub+zip" && "META-INF/container.xml" in entries) {
+                    return ImportValidationResult.Valid(SupportedImportFormat.EPUB)
+                }
+                if (ext == "epub") {
+                    return ImportValidationResult.Rejected(
+                        reason = "Invalid EPUB container (missing application/epub+zip mimetype or container.xml)",
+                        detectedSignature = "zip_non_epub"
+                    )
+                }
             }
             return ImportValidationResult.Rejected(
                 reason = "Disguised ZIP archive rejected for .$ext import",
@@ -105,8 +124,8 @@ object ImportValidator {
             detectedSignature = "unknown"
         )
 
-        // Reject cross-family spoofing (e.g. a PNG renamed to .pdf)
         val expectedGroup = when (ext) {
+            "epub" -> SupportedImportFormat.EPUB
             "pdf" -> SupportedImportFormat.PDF
             "jpg", "jpeg" -> SupportedImportFormat.JPG
             "png" -> SupportedImportFormat.PNG
@@ -123,17 +142,21 @@ object ImportValidator {
         return ImportValidationResult.Valid(detected)
     }
 
-    private fun readZipEntries(file: File): Set<String> {
+    private fun readZipContainerInfo(file: File): ZipContainerInfo {
         val entries = linkedSetOf<String>()
+        var mimetypeContent: String? = null
         ZipInputStream(FileInputStream(file)).use { zip ->
             var entry = zip.nextEntry
-            while (entry != null && entries.size < 64) {
+            while (entry != null && entries.size < 128) {
                 entries.add(entry.name)
+                if (entry.name == "mimetype") {
+                    mimetypeContent = zip.readBytes().toString(Charsets.UTF_8)
+                }
                 zip.closeEntry()
                 entry = zip.nextEntry
             }
         }
-        return entries
+        return ZipContainerInfo(entries, mimetypeContent)
     }
 
     private fun startsWith(data: ByteArray, prefix: ByteArray): Boolean {

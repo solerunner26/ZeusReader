@@ -26,6 +26,7 @@ import javax.inject.Inject
 
 enum class LibraryFormatFilter {
     ALL,
+    EPUB,
     PDF,
     IMAGE_BOOK
 }
@@ -66,6 +67,7 @@ class LibraryViewModel @Inject constructor(
         combine(booksFlow, searchQuery, formatFilter) { books, query, filter ->
             val filtered = when (filter) {
                 LibraryFormatFilter.ALL -> books
+                LibraryFormatFilter.EPUB -> books.filter { it.primaryFormat.equals("EPUB", ignoreCase = true) }
                 LibraryFormatFilter.PDF -> books.filter { it.primaryFormat.equals("PDF", ignoreCase = true) }
                 LibraryFormatFilter.IMAGE_BOOK -> books.filter { it.isImageBook }
             }

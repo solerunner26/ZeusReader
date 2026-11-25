@@ -35,6 +35,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/epub+zip" />
                 <data android:mimeType="application/pdf" />
                 <data android:mimeType="image/jpeg" />
                 <data android:mimeType="image/png" />
@@ -43,11 +44,18 @@
             <intent-filter>
                 <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/epub+zip" />
                 <data android:mimeType="application/pdf" />
                 <data android:mimeType="image/jpeg" />
                 <data android:mimeType="image/png" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.reader.ReaderActivity"
+            android:exported="false"
+            android:process=":reader"
+            android:theme="@style/Theme.ZeusReader" />
     </application>
 
 </manifest>

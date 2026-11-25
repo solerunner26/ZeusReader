@@ -3,16 +3,14 @@ package com.solerunner26.zeusreader
 import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.solerunner26.zeusreader.ui.library.LibraryScreen
 import com.solerunner26.zeusreader.ui.library.LibraryViewModel
-import com.solerunner26.zeusreader.ui.reader.ImageBookReaderScreen
-import com.solerunner26.zeusreader.ui.reader.ImageBookReaderViewModel
-import com.solerunner26.zeusreader.ui.reader.PdfReaderScreen
-import com.solerunner26.zeusreader.ui.reader.PdfReaderViewModel
+import com.solerunner26.zeusreader.ui.reader.ReaderActivity
 
 @Composable
 fun MainNavigation(
@@ -20,6 +18,7 @@ fun MainNavigation(
     onSharedImportsHandled: () -> Unit = {}
 ) {
     val backStack = rememberNavBackStack(LibraryRoute)
+    val context = LocalContext.current
 
     NavDisplay(
         backStack = backStack,
@@ -36,44 +35,15 @@ fun MainNavigation(
                 LibraryScreen(
                     viewModel = viewModel,
                     onOpenBook = { book ->
-                        if (book.isImageBook) {
-                            backStack.add(
-                                ImageBookReaderRoute(
-                                    editionId = book.editionId,
-                                    title = book.title
-                                )
-                            )
-                        } else if (!book.primaryLocalPath.isNullOrBlank()) {
-                            backStack.add(
-                                PdfReaderRoute(
-                                    editionId = book.editionId,
-                                    title = book.title,
-                                    localPath = book.primaryLocalPath
-                                )
-                            )
-                        }
+                        val intent = ReaderActivity.createIntent(
+                            context = context,
+                            editionId = book.editionId,
+                            title = book.title,
+                            format = if (book.isImageBook) "IMAGE_BOOK" else book.primaryFormat,
+                            localPath = book.primaryLocalPath
+                        )
+                        context.startActivity(intent)
                     }
-                )
-            }
-
-            entry<PdfReaderRoute> { route ->
-                val viewModel: PdfReaderViewModel = hiltViewModel()
-                PdfReaderScreen(
-                    editionId = route.editionId,
-                    title = route.title,
-                    localPath = route.localPath,
-                    viewModel = viewModel,
-                    onBack = { backStack.removeLastOrNull() }
-                )
-            }
-
-            entry<ImageBookReaderRoute> { route ->
-                val viewModel: ImageBookReaderViewModel = hiltViewModel()
-                ImageBookReaderScreen(
-                    editionId = route.editionId,
-                    title = route.title,
-                    viewModel = viewModel,
-                    onBack = { backStack.removeLastOrNull() }
                 )
             }
         }

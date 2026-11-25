@@ -192,6 +192,8 @@ data class ReadingProgressEntity(
     val scrollX: Float = 0f,
     @ColumnInfo(name = "scroll_y")
     val scrollY: Float = 0f,
+    @ColumnInfo(name = "locator_json")
+    val locatorJson: String? = null,
     @ColumnInfo(name = "updated_at_epoch_ms")
     val updatedAtEpochMs: Long
 )

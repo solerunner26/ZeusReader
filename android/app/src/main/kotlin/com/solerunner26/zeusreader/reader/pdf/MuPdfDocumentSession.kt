@@ -4,7 +4,11 @@ import android.graphics.Bitmap
 import com.artifex.mupdf.fitz.Cookie
 import com.artifex.mupdf.fitz.Document
 import com.artifex.mupdf.fitz.Matrix
+import com.artifex.mupdf.fitz.Outline
 import com.artifex.mupdf.fitz.android.AndroidDrawDevice
+import com.solerunner26.zeusreader.reader.core.ReaderCapabilities
+import com.solerunner26.zeusreader.reader.core.ReaderEngine
+import com.solerunner26.zeusreader.reader.core.ReaderEngineType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -14,9 +18,22 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
-interface PdfSession : AutoCloseable {
+data class PdfOutlineEntry(
+    val title: String,
+    val pageIndex: Int,
+    val depth: Int
+)
+
+data class PdfSearchHit(
+    val pageIndex: Int,
+    val matchCount: Int
+)
+
+interface PdfSession : ReaderEngine, AutoCloseable {
     val pageCount: Int
     suspend fun renderPage(pageIndex: Int, targetWidthPx: Int): Result<Bitmap>
+    suspend fun loadOutline(): List<PdfOutlineEntry>
+    suspend fun searchText(query: String, maxHits: Int = 50): List<PdfSearchHit>
 }
 
 /**
@@ -30,6 +47,9 @@ class MuPdfDocumentSession(
     private val cache: PageBitmapCache<Bitmap> = PageBitmapCache.forAndroidBitmaps(),
     private val maxSinglePageBytes: Long = MAX_SINGLE_PAGE_BITMAP_BYTES
 ) : PdfSession {
+
+    override val engineType: ReaderEngineType = ReaderEngineType.PDF_MUPDF
+    override val capabilities: ReaderCapabilities = ReaderCapabilities.PDF
 
     private val mutex = Mutex()
     private var document: Document? = null
@@ -112,6 +132,48 @@ class MuPdfDocumentSession(
                 }
             }
         }
+
+    override suspend fun loadOutline(): List<PdfOutlineEntry> = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val doc = document ?: return@withLock emptyList()
+            val out = mutableListOf<PdfOutlineEntry>()
+            fun walk(nodes: Array<Outline>?, depth: Int) {
+                if (nodes == null) return
+                for (node in nodes) {
+                    val loc = runCatching { doc.resolveLink(node) }.getOrNull()
+                    val pageIdx = loc?.page ?: 0
+                    if (!node.title.isNullOrBlank()) {
+                        out.add(PdfOutlineEntry(title = node.title, pageIndex = pageIdx, depth = depth))
+                    }
+                    walk(node.down, depth + 1)
+                }
+            }
+            runCatching { walk(doc.loadOutline(), 0) }
+            out
+        }
+    }
+
+    override suspend fun searchText(query: String, maxHits: Int): List<PdfSearchHit> = withContext(Dispatchers.IO) {
+        if (query.isBlank()) return@withContext emptyList()
+        mutex.withLock {
+            val doc = document ?: return@withLock emptyList()
+            val count = if (cachedPageCount >= 0) cachedPageCount else doc.countPages()
+            val hits = mutableListOf<PdfSearchHit>()
+            for (idx in 0 until count) {
+                if (hits.size >= maxHits) break
+                val page = doc.loadPage(idx)
+                try {
+                    val quads = page.search(query)
+                    if (!quads.isNullOrEmpty()) {
+                        hits.add(PdfSearchHit(pageIndex = idx, matchCount = quads.size))
+                    }
+                } finally {
+                    runCatching { page.destroy() }
+                }
+            }
+            hits
+        }
+    }
 
     override fun close() {
         cache.evictAll()

@@ -115,7 +115,7 @@ fun LibraryScreen(
         snackbarHostState = snackbarHostState,
         onImportClick = {
             documentPickerLauncher.launch(
-                arrayOf("application/pdf", "image/jpeg", "image/png")
+                arrayOf("application/epub+zip", "application/pdf", "image/jpeg", "image/png")
             )
         },
         onOpenWatchedFolders = { showWatchedFoldersSheet = true },
@@ -294,6 +294,12 @@ private fun PopulatedLibraryContent(
                 onClick = { onFilterSelected(LibraryFormatFilter.ALL) },
                 modifier = Modifier.heightIn(min = 48.dp),
                 label = { Text(stringResource(R.string.library_filter_all)) }
+            )
+            FilterChip(
+                selected = state.selectedFilter == LibraryFormatFilter.EPUB,
+                onClick = { onFilterSelected(LibraryFormatFilter.EPUB) },
+                modifier = Modifier.heightIn(min = 48.dp),
+                label = { Text(stringResource(R.string.library_filter_epub)) }
             )
             FilterChip(
                 selected = state.selectedFilter == LibraryFormatFilter.PDF,

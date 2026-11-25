@@ -7,6 +7,7 @@
     <string name="library_watched_folders">Watched folders</string>
     <string name="library_search_hint">Search titles or authors…</string>
     <string name="library_filter_all">All</string>
+    <string name="library_filter_epub">EPUB</string>
     <string name="library_filter_pdf">PDF</string>
     <string name="library_filter_images">Image books</string>
     <string name="watched_folders_title">Watched Folders</string>
