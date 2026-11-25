@@ -13,15 +13,47 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LibrarySearchFtsEntity::class,
         ImageBookPageEntity::class,
         WatchedFolderEntity::class,
-        ReadingProgressEntity::class
+        ReadingProgressEntity::class,
+        HighlightEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class ZeusReaderDatabase : RoomDatabase() {
     abstract fun libraryDao(): LibraryDao
 
     companion object {
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `highlights` (
+                        `id` TEXT NOT NULL,
+                        `edition_id` TEXT NOT NULL,
+                        `locator_json` TEXT NOT NULL,
+                        `selected_text` TEXT NOT NULL,
+                        `note` TEXT NOT NULL,
+                        `color_hex` TEXT NOT NULL,
+                        `chapter_title` TEXT NOT NULL,
+                        `page_number` INTEGER,
+                        `version` INTEGER NOT NULL,
+                        `created_at_epoch_ms` INTEGER NOT NULL,
+                        `updated_at_epoch_ms` INTEGER NOT NULL,
+                        `deleted_at_epoch_ms` INTEGER,
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`edition_id`) REFERENCES `editions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_highlights_edition_id` ON `highlights` (`edition_id`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_highlights_updated_at_epoch_ms` ON `highlights` (`updated_at_epoch_ms`)"
+                )
+            }
+        }
+
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `reading_progress` ADD COLUMN `locator_json` TEXT")

@@ -31,7 +31,8 @@ data class PdfSearchHit(
 
 interface PdfSession : ReaderEngine, AutoCloseable {
     val pageCount: Int
-    suspend fun renderPage(pageIndex: Int, targetWidthPx: Int): Result<Bitmap>
+    suspend fun renderPage(pageIndex: Int, targetWidthPx: Int, autoCropMargins: Boolean = false): Result<Bitmap>
+    suspend fun extractReflowedPageText(pageIndex: Int): Result<String>
     suspend fun loadOutline(): List<PdfOutlineEntry>
     suspend fun searchText(query: String, maxHits: Int = 50): List<PdfSearchHit>
 }
@@ -40,7 +41,8 @@ interface PdfSession : ReaderEngine, AutoCloseable {
  * MuPDF-backed PDF renderer with:
  * - Serialized native access via [Mutex]
  * - Max 3 cached page bitmaps + 48 MB memory budget via [PageBitmapCache]
- * - Per-page decoded-bitmap budget downsampling and [OutOfMemoryError] recovery
+ * - Per-page decoded-bitmap budget downsampling, optional auto-crop, structured-text reflow,
+ *   and [OutOfMemoryError] recovery.
  */
 class MuPdfDocumentSession(
     private val filePath: String,
@@ -69,69 +71,100 @@ class MuPdfDocumentSession(
         }
     }
 
-    override suspend fun renderPage(pageIndex: Int, targetWidthPx: Int): Result<Bitmap> =
-        withContext(Dispatchers.IO) {
-            cache.get(pageIndex)?.let { existing ->
-                if (!existing.isRecycled) return@withContext Result.success(existing)
+    override suspend fun renderPage(
+        pageIndex: Int,
+        targetWidthPx: Int,
+        autoCropMargins: Boolean
+    ): Result<Bitmap> = withContext(Dispatchers.IO) {
+        val cacheKey = if (autoCropMargins) -(pageIndex + 1) else pageIndex
+        cache.get(cacheKey)?.let { existing ->
+            if (!existing.isRecycled) return@withContext Result.success(existing)
+        }
+
+        mutex.withLock {
+            cache.get(cacheKey)?.let { existing ->
+                if (!existing.isRecycled) return@withLock Result.success(existing)
             }
 
-            mutex.withLock {
-                // Re-check inside lock
-                cache.get(pageIndex)?.let { existing ->
-                    if (!existing.isRecycled) return@withLock Result.success(existing)
+            try {
+                val doc = document ?: Document.openDocument(filePath).also {
+                    document = it
+                    cachedPageCount = it.countPages()
+                }
+                val count = if (cachedPageCount >= 0) cachedPageCount else doc.countPages().also { cachedPageCount = it }
+                if (pageIndex < 0 || pageIndex >= count) {
+                    return@withLock Result.failure(IndexOutOfBoundsException("Invalid page $pageIndex of $count"))
                 }
 
+                val page = doc.loadPage(pageIndex)
+                var drawDevice: AndroidDrawDevice? = null
                 try {
-                    val doc = document ?: Document.openDocument(filePath).also {
-                        document = it
-                        cachedPageCount = it.countPages()
+                    val bounds = page.bounds
+                    val pageW = max(1f, bounds.x1 - bounds.x0)
+                    val pageH = max(1f, bounds.y1 - bounds.y0)
+
+                    val (outW, outH) = computeBoundedDimensions(
+                        pageWidthPts = pageW,
+                        pageHeightPts = pageH,
+                        requestedWidthPx = targetWidthPx,
+                        maxBytes = maxSinglePageBytes
+                    )
+                    val scale = outW.toFloat() / pageW
+
+                    val rawBitmap = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
+                    val ctm = Matrix(scale, scale).translate(-bounds.x0, -bounds.y0)
+                    drawDevice = AndroidDrawDevice(rawBitmap, 0, 0, 0, 0, outW, outH)
+                    page.run(drawDevice, ctm, Cookie())
+                    drawDevice.close()
+
+                    val finalBitmap = if (autoCropMargins) cropLightMargins(rawBitmap) else rawBitmap
+                    cache.put(cacheKey, finalBitmap)
+                    Result.success(finalBitmap)
+                } finally {
+                    runCatching { drawDevice?.destroy() }
+                    runCatching { page.destroy() }
+                }
+            } catch (oom: OutOfMemoryError) {
+                cache.evictAll()
+                Result.failure(IllegalStateException("Insufficient memory to decode PDF page", oom))
+            } catch (t: Throwable) {
+                Result.failure(t)
+            }
+        }
+    }
+
+    override suspend fun extractReflowedPageText(pageIndex: Int): Result<String> = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            runCatching {
+                val doc = document ?: Document.openDocument(filePath).also {
+                    document = it
+                    cachedPageCount = it.countPages()
+                }
+                val count = if (cachedPageCount >= 0) cachedPageCount else doc.countPages()
+                if (pageIndex < 0 || pageIndex >= count) {
+                    error("Invalid page $pageIndex")
+                }
+                val page = doc.loadPage(pageIndex)
+                var sText: com.artifex.mupdf.fitz.StructuredText? = null
+                try {
+                    sText = page.toStructuredText()
+                    val blocks = sText.blocks ?: emptyArray()
+                    val paragraphs = blocks.mapNotNull { block ->
+                        val lines = block.lines?.mapNotNull { line ->
+                            line.chars?.joinToString("") { ch -> ch.c.toChar().toString() }?.trim()
+                        }.orEmpty().filter { it.isNotBlank() }
+                        if (lines.isEmpty()) null else dehyphenateLines(lines)
                     }
-                    val count = if (cachedPageCount >= 0) cachedPageCount else doc.countPages().also { cachedPageCount = it }
-                    if (pageIndex < 0 || pageIndex >= count) {
-                        return@withLock Result.failure(IndexOutOfBoundsException("Invalid page $pageIndex of $count"))
+                    paragraphs.joinToString("\n\n").ifBlank {
+                        "No selectable text detected on this page (scanned image)."
                     }
-
-                    val page = doc.loadPage(pageIndex)
-                    var drawDevice: AndroidDrawDevice? = null
-                    try {
-                        val bounds = page.bounds
-                        val pageW = max(1f, bounds.x1 - bounds.x0)
-                        val pageH = max(1f, bounds.y1 - bounds.y0)
-
-                        val desiredWidth = targetWidthPx.coerceIn(240, 2200).toFloat()
-                        var scale = desiredWidth / pageW
-                        var outW = max(1, (pageW * scale).roundToInt())
-                        var outH = max(1, (pageH * scale).roundToInt())
-
-                        // Enforce single-page decoded ARGB_8888 budget
-                        val estimatedBytes = outW.toLong() * outH.toLong() * 4L
-                        if (estimatedBytes > maxSinglePageBytes) {
-                            val ratio = sqrt(maxSinglePageBytes.toDouble() / estimatedBytes.toDouble()).toFloat()
-                            scale *= ratio
-                            outW = max(1, (pageW * scale).roundToInt())
-                            outH = max(1, (pageH * scale).roundToInt())
-                        }
-
-                        val bitmap = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
-                        val ctm = Matrix(scale, scale).translate(-bounds.x0, -bounds.y0)
-                        drawDevice = AndroidDrawDevice(bitmap, 0, 0, 0, 0, outW, outH)
-                        page.run(drawDevice, ctm, Cookie())
-                        drawDevice.close()
-
-                        cache.put(pageIndex, bitmap)
-                        Result.success(bitmap)
-                    } finally {
-                        runCatching { drawDevice?.destroy() }
-                        runCatching { page.destroy() }
-                    }
-                } catch (oom: OutOfMemoryError) {
-                    cache.evictAll()
-                    Result.failure(IllegalStateException("Insufficient memory to decode PDF page", oom))
-                } catch (t: Throwable) {
-                    Result.failure(t)
+                } finally {
+                    runCatching { sText?.destroy() }
+                    runCatching { page.destroy() }
                 }
             }
         }
+    }
 
     override suspend fun loadOutline(): List<PdfOutlineEntry> = withContext(Dispatchers.IO) {
         mutex.withLock {
@@ -202,6 +235,67 @@ class MuPdfDocumentSession(
                 h = max(1, (h * factor).roundToInt())
             }
             return w to min(h, 8192)
+        }
+
+        /** Joins wrapped PDF lines while de-hyphenating line-break word splits cleanly. */
+        fun dehyphenateLines(lines: List<String>): String {
+            if (lines.isEmpty()) return ""
+            val sb = StringBuilder()
+            lines.forEachIndexed { idx, rawLine ->
+                val line = rawLine.trim()
+                if (line.isEmpty()) return@forEachIndexed
+                if (idx == 0) {
+                    sb.append(line)
+                } else if (sb.endsWith("-") && line.first().isLowerCase()) {
+                    sb.deleteCharAt(sb.length - 1)
+                    sb.append(line)
+                } else {
+                    sb.append(' ').append(line)
+                }
+            }
+            return sb.toString()
+        }
+
+        /** Trims near-white borders from a rendered PDF bitmap with small padding. */
+        fun cropLightMargins(source: Bitmap, whiteThreshold: Int = 246, paddingPx: Int = 12): Bitmap {
+            val w = source.width
+            val h = source.height
+            if (w < 64 || h < 64) return source
+
+            val step = 4
+            var minX = w
+            var minY = h
+            var maxX = 0
+            var maxY = 0
+            val rowPixels = IntArray(w)
+
+            for (y in 0 until h step step) {
+                source.getPixels(rowPixels, 0, w, 0, y, w, 1)
+                for (x in 0 until w step step) {
+                    val px = rowPixels[x]
+                    val r = (px shr 16) and 0xFF
+                    val g = (px shr 8) and 0xFF
+                    val b = px and 0xFF
+                    if (r < whiteThreshold || g < whiteThreshold || b < whiteThreshold) {
+                        if (x < minX) minX = x
+                        if (x > maxX) maxX = x
+                        if (y < minY) minY = y
+                        if (y > maxY) maxY = y
+                    }
+                }
+            }
+
+            if (minX >= maxX || minY >= maxY) return source
+            val left = (minX - paddingPx).coerceAtLeast(0)
+            val top = (minY - paddingPx).coerceAtLeast(0)
+            val right = (maxX + paddingPx).coerceAtMost(w)
+            val bottom = (maxY + paddingPx).coerceAtMost(h)
+            val cropW = right - left
+            val cropH = bottom - top
+            if (cropW <= 32 || cropH <= 32 || (cropW >= w - 16 && cropH >= h - 16)) {
+                return source
+            }
+            return Bitmap.createBitmap(source, left, top, cropW, cropH)
         }
     }
 }

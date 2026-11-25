@@ -158,4 +158,36 @@ interface LibraryDao {
 
     @Query("SELECT COUNT(*) FROM file_assets")
     suspend fun countFileAssets(): Int
+
+    @Query(
+        """
+        SELECT * FROM highlights
+        WHERE edition_id = :editionId AND deleted_at_epoch_ms IS NULL
+        ORDER BY created_at_epoch_ms ASC
+        """
+    )
+    fun observeHighlights(editionId: String): Flow<List<HighlightEntity>>
+
+    @Query(
+        """
+        SELECT * FROM highlights
+        WHERE edition_id = :editionId AND deleted_at_epoch_ms IS NULL
+        ORDER BY created_at_epoch_ms ASC
+        """
+    )
+    suspend fun getHighlights(editionId: String): List<HighlightEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertHighlight(highlight: HighlightEntity)
+
+    @Query(
+        """
+        UPDATE highlights
+        SET deleted_at_epoch_ms = :deletedAtEpochMs,
+            updated_at_epoch_ms = :deletedAtEpochMs,
+            version = version + 1
+        WHERE id = :highlightId
+        """
+    )
+    suspend fun softDeleteHighlight(highlightId: String, deletedAtEpochMs: Long)
 }

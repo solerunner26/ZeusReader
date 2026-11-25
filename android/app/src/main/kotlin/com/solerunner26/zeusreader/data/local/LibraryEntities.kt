@@ -217,3 +217,44 @@ data class LibraryBookSummary(
     val isImageBook: Boolean
         get() = imagePageCount > 0 || primaryFormat.uppercase() in setOf("JPG", "JPEG", "PNG", "IMAGE_BOOK")
 }
+
+/** User highlight & optional note anchored by UnifiedLocator JSON or page number. */
+@Entity(
+    tableName = "highlights",
+    foreignKeys = [
+        ForeignKey(
+            entity = EditionEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["edition_id"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [
+        Index(value = ["edition_id"]),
+        Index(value = ["updated_at_epoch_ms"])
+    ]
+)
+data class HighlightEntity(
+    @PrimaryKey
+    val id: String,
+    @ColumnInfo(name = "edition_id")
+    val editionId: String,
+    @ColumnInfo(name = "locator_json")
+    val locatorJson: String = "",
+    @ColumnInfo(name = "selected_text")
+    val selectedText: String,
+    val note: String = "",
+    @ColumnInfo(name = "color_hex")
+    val colorHex: String = "#FFE082",
+    @ColumnInfo(name = "chapter_title")
+    val chapterTitle: String = "",
+    @ColumnInfo(name = "page_number")
+    val pageNumber: Int? = null,
+    val version: Long = 1L,
+    @ColumnInfo(name = "created_at_epoch_ms")
+    val createdAtEpochMs: Long,
+    @ColumnInfo(name = "updated_at_epoch_ms")
+    val updatedAtEpochMs: Long,
+    @ColumnInfo(name = "deleted_at_epoch_ms")
+    val deletedAtEpochMs: Long? = null
+)

@@ -26,7 +26,11 @@ object DatabaseModule {
             ZeusReaderDatabase::class.java,
             "zeusreader.db"
         )
-            .addMigrations(ZeusReaderDatabase.MIGRATION_1_2, ZeusReaderDatabase.MIGRATION_2_3)
+            .addMigrations(
+                ZeusReaderDatabase.MIGRATION_1_2,
+                ZeusReaderDatabase.MIGRATION_2_3,
+                ZeusReaderDatabase.MIGRATION_3_4
+            )
             .enableMultiInstanceInvalidation()
             .build()
 

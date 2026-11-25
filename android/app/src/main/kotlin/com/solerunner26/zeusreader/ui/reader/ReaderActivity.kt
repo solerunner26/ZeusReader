@@ -3,6 +3,7 @@ package com.solerunner26.zeusreader.ui.reader
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -11,9 +12,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import com.solerunner26.zeusreader.reader.crash.ReaderCrashGuard
+import com.solerunner26.zeusreader.reader.prefs.ReaderPreferencesRepository
 import com.solerunner26.zeusreader.ui.theme.ZeusReaderTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 import kotlin.system.exitProcess
 
 /**
@@ -24,12 +31,25 @@ import kotlin.system.exitProcess
 @AndroidEntryPoint
 class ReaderActivity : FragmentActivity() {
 
+    @Inject
+    lateinit var preferencesRepository: ReaderPreferencesRepository
+
     private val epubViewModel: EpubReaderViewModel by viewModels()
     private val pdfViewModel: PdfReaderViewModel by viewModels()
     private val imageBookViewModel: ImageBookReaderViewModel by viewModels()
 
+    private val _volumeTurnEvents = MutableSharedFlow<Int>(extraBufferCapacity = 8)
+    private val volumeTurnEvents = _volumeTurnEvents.asSharedFlow()
+    private var volumeTurnEnabled: Boolean = true
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        lifecycleScope.launch {
+            preferencesRepository.settings.collect { settings ->
+                volumeTurnEnabled = settings.volumeKeyPageTurn
+            }
+        }
 
         val editionId = intent.getStringExtra(EXTRA_EDITION_ID).orEmpty()
         val title = intent.getStringExtra(EXTRA_TITLE).orEmpty().ifBlank { "Reader" }
@@ -66,6 +86,7 @@ class ReaderActivity : FragmentActivity() {
                                 localPath = localPath,
                                 activity = this,
                                 viewModel = epubViewModel,
+                                volumeTurnEvents = volumeTurnEvents,
                                 onBack = { finish() }
                             )
                         }
@@ -85,6 +106,7 @@ class ReaderActivity : FragmentActivity() {
                                 title = title,
                                 localPath = localPath,
                                 viewModel = pdfViewModel,
+                                volumeTurnEvents = volumeTurnEvents,
                                 onBack = { finish() }
                             )
                         }
@@ -92,6 +114,22 @@ class ReaderActivity : FragmentActivity() {
                 }
             }
         }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (volumeTurnEnabled) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                    _volumeTurnEvents.tryEmit(1)
+                    return true
+                }
+                KeyEvent.KEYCODE_VOLUME_UP -> {
+                    _volumeTurnEvents.tryEmit(-1)
+                    return true
+                }
+            }
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     companion object {

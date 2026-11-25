@@ -1,9 +1,12 @@
 package com.solerunner26.zeusreader.ui.reader
 
+import android.content.pm.ActivityInfo
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,12 +23,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,7 +47,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -50,17 +59,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.solerunner26.zeusreader.R
+import com.solerunner26.zeusreader.reader.prefs.PdfFitMode
+import com.solerunner26.zeusreader.reader.prefs.ReaderThemeMode
+import kotlinx.coroutines.flow.Flow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,18 +83,24 @@ fun PdfReaderScreen(
     title: String,
     localPath: String,
     viewModel: PdfReaderViewModel,
+    volumeTurnEvents: Flow<Int>,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val highlights by viewModel.highlights.collectAsStateWithLifecycle()
     val searchHits by viewModel.searchHits.collectAsStateWithLifecycle()
     val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
+    val activity = LocalActivity.current
+
     var showTocSheet by remember { mutableStateOf(false) }
     var showSearchSheet by remember { mutableStateOf(false) }
+    var showTypographySheet by remember { mutableStateOf(false) }
+    var showHighlightsSheet by remember { mutableStateOf(false) }
+    var brightnessLevel by remember { mutableFloatStateOf(0.5f) }
 
-    val widthPx = with(LocalDensity.current) {
-        LocalConfiguration.current.screenWidthDp.dp.toPx().toInt()
-    }
+    val widthPx = LocalWindowInfo.current.containerSize.width.coerceAtLeast(1080)
 
     LaunchedEffect(editionId, localPath) {
         viewModel.openDocument(
@@ -91,10 +111,59 @@ fun PdfReaderScreen(
         )
     }
 
+    LaunchedEffect(settings.pdfAutoCropMargins, settings.pdfReflowMode) {
+        viewModel.reloadCurrentPageForSettings()
+    }
+
+    LaunchedEffect(settings.rotationLocked) {
+        activity?.requestedOrientation = if (settings.rotationLocked) {
+            ActivityInfo.SCREEN_ORIENTATION_LOCKED
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
+    LaunchedEffect(volumeTurnEvents) {
+        volumeTurnEvents.collect { delta ->
+            if (delta > 0) viewModel.nextPage() else viewModel.previousPage()
+        }
+    }
+
+    val nightInvertFilter = remember(settings.theme) {
+        if (settings.theme == ReaderThemeMode.NIGHT || settings.theme == ReaderThemeMode.PURE_BLACK_OLED) {
+            // Soft luminance-preserving night inversion matrix for readable text & gentler diagrams
+            ColorFilter.colorMatrix(
+                ColorMatrix(
+                    floatArrayOf(
+                        -0.88f, 0f, 0f, 0f, 232f,
+                        0f, -0.88f, 0f, 0f, 230f,
+                        0f, 0f, -0.88f, 0f, 224f,
+                        0f, 0f, 0f, 1f, 0f
+                    )
+                )
+            )
+        } else {
+            null
+        }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = settings.theme.backgroundColor,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = settings.theme.surfaceColor,
+                    titleContentColor = settings.theme.textColor,
+                    navigationIconContentColor = settings.theme.textColor,
+                    actionIconContentColor = settings.theme.textColor
+                ),
                 title = {
                     Text(
                         text = title,
@@ -117,20 +186,27 @@ fun PdfReaderScreen(
                         enabled = ready != null,
                         modifier = Modifier.size(48.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.FormatListBulleted,
-                            contentDescription = "Table of contents"
-                        )
+                        Icon(Icons.AutoMirrored.Rounded.FormatListBulleted, contentDescription = "Table of contents")
                     }
                     IconButton(
                         onClick = { showSearchSheet = true },
                         enabled = ready != null,
                         modifier = Modifier.size(48.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Search,
-                            contentDescription = "Search PDF"
-                        )
+                        Icon(Icons.Rounded.Search, contentDescription = "Search PDF")
+                    }
+                    IconButton(
+                        onClick = { showHighlightsSheet = true },
+                        enabled = ready != null,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(Icons.Rounded.BookmarkAdd, contentDescription = "Highlights & notes")
+                    }
+                    IconButton(
+                        onClick = { showTypographySheet = true },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(Icons.Rounded.Tune, contentDescription = "Appearance & PDF layout")
                     }
                 }
             )
@@ -138,7 +214,10 @@ fun PdfReaderScreen(
         bottomBar = {
             val ready = uiState as? PdfReaderUiState.Ready
             if (ready != null) {
-                BottomAppBar {
+                BottomAppBar(
+                    containerColor = settings.theme.surfaceColor,
+                    contentColor = settings.theme.textColor
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -179,7 +258,7 @@ fun PdfReaderScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(Color(0xFF141414)),
+                .background(settings.theme.backgroundColor),
             contentAlignment = Alignment.Center
         ) {
             when (val state = uiState) {
@@ -199,77 +278,131 @@ fun PdfReaderScreen(
                 }
 
                 is PdfReaderUiState.Ready -> {
-                    var scale by remember(state.currentPage) { mutableFloatStateOf(state.initialScale) }
-                    var offsetX by remember(state.currentPage) { mutableFloatStateOf(state.initialScrollX) }
-                    var offsetY by remember(state.currentPage) { mutableFloatStateOf(state.initialScrollY) }
+                    if (settings.pdfReflowMode && state.reflowedText != null) {
+                        val baseSp = (16f * settings.fontSizePercent / 100f).sp
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .padding(horizontal = settings.horizontalMarginDp.dp, vertical = 16.dp)
+                        ) {
+                            Text(
+                                text = state.reflowedText,
+                                fontFamily = settings.fontChoice.toComposeFontFamily(),
+                                fontSize = baseSp,
+                                lineHeight = baseSp * settings.lineHeightMultiplier,
+                                color = settings.theme.textColor
+                            )
+                        }
+                    } else {
+                        var scale by remember(state.currentPage, settings.pdfRetainZoomAcrossPages) {
+                            mutableFloatStateOf(state.initialScale)
+                        }
+                        var offsetX by remember(state.currentPage, settings.pdfRetainZoomAcrossPages) {
+                            mutableFloatStateOf(state.initialScrollX)
+                        }
+                        var offsetY by remember(state.currentPage, settings.pdfRetainZoomAcrossPages) {
+                            mutableFloatStateOf(state.initialScrollY)
+                        }
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .pointerInput(state.currentPage) {
-                                detectTransformGestures { _, pan, zoom, _ ->
-                                    val nextScale = (scale * zoom).coerceIn(1f, 4f)
-                                    scale = nextScale
-                                    if (nextScale > 1f) {
-                                        offsetX += pan.x
-                                        offsetY += pan.y
-                                    } else {
-                                        offsetX = 0f
-                                        offsetY = 0f
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .pointerInput(state.currentPage) {
+                                    detectTransformGestures { _, pan, zoom, _ ->
+                                        val nextScale = (scale * zoom).coerceIn(1f, 4f)
+                                        scale = nextScale
+                                        if (nextScale > 1f) {
+                                            offsetX += pan.x
+                                            offsetY += pan.y
+                                        } else {
+                                            offsetX = 0f
+                                            offsetY = 0f
+                                        }
+                                        viewModel.updateViewport(state.currentPage, scale, offsetX, offsetY)
                                     }
-                                    viewModel.updateViewport(state.currentPage, scale, offsetX, offsetY)
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        state.bitmap?.let { bmp ->
-                            Image(
-                                bitmap = bmp.asImageBitmap(),
-                                contentDescription = "PDF page ${state.currentPage + 1}",
-                                contentScale = ContentScale.Fit,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .graphicsLayer(
-                                        scaleX = scale,
-                                        scaleY = scale,
-                                        translationX = offsetX,
-                                        translationY = offsetY
-                                    )
-                            )
-                        }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            state.bitmap?.let { bmp ->
+                                Image(
+                                    bitmap = bmp.asImageBitmap(),
+                                    contentDescription = "PDF page ${state.currentPage + 1}",
+                                    contentScale = if (settings.pdfFitMode == PdfFitMode.FIT_WIDTH) {
+                                        ContentScale.FillWidth
+                                    } else {
+                                        ContentScale.Fit
+                                    },
+                                    colorFilter = nightInvertFilter,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer(
+                                            scaleX = scale,
+                                            scaleY = scale,
+                                            translationX = offsetX,
+                                            translationY = offsetY
+                                        )
+                                )
+                            }
 
-                        if (state.isRenderingPage) {
-                            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                        }
+                            if (state.isRenderingPage) {
+                                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                            }
 
-                        if (scale <= 1.05f) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.CenterStart)
-                                    .width(64.dp)
-                                    .fillMaxHeight()
-                                    .heightIn(min = 48.dp)
-                                    .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                        onClick = viewModel::previousPage
-                                    )
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.CenterEnd)
-                                    .width(64.dp)
-                                    .fillMaxHeight()
-                                    .heightIn(min = 48.dp)
-                                    .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                        onClick = viewModel::nextPage
-                                    )
-                            )
+                            if (scale <= 1.05f) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.CenterStart)
+                                        .width(64.dp)
+                                        .fillMaxHeight()
+                                        .heightIn(min = 48.dp)
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null,
+                                            onClick = viewModel::previousPage
+                                        )
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.CenterEnd)
+                                        .width(64.dp)
+                                        .fillMaxHeight()
+                                        .heightIn(min = 48.dp)
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null,
+                                            onClick = viewModel::nextPage
+                                        )
+                                )
+                            }
                         }
                     }
+
+                    if (settings.edgeBrightnessSwipe && activity != null) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .width(28.dp)
+                                .fillMaxHeight()
+                                .pointerInput(Unit) {
+                                    detectVerticalDragGestures { _, dragAmount ->
+                                        brightnessLevel = (brightnessLevel - dragAmount / 1200f).coerceIn(0.08f, 1f)
+                                        val lp = activity.window.attributes
+                                        lp.screenBrightness = brightnessLevel
+                                        activity.window.attributes = lp
+                                    }
+                                }
+                        )
+                    }
                 }
+            }
+
+            if (settings.warmLightStrength > 0.01f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFFFFA726).copy(alpha = settings.warmLightStrength))
+                )
             }
         }
     }
@@ -389,5 +522,25 @@ fun PdfReaderScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
+    }
+
+    if (showTypographySheet) {
+        TypographyBottomSheet(
+            settings = settings,
+            isPdfMode = true,
+            onSettingsChange = viewModel::updateSettings,
+            onDismiss = { showTypographySheet = false }
+        )
+    }
+
+    if (showHighlightsSheet) {
+        HighlightsBottomSheet(
+            bookTitle = title,
+            highlights = highlights,
+            defaultSnippet = readyState?.reflowedText?.take(160).orEmpty(),
+            onAddHighlight = viewModel::addHighlight,
+            onDeleteHighlight = viewModel::deleteHighlight,
+            onDismiss = { showHighlightsSheet = false }
+        )
     }
 }

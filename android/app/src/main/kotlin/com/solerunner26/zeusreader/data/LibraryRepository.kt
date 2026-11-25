@@ -1,5 +1,6 @@
 package com.solerunner26.zeusreader.data
 
+import com.solerunner26.zeusreader.data.local.HighlightEntity
 import com.solerunner26.zeusreader.data.local.ImageBookPageEntity
 import com.solerunner26.zeusreader.data.local.LibraryBookSummary
 import com.solerunner26.zeusreader.data.local.LibraryDao
@@ -19,6 +20,10 @@ interface LibraryRepository {
     fun observeWatchedFolders(): Flow<List<WatchedFolderEntity>>
     suspend fun getReadingProgress(editionId: String): ReadingProgressEntity?
     suspend fun saveReadingProgress(progress: ReadingProgressEntity)
+    fun observeHighlights(editionId: String): Flow<List<HighlightEntity>>
+    suspend fun getHighlights(editionId: String): List<HighlightEntity>
+    suspend fun saveHighlight(highlight: HighlightEntity)
+    suspend fun deleteHighlight(highlightId: String)
 }
 
 class RoomLibraryRepository @Inject constructor(
@@ -51,6 +56,20 @@ class RoomLibraryRepository @Inject constructor(
 
     override suspend fun saveReadingProgress(progress: ReadingProgressEntity) {
         libraryDao.upsertReadingProgress(progress)
+    }
+
+    override fun observeHighlights(editionId: String): Flow<List<HighlightEntity>> =
+        libraryDao.observeHighlights(editionId)
+
+    override suspend fun getHighlights(editionId: String): List<HighlightEntity> =
+        libraryDao.getHighlights(editionId)
+
+    override suspend fun saveHighlight(highlight: HighlightEntity) {
+        libraryDao.upsertHighlight(highlight)
+    }
+
+    override suspend fun deleteHighlight(highlightId: String) {
+        libraryDao.softDeleteHighlight(highlightId, System.currentTimeMillis())
     }
 
     companion object {

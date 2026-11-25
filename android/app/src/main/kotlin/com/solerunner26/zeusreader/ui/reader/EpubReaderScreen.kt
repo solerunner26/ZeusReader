@@ -1,24 +1,32 @@
 package com.solerunner26.zeusreader.ui.reader
 
+import android.content.pm.ActivityInfo
 import android.view.View
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
+import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,14 +41,20 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,6 +65,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.solerunner26.zeusreader.R
 import com.solerunner26.zeusreader.reader.epub.EpubSearchResultItem
 import com.solerunner26.zeusreader.reader.epub.EpubTocItem
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
 
@@ -62,19 +78,41 @@ fun EpubReaderScreen(
     localPath: String,
     activity: FragmentActivity,
     viewModel: EpubReaderViewModel,
+    volumeTurnEvents: Flow<Int>,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val highlights by viewModel.highlights.collectAsStateWithLifecycle()
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
     val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
 
     var navigatorRef by remember { mutableStateOf<EpubNavigatorFragment?>(null) }
     var showTocSheet by remember { mutableStateOf(false) }
     var showSearchSheet by remember { mutableStateOf(false) }
+    var showTypographySheet by remember { mutableStateOf(false) }
+    var showHighlightsSheet by remember { mutableStateOf(false) }
+    var highlightSeedSnippet by remember { mutableStateOf("") }
+    var brightnessLevel by remember { mutableFloatStateOf(0.5f) }
 
     LaunchedEffect(editionId, localPath) {
         viewModel.openBook(editionId = editionId, title = title, localPath = localPath)
+    }
+
+    LaunchedEffect(settings.rotationLocked) {
+        activity.requestedOrientation = if (settings.rotationLocked) {
+            ActivityInfo.SCREEN_ORIENTATION_LOCKED
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
     }
 
     LaunchedEffect(navigatorRef) {
@@ -84,10 +122,32 @@ fun EpubReaderScreen(
         }
     }
 
+    // Apply Readium preferences & preserve exact passage anchor on font/theme changes
+    LaunchedEffect(navigatorRef, settings) {
+        val nav = navigatorRef ?: return@LaunchedEffect
+        val anchor = nav.currentLocator.value
+        nav.submitPreferences(viewModel.toReadiumPreferences(settings))
+        nav.go(anchor, animated = false)
+    }
+
+    LaunchedEffect(navigatorRef, volumeTurnEvents) {
+        volumeTurnEvents.collect { delta ->
+            val nav = navigatorRef ?: return@collect
+            if (delta > 0) nav.goForward(animated = true) else nav.goBackward(animated = true)
+        }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = settings.theme.backgroundColor,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = settings.theme.surfaceColor,
+                    titleContentColor = settings.theme.textColor,
+                    navigationIconContentColor = settings.theme.textColor,
+                    actionIconContentColor = settings.theme.textColor
+                ),
                 title = {
                     Text(
                         text = title,
@@ -110,20 +170,33 @@ fun EpubReaderScreen(
                         enabled = ready != null,
                         modifier = Modifier.size(48.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.FormatListBulleted,
-                            contentDescription = "Table of contents"
-                        )
+                        Icon(Icons.AutoMirrored.Rounded.FormatListBulleted, contentDescription = "Table of contents")
                     }
                     IconButton(
                         onClick = { showSearchSheet = true },
                         enabled = ready?.capabilities?.search == true,
                         modifier = Modifier.size(48.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Search,
-                            contentDescription = "Search in book"
-                        )
+                        Icon(Icons.Rounded.Search, contentDescription = "Search in book")
+                    }
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                val sel = navigatorRef?.currentSelection()?.locator?.text?.highlight.orEmpty()
+                                highlightSeedSnippet = sel
+                                showHighlightsSheet = true
+                            }
+                        },
+                        enabled = ready != null,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(Icons.Rounded.BookmarkAdd, contentDescription = "Highlights & notes")
+                    }
+                    IconButton(
+                        onClick = { showTypographySheet = true },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(Icons.Rounded.Tune, contentDescription = "Typography & ergonomics")
                     }
                 }
             )
@@ -131,7 +204,10 @@ fun EpubReaderScreen(
         bottomBar = {
             val ready = uiState as? EpubReaderUiState.Ready
             if (ready != null) {
-                BottomAppBar {
+                BottomAppBar(
+                    containerColor = settings.theme.surfaceColor,
+                    contentColor = settings.theme.textColor
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -140,10 +216,13 @@ fun EpubReaderScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "EPUB • Readium",
+                            text = ready.currentChapterTitle.ifBlank { "EPUB • ${settings.theme.label}" },
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
                         )
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = "${ready.currentProgressionPercent}%",
                             style = MaterialTheme.typography.titleMedium
@@ -156,7 +235,8 @@ fun EpubReaderScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .background(settings.theme.backgroundColor),
             contentAlignment = Alignment.Center
         ) {
             when (val state = uiState) {
@@ -181,9 +261,13 @@ fun EpubReaderScreen(
                                 val fm = activity.supportFragmentManager
                                 val existing = fm.findFragmentById(containerId) as? EpubNavigatorFragment
                                 if (existing == null) {
-                                    val factory = EpubNavigatorFactory(state.publication)
+                                    val factory = EpubNavigatorFactory(
+                                        publication = state.publication,
+                                        configuration = EpubNavigatorFactory.Configuration()
+                                    )
                                     fm.fragmentFactory = factory.createFragmentFactory(
-                                        initialLocator = state.initialLocator
+                                        initialLocator = state.initialLocator,
+                                        initialPreferences = viewModel.toReadiumPreferences(settings)
                                     )
                                     val fragment = fm.fragmentFactory.instantiate(
                                         ctx.classLoader,
@@ -199,7 +283,33 @@ fun EpubReaderScreen(
                             }
                         }
                     )
+
+                    // Left-edge brightness swipe + one-handed edge turn fallback zones
+                    if (settings.edgeBrightnessSwipe) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .width(36.dp)
+                                .fillMaxHeight()
+                                .pointerInput(Unit) {
+                                    detectVerticalDragGestures { _, dragAmount ->
+                                        brightnessLevel = (brightnessLevel - dragAmount / 1200f).coerceIn(0.08f, 1f)
+                                        val lp = activity.window.attributes
+                                        lp.screenBrightness = brightnessLevel
+                                        activity.window.attributes = lp
+                                    }
+                                }
+                        )
+                    }
                 }
+            }
+
+            if (settings.warmLightStrength > 0.01f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFFFFA726).copy(alpha = settings.warmLightStrength))
+                )
             }
         }
     }
@@ -226,6 +336,26 @@ fun EpubReaderScreen(
                 navigatorRef?.go(match.locator, animated = true)
                 showSearchSheet = false
             }
+        )
+    }
+
+    if (showTypographySheet) {
+        TypographyBottomSheet(
+            settings = settings,
+            isPdfMode = false,
+            onSettingsChange = viewModel::updateSettings,
+            onDismiss = { showTypographySheet = false }
+        )
+    }
+
+    if (showHighlightsSheet) {
+        HighlightsBottomSheet(
+            bookTitle = title,
+            highlights = highlights,
+            defaultSnippet = highlightSeedSnippet,
+            onAddHighlight = viewModel::addHighlight,
+            onDeleteHighlight = viewModel::deleteHighlight,
+            onDismiss = { showHighlightsSheet = false }
         )
     }
 }
