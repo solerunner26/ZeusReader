@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.readerDataStore: DataStore<Preferences> by preferencesDataStore(name = "reader_prefs")
+internal val Context.readerDataStore: DataStore<Preferences> by preferencesDataStore(name = "reader_prefs")
 
 enum class ReaderThemeMode(
     val label: String,
