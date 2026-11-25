@@ -32,6 +32,7 @@ import androidx.compose.material.icons.rounded.PictureAsPdf
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.AssistChip
@@ -85,6 +86,7 @@ fun LibraryScreen(
     onOpenBook: (LibraryBookSummary) -> Unit,
     onOpenVocabulary: () -> Unit = {},
     onOpenPrepareOffline: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -131,6 +133,7 @@ fun LibraryScreen(
         onOpenUnsupportedFiles = { showUnsupportedSheet = true },
         onOpenVocabulary = onOpenVocabulary,
         onOpenPrepareOffline = onOpenPrepareOffline,
+        onOpenSettings = onOpenSettings,
         onSearchQueryChange = viewModel::onSearchQueryChange,
         onFilterSelected = viewModel::onFilterSelected,
         onOpenBook = onOpenBook,
@@ -168,12 +171,14 @@ internal fun LibraryScreenContent(
     onOpenUnsupportedFiles: () -> Unit = {},
     onOpenVocabulary: () -> Unit = {},
     onOpenPrepareOffline: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     onSearchQueryChange: (String) -> Unit,
     onFilterSelected: (LibraryFormatFilter) -> Unit,
     onOpenBook: (LibraryBookSummary) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         modifier = modifier
             .fillMaxSize()
             .testTag("library_screen_root"),
@@ -207,6 +212,15 @@ internal fun LibraryScreenContent(
                         Icon(
                             imageVector = Icons.Rounded.School,
                             contentDescription = "Vocabulary & flashcards"
+                        )
+                    }
+                    IconButton(
+                        onClick = onOpenSettings,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Settings,
+                            contentDescription = "Settings"
                         )
                     }
                     IconButton(

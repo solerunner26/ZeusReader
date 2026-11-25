@@ -7,6 +7,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -17,14 +19,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.solerunner26.zeusreader.reader.crash.ReaderCrashGuard
 import com.solerunner26.zeusreader.reader.crash.ReaderCrashReport
+import com.solerunner26.zeusreader.reader.prefs.AppTheme
+import com.solerunner26.zeusreader.ui.theme.AppUiConfigViewModel
+import com.solerunner26.zeusreader.ui.theme.HueAuraBackground
+import com.solerunner26.zeusreader.ui.theme.ReaderSurface
 import com.solerunner26.zeusreader.ui.theme.ZeusReaderTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    private val uiConfigViewModel: AppUiConfigViewModel by viewModels()
     private var pendingSharedUris by mutableStateOf<List<Uri>>(emptyList())
     private var crashReportToShow by mutableStateOf<ReaderCrashReport?>(null)
 
@@ -33,10 +41,23 @@ class MainActivity : ComponentActivity() {
         handleIncomingShareIntent(intent)
         enableEdgeToEdge()
         setContent {
-            ZeusReaderTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+            val uiConfig by uiConfigViewModel.config.collectAsStateWithLifecycle()
+            val effectiveHue by uiConfigViewModel.effectiveHue.collectAsStateWithLifecycle()
+            val darkTheme = when (uiConfig.appTheme) {
+                AppTheme.LIGHT -> false
+                AppTheme.DARK -> true
+                AppTheme.SYSTEM -> isSystemInDarkTheme()
+            }
+            ZeusReaderTheme(
+                hue = effectiveHue,
+                darkTheme = darkTheme,
+                pureBlackOled = uiConfig.readerSurface == ReaderSurface.OLED,
+                animateHue = uiConfig.masterAnimations && uiConfig.readerSurface != ReaderSurface.EINK
+            ) {
+                HueAuraBackground(
+                    config = uiConfig.copy(themeHue = effectiveHue),
+                    darkTheme = darkTheme,
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     MainNavigation(
                         sharedImportUris = pendingSharedUris,

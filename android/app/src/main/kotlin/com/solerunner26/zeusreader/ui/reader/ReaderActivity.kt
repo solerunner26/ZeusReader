@@ -7,14 +7,20 @@ import android.view.KeyEvent
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.solerunner26.zeusreader.reader.crash.ReaderCrashGuard
+import com.solerunner26.zeusreader.reader.prefs.AppTheme
 import com.solerunner26.zeusreader.reader.prefs.ReaderPreferencesRepository
+import com.solerunner26.zeusreader.ui.theme.AppUiConfigViewModel
+import com.solerunner26.zeusreader.ui.theme.ReaderSurface
 import com.solerunner26.zeusreader.ui.theme.ZeusReaderTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -37,6 +43,7 @@ class ReaderActivity : FragmentActivity() {
     private val epubViewModel: EpubReaderViewModel by viewModels()
     private val pdfViewModel: PdfReaderViewModel by viewModels()
     private val imageBookViewModel: ImageBookReaderViewModel by viewModels()
+    private val uiConfigViewModel: AppUiConfigViewModel by viewModels()
 
     private val _volumeTurnEvents = MutableSharedFlow<Int>(extraBufferCapacity = 8)
     private val volumeTurnEvents = _volumeTurnEvents.asSharedFlow()
@@ -73,7 +80,19 @@ class ReaderActivity : FragmentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            ZeusReaderTheme {
+            val uiConfig by uiConfigViewModel.config.collectAsStateWithLifecycle()
+            val effectiveHue by uiConfigViewModel.effectiveHue.collectAsStateWithLifecycle()
+            val darkTheme = when (uiConfig.appTheme) {
+                AppTheme.LIGHT -> false
+                AppTheme.DARK -> true
+                AppTheme.SYSTEM -> isSystemInDarkTheme()
+            }
+            ZeusReaderTheme(
+                hue = effectiveHue,
+                darkTheme = darkTheme,
+                pureBlackOled = uiConfig.readerSurface == ReaderSurface.OLED,
+                animateHue = uiConfig.masterAnimations && uiConfig.readerSurface != ReaderSurface.EINK
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

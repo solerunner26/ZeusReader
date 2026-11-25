@@ -28,6 +28,7 @@ import com.solerunner26.zeusreader.reader.prefs.PdfFitMode
 import com.solerunner26.zeusreader.reader.prefs.ReaderFontChoice
 import com.solerunner26.zeusreader.reader.prefs.ReaderSettings
 import com.solerunner26.zeusreader.reader.prefs.ReaderThemeMode
+import com.solerunner26.zeusreader.ui.theme.ReaderSurface
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,6 +36,8 @@ import kotlin.math.roundToInt
 fun TypographyBottomSheet(
     settings: ReaderSettings,
     isPdfMode: Boolean,
+    focusRibbon: Boolean = false,
+    onToggleFocusRibbon: (Boolean) -> Unit = {},
     onSettingsChange: ((ReaderSettings) -> ReaderSettings) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -42,6 +45,8 @@ fun TypographyBottomSheet(
         TypographyPanelContent(
             settings = settings,
             isPdfMode = isPdfMode,
+            focusRibbon = focusRibbon,
+            onToggleFocusRibbon = onToggleFocusRibbon,
             onSettingsChange = onSettingsChange
         )
     }
@@ -51,6 +56,8 @@ fun TypographyBottomSheet(
 internal fun TypographyPanelContent(
     settings: ReaderSettings,
     isPdfMode: Boolean,
+    focusRibbon: Boolean = false,
+    onToggleFocusRibbon: (Boolean) -> Unit = {},
     onSettingsChange: ((ReaderSettings) -> ReaderSettings) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -64,7 +71,7 @@ internal fun TypographyPanelContent(
     ) {
         Text("Reading Appearance & Ergonomics", style = MaterialTheme.typography.titleLarge)
 
-        Text("Theme", style = MaterialTheme.typography.titleMedium)
+        Text("Reading Surface", style = MaterialTheme.typography.titleMedium)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -72,11 +79,12 @@ internal fun TypographyPanelContent(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             ReaderThemeMode.entries.forEach { mode ->
+                val surfaceLabel = ReaderSurface.fromLegacyThemeMode(mode).label
                 FilterChip(
                     selected = settings.theme == mode,
                     onClick = { onSettingsChange { it.copy(theme = mode) } },
                     modifier = Modifier.heightIn(min = 48.dp),
-                    label = { Text(mode.label) }
+                    label = { Text(surfaceLabel) }
                 )
             }
         }
@@ -137,6 +145,11 @@ internal fun TypographyPanelContent(
         HorizontalDivider()
         Text("One-Handed Controls", style = MaterialTheme.typography.titleMedium)
 
+        SettingsToggleRow(
+            title = "Focus ribbon (3-line reading band)",
+            checked = focusRibbon,
+            onCheckedChange = onToggleFocusRibbon
+        )
         SettingsToggleRow(
             title = "Lock screen rotation",
             checked = settings.rotationLocked,

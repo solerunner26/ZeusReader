@@ -24,3 +24,6 @@ data object VocabularyRoute : NavKey
 
 @Serializable
 data object PrepareOfflineRoute : NavKey
+
+@Serializable
+data object SettingsRoute : NavKey

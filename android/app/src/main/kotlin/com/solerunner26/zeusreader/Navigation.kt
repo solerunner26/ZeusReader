@@ -11,6 +11,8 @@ import androidx.navigation3.ui.NavDisplay
 import com.solerunner26.zeusreader.ui.library.LibraryScreen
 import com.solerunner26.zeusreader.ui.library.LibraryViewModel
 import com.solerunner26.zeusreader.ui.reader.ReaderActivity
+import com.solerunner26.zeusreader.ui.settings.SettingsScreen
+import com.solerunner26.zeusreader.ui.theme.AppUiConfigViewModel
 import com.solerunner26.zeusreader.ui.vocab.PrepareOfflineScreen
 import com.solerunner26.zeusreader.ui.vocab.VocabularyScreen
 import com.solerunner26.zeusreader.ui.vocab.VocabularyViewModel
@@ -48,7 +50,16 @@ fun MainNavigation(
                         context.startActivity(intent)
                     },
                     onOpenVocabulary = { backStack.add(VocabularyRoute) },
-                    onOpenPrepareOffline = { backStack.add(PrepareOfflineRoute) }
+                    onOpenPrepareOffline = { backStack.add(PrepareOfflineRoute) },
+                    onOpenSettings = { backStack.add(SettingsRoute) }
+                )
+            }
+
+            entry<SettingsRoute> {
+                val viewModel: AppUiConfigViewModel = hiltViewModel()
+                SettingsScreen(
+                    viewModel = viewModel,
+                    onBack = { backStack.removeLastOrNull() }
                 )
             }
 
