@@ -15,15 +15,51 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WatchedFolderEntity::class,
         ReadingProgressEntity::class,
         HighlightEntity::class,
-        UnsupportedFileEntity::class
+        UnsupportedFileEntity::class,
+        VocabWordEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class ZeusReaderDatabase : RoomDatabase() {
     abstract fun libraryDao(): LibraryDao
 
     companion object {
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `vocabulary_words` (
+                        `id` TEXT NOT NULL,
+                        `word` TEXT NOT NULL,
+                        `lemma` TEXT NOT NULL,
+                        `target_lang` TEXT NOT NULL,
+                        `english_meaning` TEXT NOT NULL,
+                        `translated_meaning` TEXT NOT NULL,
+                        `book_title` TEXT NOT NULL,
+                        `edition_id` TEXT,
+                        `sentence_context` TEXT NOT NULL,
+                        `repetitions` INTEGER NOT NULL,
+                        `interval_days` INTEGER NOT NULL,
+                        `ease_factor` REAL NOT NULL,
+                        `next_review_epoch_ms` INTEGER NOT NULL,
+                        `version` INTEGER NOT NULL,
+                        `created_at_epoch_ms` INTEGER NOT NULL,
+                        `updated_at_epoch_ms` INTEGER NOT NULL,
+                        `deleted_at_epoch_ms` INTEGER,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_vocabulary_words_lemma_target_lang` ON `vocabulary_words` (`lemma`, `target_lang`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_vocabulary_words_next_review_epoch_ms` ON `vocabulary_words` (`next_review_epoch_ms`)"
+                )
+            }
+        }
+
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(

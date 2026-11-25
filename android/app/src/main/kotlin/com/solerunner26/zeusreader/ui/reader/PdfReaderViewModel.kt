@@ -6,6 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.solerunner26.zeusreader.data.LibraryRepository
 import com.solerunner26.zeusreader.data.local.HighlightEntity
 import com.solerunner26.zeusreader.data.local.ReadingProgressEntity
+import com.solerunner26.zeusreader.data.local.VocabWordEntity
+import com.solerunner26.zeusreader.dictionary.DictionaryLookupResult
+import com.solerunner26.zeusreader.dictionary.OfflineDictionaryRepository
+import com.solerunner26.zeusreader.ml.StudyTargetLanguage
+import com.solerunner26.zeusreader.ml.TranslationService
 import com.solerunner26.zeusreader.reader.core.UnifiedLocator
 import com.solerunner26.zeusreader.reader.pdf.MuPdfDocumentSession
 import com.solerunner26.zeusreader.reader.pdf.PdfOutlineEntry
@@ -49,7 +54,9 @@ sealed interface PdfReaderUiState {
 @HiltViewModel
 class PdfReaderViewModel @Inject constructor(
     private val libraryRepository: LibraryRepository,
-    private val preferencesRepository: ReaderPreferencesRepository
+    private val preferencesRepository: ReaderPreferencesRepository,
+    private val dictionaryRepository: OfflineDictionaryRepository,
+    private val translationService: TranslationService
 ) : ViewModel() {
 
     private var session: MuPdfDocumentSession? = null
@@ -86,6 +93,64 @@ class PdfReaderViewModel @Inject constructor(
 
     private val _isSearching = MutableStateFlow(false)
     val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
+
+    private val _dictionaryResult = MutableStateFlow<DictionaryLookupResult?>(null)
+    val dictionaryResult: StateFlow<DictionaryLookupResult?> = _dictionaryResult.asStateFlow()
+
+    private val _sentenceTranslation = MutableStateFlow<String?>(null)
+    val sentenceTranslation: StateFlow<String?> = _sentenceTranslation.asStateFlow()
+
+    private val _targetLanguage = MutableStateFlow(StudyTargetLanguage.HINDI)
+    val targetLanguage: StateFlow<StudyTargetLanguage> = _targetLanguage.asStateFlow()
+
+    fun setTargetLanguage(lang: StudyTargetLanguage, sentenceContext: String = "") {
+        _targetLanguage.value = lang
+        if (sentenceContext.isNotBlank()) {
+            viewModelScope.launch {
+                _sentenceTranslation.value = translationService.translateFromEnglish(sentenceContext, lang).getOrNull()
+            }
+        }
+    }
+
+    fun lookupWord(word: String, sentenceContext: String = "") {
+        viewModelScope.launch {
+            _dictionaryResult.value = dictionaryRepository.lookup(word)
+            if (sentenceContext.isNotBlank()) {
+                _sentenceTranslation.value = translationService
+                    .translateFromEnglish(sentenceContext, _targetLanguage.value)
+                    .getOrNull()
+            }
+        }
+    }
+
+    fun saveLookupToVocabulary(result: DictionaryLookupResult, lang: StudyTargetLanguage, sentenceContext: String) {
+        val now = System.currentTimeMillis()
+        val editionId = editionIdFlow.value
+        val gloss = if (lang == StudyTargetLanguage.HINDI) {
+            result.hindiGlosses.joinToString("; ") { it.gloss }
+        } else {
+            result.gujaratiGlosses.joinToString("; ") { it.gloss }
+        }
+        val enMeaning = result.englishSenses.firstOrNull()?.definition.orEmpty()
+        viewModelScope.launch {
+            libraryRepository.saveVocabularyWord(
+                VocabWordEntity(
+                    id = UUID.randomUUID().toString(),
+                    word = result.queryWord,
+                    lemma = result.matchedLemma,
+                    targetLang = lang.code,
+                    englishMeaning = enMeaning,
+                    translatedMeaning = gloss,
+                    bookTitle = currentTitle,
+                    editionId = editionId,
+                    sentenceContext = sentenceContext,
+                    nextReviewEpochMs = now,
+                    createdAtEpochMs = now,
+                    updatedAtEpochMs = now
+                )
+            )
+        }
+    }
 
     fun openDocument(
         editionId: String,

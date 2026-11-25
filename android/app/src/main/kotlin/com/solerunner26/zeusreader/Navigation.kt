@@ -11,6 +11,9 @@ import androidx.navigation3.ui.NavDisplay
 import com.solerunner26.zeusreader.ui.library.LibraryScreen
 import com.solerunner26.zeusreader.ui.library.LibraryViewModel
 import com.solerunner26.zeusreader.ui.reader.ReaderActivity
+import com.solerunner26.zeusreader.ui.vocab.PrepareOfflineScreen
+import com.solerunner26.zeusreader.ui.vocab.VocabularyScreen
+import com.solerunner26.zeusreader.ui.vocab.VocabularyViewModel
 
 @Composable
 fun MainNavigation(
@@ -43,7 +46,25 @@ fun MainNavigation(
                             localPath = book.primaryLocalPath
                         )
                         context.startActivity(intent)
-                    }
+                    },
+                    onOpenVocabulary = { backStack.add(VocabularyRoute) },
+                    onOpenPrepareOffline = { backStack.add(PrepareOfflineRoute) }
+                )
+            }
+
+            entry<VocabularyRoute> {
+                val viewModel: VocabularyViewModel = hiltViewModel()
+                VocabularyScreen(
+                    viewModel = viewModel,
+                    onBack = { backStack.removeLastOrNull() }
+                )
+            }
+
+            entry<PrepareOfflineRoute> {
+                val viewModel: VocabularyViewModel = hiltViewModel()
+                PrepareOfflineScreen(
+                    viewModel = viewModel,
+                    onBack = { backStack.removeLastOrNull() }
                 )
             }
         }

@@ -199,4 +199,36 @@ interface LibraryDao {
 
     @Query("DELETE FROM unsupported_files")
     suspend fun clearUnsupportedFiles()
+
+    @Query(
+        """
+        SELECT * FROM vocabulary_words
+        WHERE deleted_at_epoch_ms IS NULL
+        ORDER BY next_review_epoch_ms ASC, created_at_epoch_ms DESC
+        """
+    )
+    fun observeVocabularyWords(): Flow<List<VocabWordEntity>>
+
+    @Query(
+        """
+        SELECT * FROM vocabulary_words
+        WHERE deleted_at_epoch_ms IS NULL AND next_review_epoch_ms <= :nowEpochMs
+        ORDER BY next_review_epoch_ms ASC
+        """
+    )
+    suspend fun getDueVocabularyWords(nowEpochMs: Long): List<VocabWordEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertVocabularyWord(word: VocabWordEntity)
+
+    @Query(
+        """
+        UPDATE vocabulary_words
+        SET deleted_at_epoch_ms = :deletedAtEpochMs,
+            updated_at_epoch_ms = :deletedAtEpochMs,
+            version = version + 1
+        WHERE id = :wordId
+        """
+    )
+    suspend fun softDeleteVocabularyWord(wordId: String, deletedAtEpochMs: Long)
 }

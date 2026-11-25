@@ -30,7 +30,9 @@ import androidx.compose.material.icons.rounded.FolderCopy
 import androidx.compose.material.icons.rounded.OfflinePin
 import androidx.compose.material.icons.rounded.PictureAsPdf
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -81,6 +83,8 @@ import com.solerunner26.zeusreader.ui.theme.ZeusReaderTheme
 fun LibraryScreen(
     viewModel: LibraryViewModel,
     onOpenBook: (LibraryBookSummary) -> Unit,
+    onOpenVocabulary: () -> Unit = {},
+    onOpenPrepareOffline: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -125,6 +129,8 @@ fun LibraryScreen(
         },
         onOpenWatchedFolders = { showWatchedFoldersSheet = true },
         onOpenUnsupportedFiles = { showUnsupportedSheet = true },
+        onOpenVocabulary = onOpenVocabulary,
+        onOpenPrepareOffline = onOpenPrepareOffline,
         onSearchQueryChange = viewModel::onSearchQueryChange,
         onFilterSelected = viewModel::onFilterSelected,
         onOpenBook = onOpenBook,
@@ -160,6 +166,8 @@ internal fun LibraryScreenContent(
     onImportClick: () -> Unit,
     onOpenWatchedFolders: () -> Unit,
     onOpenUnsupportedFiles: () -> Unit = {},
+    onOpenVocabulary: () -> Unit = {},
+    onOpenPrepareOffline: () -> Unit = {},
     onSearchQueryChange: (String) -> Unit,
     onFilterSelected: (LibraryFormatFilter) -> Unit,
     onOpenBook: (LibraryBookSummary) -> Unit,
@@ -191,6 +199,24 @@ internal fun LibraryScreenContent(
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
+                    }
+                    IconButton(
+                        onClick = onOpenVocabulary,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.School,
+                            contentDescription = "Vocabulary & flashcards"
+                        )
+                    }
+                    IconButton(
+                        onClick = onOpenPrepareOffline,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Translate,
+                            contentDescription = "Prepare for offline reading"
+                        )
                     }
                     IconButton(
                         onClick = onOpenWatchedFolders,

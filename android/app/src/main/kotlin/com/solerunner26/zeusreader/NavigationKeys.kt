@@ -18,3 +18,9 @@ data class ImageBookReaderRoute(
     val editionId: String,
     val title: String
 ) : NavKey
+
+@Serializable
+data object VocabularyRoute : NavKey
+
+@Serializable
+data object PrepareOfflineRoute : NavKey

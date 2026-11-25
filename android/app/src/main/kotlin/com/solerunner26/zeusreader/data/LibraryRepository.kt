@@ -6,6 +6,7 @@ import com.solerunner26.zeusreader.data.local.LibraryBookSummary
 import com.solerunner26.zeusreader.data.local.LibraryDao
 import com.solerunner26.zeusreader.data.local.ReadingProgressEntity
 import com.solerunner26.zeusreader.data.local.UnsupportedFileEntity
+import com.solerunner26.zeusreader.data.local.VocabWordEntity
 import com.solerunner26.zeusreader.data.local.WatchedFolderEntity
 import com.solerunner26.zeusreader.data.local.WorkEntity
 import kotlinx.coroutines.flow.Flow
@@ -27,6 +28,9 @@ interface LibraryRepository {
     suspend fun deleteHighlight(highlightId: String)
     fun observeUnsupportedFiles(): Flow<List<UnsupportedFileEntity>>
     suspend fun clearUnsupportedFiles()
+    fun observeVocabularyWords(): Flow<List<VocabWordEntity>>
+    suspend fun saveVocabularyWord(word: VocabWordEntity)
+    suspend fun deleteVocabularyWord(wordId: String)
 }
 
 class RoomLibraryRepository @Inject constructor(
@@ -80,6 +84,17 @@ class RoomLibraryRepository @Inject constructor(
 
     override suspend fun clearUnsupportedFiles() {
         libraryDao.clearUnsupportedFiles()
+    }
+
+    override fun observeVocabularyWords(): Flow<List<VocabWordEntity>> =
+        libraryDao.observeVocabularyWords()
+
+    override suspend fun saveVocabularyWord(word: VocabWordEntity) {
+        libraryDao.upsertVocabularyWord(word)
+    }
+
+    override suspend fun deleteVocabularyWord(wordId: String) {
+        libraryDao.softDeleteVocabularyWord(wordId, System.currentTimeMillis())
     }
 
     companion object {

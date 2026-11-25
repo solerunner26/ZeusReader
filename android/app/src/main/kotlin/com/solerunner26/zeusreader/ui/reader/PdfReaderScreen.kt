@@ -32,6 +32,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
@@ -74,6 +75,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.solerunner26.zeusreader.R
 import com.solerunner26.zeusreader.reader.prefs.PdfFitMode
 import com.solerunner26.zeusreader.reader.prefs.ReaderThemeMode
+import com.solerunner26.zeusreader.ui.dictionary.DictionaryBottomSheet
 import kotlinx.coroutines.flow.Flow
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,12 +94,16 @@ fun PdfReaderScreen(
     val highlights by viewModel.highlights.collectAsStateWithLifecycle()
     val searchHits by viewModel.searchHits.collectAsStateWithLifecycle()
     val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
+    val dictionaryResult by viewModel.dictionaryResult.collectAsStateWithLifecycle()
+    val sentenceTranslation by viewModel.sentenceTranslation.collectAsStateWithLifecycle()
+    val targetLanguage by viewModel.targetLanguage.collectAsStateWithLifecycle()
     val activity = LocalActivity.current
 
     var showTocSheet by remember { mutableStateOf(false) }
     var showSearchSheet by remember { mutableStateOf(false) }
     var showTypographySheet by remember { mutableStateOf(false) }
     var showHighlightsSheet by remember { mutableStateOf(false) }
+    var showDictionarySheet by remember { mutableStateOf(false) }
     var brightnessLevel by remember { mutableFloatStateOf(0.5f) }
 
     val widthPx = LocalWindowInfo.current.containerSize.width.coerceAtLeast(1080)
@@ -201,6 +207,16 @@ fun PdfReaderScreen(
                         modifier = Modifier.size(48.dp)
                     ) {
                         Icon(Icons.Rounded.BookmarkAdd, contentDescription = "Highlights & notes")
+                    }
+                    IconButton(
+                        onClick = {
+                            viewModel.lookupWord("capillary", ready?.reflowedText?.take(220).orEmpty())
+                            showDictionarySheet = true
+                        },
+                        enabled = ready != null,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(Icons.Rounded.Translate, contentDescription = "Dictionary & translate")
                     }
                     IconButton(
                         onClick = { showTypographySheet = true },
@@ -541,6 +557,23 @@ fun PdfReaderScreen(
             onAddHighlight = viewModel::addHighlight,
             onDeleteHighlight = viewModel::deleteHighlight,
             onDismiss = { showHighlightsSheet = false }
+        )
+    }
+
+    if (showDictionarySheet) {
+        val ctxSentence = readyState?.reflowedText?.take(220).orEmpty()
+        DictionaryBottomSheet(
+            initialWord = dictionaryResult?.queryWord ?: "capillary",
+            sentenceContext = ctxSentence,
+            lookupResult = dictionaryResult,
+            sentenceTranslation = sentenceTranslation,
+            selectedTargetLang = targetLanguage,
+            onSelectTargetLang = { viewModel.setTargetLanguage(it, ctxSentence) },
+            onLookupWord = { viewModel.lookupWord(it, ctxSentence) },
+            onSaveToVocab = { res, lang ->
+                viewModel.saveLookupToVocabulary(res, lang, ctxSentence)
+            },
+            onDismiss = { showDictionarySheet = false }
         )
     }
 }

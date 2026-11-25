@@ -20,6 +20,9 @@ junit = "4.13.2"
 kotlin = "2.3.20"
 kotlinxSerializationJson = "1.11.0"
 ksp = "2.3.6"
+mlkitLanguageId = "17.0.6"
+mlkitTextRecognition = "16.0.1"
+mlkitTranslate = "17.0.3"
 mupdf = "1.28.5"
 nav3Core = "1.0.1"
 lifecycleViewmodelNav3 = "2.10.0"
@@ -69,6 +72,9 @@ hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hil
 junit = { module = "junit:junit", version.ref = "junit" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+mlkit-language-id = { module = "com.google.mlkit:language-id", version.ref = "mlkitLanguageId" }
+mlkit-text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "mlkitTextRecognition" }
+mlkit-translate = { module = "com.google.mlkit:translate", version.ref = "mlkitTranslate" }
 mupdf-fitz = { module = "com.artifex.mupdf:fitz", version.ref = "mupdf" }
 androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3Core" }
 androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "nav3Core" }

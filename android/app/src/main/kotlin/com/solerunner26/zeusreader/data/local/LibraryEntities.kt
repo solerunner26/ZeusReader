@@ -277,3 +277,44 @@ data class UnsupportedFileEntity(
     @ColumnInfo(name = "created_at_epoch_ms")
     val createdAtEpochMs: Long
 )
+
+/** Saved vocabulary word with book + sentence context and SM-2 spaced repetition state. */
+@Entity(
+    tableName = "vocabulary_words",
+    indices = [
+        Index(value = ["lemma", "target_lang"]),
+        Index(value = ["next_review_epoch_ms"])
+    ]
+)
+data class VocabWordEntity(
+    @PrimaryKey
+    val id: String,
+    val word: String,
+    val lemma: String,
+    @ColumnInfo(name = "target_lang")
+    val targetLang: String,
+    @ColumnInfo(name = "english_meaning")
+    val englishMeaning: String,
+    @ColumnInfo(name = "translated_meaning")
+    val translatedMeaning: String,
+    @ColumnInfo(name = "book_title")
+    val bookTitle: String = "",
+    @ColumnInfo(name = "edition_id")
+    val editionId: String? = null,
+    @ColumnInfo(name = "sentence_context")
+    val sentenceContext: String = "",
+    val repetitions: Int = 0,
+    @ColumnInfo(name = "interval_days")
+    val intervalDays: Int = 0,
+    @ColumnInfo(name = "ease_factor")
+    val easeFactor: Float = 2.5f,
+    @ColumnInfo(name = "next_review_epoch_ms")
+    val nextReviewEpochMs: Long,
+    val version: Long = 1L,
+    @ColumnInfo(name = "created_at_epoch_ms")
+    val createdAtEpochMs: Long,
+    @ColumnInfo(name = "updated_at_epoch_ms")
+    val updatedAtEpochMs: Long,
+    @ColumnInfo(name = "deleted_at_epoch_ms")
+    val deletedAtEpochMs: Long? = null
+)

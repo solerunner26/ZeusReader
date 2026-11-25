@@ -107,6 +107,11 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.mupdf.fitz)
 
+    // Google ML Kit (Offline Translation, Latin OCR, Language ID)
+    implementation(libs.mlkit.translate)
+    implementation(libs.mlkit.text.recognition)
+    implementation(libs.mlkit.language.id)
+
     // Navigation 3
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.navigation3.runtime)
