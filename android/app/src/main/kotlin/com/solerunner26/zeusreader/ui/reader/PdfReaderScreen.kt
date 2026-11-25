@@ -112,6 +112,8 @@ fun PdfReaderScreen(
     var showTypographySheet by remember { mutableStateOf(false) }
     var showHighlightsSheet by remember { mutableStateOf(false) }
     var showDictionarySheet by remember { mutableStateOf(false) }
+    var focusRibbonEnabled by remember { mutableStateOf(false) }
+    var ribbonBookmarked by remember { mutableStateOf(false) }
     var brightnessLevel by remember { mutableFloatStateOf(0.5f) }
 
     val widthPx = LocalWindowInfo.current.containerSize.width.coerceAtLeast(1080)
@@ -444,6 +446,39 @@ fun PdfReaderScreen(
                                 }
                         )
                     }
+
+                    FocusRibbonOverlay(
+                        enabled = focusRibbonEnabled,
+                        bandFraction = 0.45f,
+                        surfaceBackground = settings.theme.backgroundColor
+                    )
+                    if (highlights.isNotEmpty()) {
+                        MarginMarkBar(
+                            onClick = { showHighlightsSheet = true },
+                            modifier = Modifier.align(Alignment.CenterStart)
+                        )
+                    }
+                    ForeEdgeProgress(
+                        progressFraction = if (state.pageCount > 1) {
+                            state.currentPage.toFloat() / (state.pageCount - 1).toFloat()
+                        } else {
+                            0f
+                        },
+                        onSeekFraction = { fraction ->
+                            val targetPage = (fraction * (state.pageCount - 1)).toInt()
+                                .coerceIn(0, (state.pageCount - 1).coerceAtLeast(0))
+                            viewModel.goToPage(targetPage)
+                        },
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    )
+                    RibbonBookmark(
+                        isBookmarked = ribbonBookmarked,
+                        chromeVisible = true,
+                        onToggleBookmark = { ribbonBookmarked = !ribbonBookmarked },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(end = 16.dp)
+                    )
                 }
             }
 
@@ -578,6 +613,8 @@ fun PdfReaderScreen(
         TypographyBottomSheet(
             settings = settings,
             isPdfMode = true,
+            focusRibbon = focusRibbonEnabled,
+            onToggleFocusRibbon = { focusRibbonEnabled = it },
             onSettingsChange = viewModel::updateSettings,
             onDismiss = { showTypographySheet = false }
         )

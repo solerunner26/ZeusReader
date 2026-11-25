@@ -48,6 +48,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -104,6 +105,9 @@ fun EpubReaderScreen(
     var showHighlightsSheet by remember { mutableStateOf(false) }
     var highlightSeedSnippet by remember { mutableStateOf("") }
     var brightnessLevel by remember { mutableFloatStateOf(0.5f) }
+    var focusRibbonEnabled by remember { mutableStateOf(false) }
+    var ribbonBookmarked by remember { mutableStateOf(false) }
+    var focusBandIndex by remember { mutableIntStateOf(2) }
 
     LaunchedEffect(editionId, localPath) {
         viewModel.openBook(editionId = editionId, title = title, localPath = localPath)
@@ -320,6 +324,38 @@ fun EpubReaderScreen(
             }
 
             val readyOverlayState = uiState as? EpubReaderUiState.Ready
+            if (readyOverlayState != null && !translatedModeEnabled) {
+                FocusRibbonOverlay(
+                    enabled = focusRibbonEnabled,
+                    bandFraction = (0.2f + (focusBandIndex % 5) * 0.15f),
+                    surfaceBackground = settings.theme.backgroundColor
+                )
+                if (highlights.isNotEmpty()) {
+                    MarginMarkBar(
+                        onClick = { showHighlightsSheet = true },
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    )
+                }
+                ForeEdgeProgress(
+                    progressFraction = readyOverlayState.currentProgressionPercent / 100f,
+                    onSeekFraction = { fraction ->
+                        val items = readyOverlayState.tocItems
+                        if (items.isNotEmpty()) {
+                            val idx = (fraction * (items.size - 1)).toInt().coerceIn(0, items.lastIndex)
+                            navigatorRef?.go(items[idx].link, animated = true)
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                )
+                RibbonBookmark(
+                    isBookmarked = ribbonBookmarked,
+                    chromeVisible = true,
+                    onToggleBookmark = { ribbonBookmarked = !ribbonBookmarked },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(end = 16.dp)
+                )
+            }
             if (translatedModeEnabled && readyOverlayState != null) {
                 TranslatedReadingOverlay(
                     sectionLabel = readyOverlayState.currentChapterTitle.ifBlank { "Current chapter" },
@@ -380,6 +416,8 @@ fun EpubReaderScreen(
         TypographyBottomSheet(
             settings = settings,
             isPdfMode = false,
+            focusRibbon = focusRibbonEnabled,
+            onToggleFocusRibbon = { focusRibbonEnabled = it },
             onSettingsChange = viewModel::updateSettings,
             onDismiss = { showTypographySheet = false }
         )
