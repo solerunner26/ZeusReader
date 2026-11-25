@@ -31,6 +31,7 @@ import androidx.compose.material.icons.rounded.OfflinePin
 import androidx.compose.material.icons.rounded.PictureAsPdf
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
@@ -72,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.solerunner26.zeusreader.R
 import com.solerunner26.zeusreader.data.local.LibraryBookSummary
+import com.solerunner26.zeusreader.data.local.UnsupportedFileEntity
 import com.solerunner26.zeusreader.data.local.WatchedFolderEntity
 import com.solerunner26.zeusreader.ui.theme.ZeusReaderTheme
 
@@ -84,8 +86,10 @@ fun LibraryScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isImporting by viewModel.isImporting.collectAsStateWithLifecycle()
     val watchedFolders by viewModel.watchedFolders.collectAsStateWithLifecycle()
+    val unsupportedFiles by viewModel.unsupportedFiles.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showWatchedFoldersSheet by remember { mutableStateOf(false) }
+    var showUnsupportedSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { message ->
@@ -112,13 +116,15 @@ fun LibraryScreen(
     LibraryScreenContent(
         uiState = uiState,
         isImporting = isImporting,
+        unsupportedCount = unsupportedFiles.size,
         snackbarHostState = snackbarHostState,
         onImportClick = {
             documentPickerLauncher.launch(
-                arrayOf("application/epub+zip", "application/pdf", "image/jpeg", "image/png")
+                arrayOf("*/*")
             )
         },
         onOpenWatchedFolders = { showWatchedFoldersSheet = true },
+        onOpenUnsupportedFiles = { showUnsupportedSheet = true },
         onSearchQueryChange = viewModel::onSearchQueryChange,
         onFilterSelected = viewModel::onFilterSelected,
         onOpenBook = onOpenBook,
@@ -134,6 +140,14 @@ fun LibraryScreen(
             onRemoveFolder = viewModel::removeWatchedFolder
         )
     }
+
+    if (showUnsupportedSheet) {
+        UnsupportedFilesBottomSheet(
+            files = unsupportedFiles,
+            onClear = viewModel::clearUnsupportedFiles,
+            onDismiss = { showUnsupportedSheet = false }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -141,9 +155,11 @@ fun LibraryScreen(
 internal fun LibraryScreenContent(
     uiState: LibraryUiState,
     isImporting: Boolean,
+    unsupportedCount: Int = 0,
     snackbarHostState: SnackbarHostState,
     onImportClick: () -> Unit,
     onOpenWatchedFolders: () -> Unit,
+    onOpenUnsupportedFiles: () -> Unit = {},
     onSearchQueryChange: (String) -> Unit,
     onFilterSelected: (LibraryFormatFilter) -> Unit,
     onOpenBook: (LibraryBookSummary) -> Unit,
@@ -164,6 +180,18 @@ internal fun LibraryScreenContent(
                     )
                 },
                 actions = {
+                    if (unsupportedCount > 0) {
+                        IconButton(
+                            onClick = onOpenUnsupportedFiles,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.WarningAmber,
+                                contentDescription = "Unsupported files ($unsupportedCount)",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
                     IconButton(
                         onClick = onOpenWatchedFolders,
                         modifier = Modifier.size(48.dp)
@@ -597,6 +625,65 @@ private fun WatchedFoldersBottomSheet(
                                 Icon(
                                     imageVector = Icons.Rounded.DeleteOutline,
                                     contentDescription = "Remove watched folder"
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UnsupportedFilesBottomSheet(
+    files: List<UnsupportedFileEntity>,
+    onClear: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Unsupported Files", style = MaterialTheme.typography.titleLarge)
+                if (files.isNotEmpty()) {
+                    OutlinedButton(onClick = onClear, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text("Clear")
+                    }
+                }
+            }
+            if (files.isEmpty()) {
+                Text(
+                    text = "No rejected or unsupported files.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 360.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(files, key = { it.id }) { item ->
+                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Text(item.displayName, style = MaterialTheme.typography.titleMedium)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = item.reason,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.error
                                 )
                             }
                         }

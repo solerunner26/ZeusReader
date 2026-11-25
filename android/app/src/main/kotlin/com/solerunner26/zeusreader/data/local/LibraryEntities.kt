@@ -258,3 +258,22 @@ data class HighlightEntity(
     @ColumnInfo(name = "deleted_at_epoch_ms")
     val deletedAtEpochMs: Long? = null
 )
+
+/** Unsupported or rejected format retained for transparent user feedback (e.g., .oxp, .kfx, DRM, oversized TIFF). */
+@Entity(
+    tableName = "unsupported_files",
+    indices = [Index(value = ["created_at_epoch_ms"])]
+)
+data class UnsupportedFileEntity(
+    @PrimaryKey
+    val id: String,
+    @ColumnInfo(name = "display_name")
+    val displayName: String,
+    @ColumnInfo(name = "detected_type")
+    val detectedType: String,
+    val reason: String,
+    @ColumnInfo(name = "byte_size")
+    val byteSize: Long,
+    @ColumnInfo(name = "created_at_epoch_ms")
+    val createdAtEpochMs: Long
+)

@@ -91,6 +91,15 @@ class ReaderActivity : FragmentActivity() {
                             )
                         }
 
+                        format == "HTML" || format == "HTM" -> {
+                            HtmlReaderScreen(
+                                title = title,
+                                localPath = localPath,
+                                preferencesRepository = preferencesRepository,
+                                onBack = { finish() }
+                            )
+                        }
+
                         format == "IMAGE_BOOK" || format in setOf("JPG", "JPEG", "PNG") -> {
                             ImageBookReaderScreen(
                                 editionId = editionId,

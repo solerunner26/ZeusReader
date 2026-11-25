@@ -8,6 +8,7 @@ import com.solerunner26.zeusreader.data.local.EditionEntity
 import com.solerunner26.zeusreader.data.local.FileAssetEntity
 import com.solerunner26.zeusreader.data.local.ImageBookPageEntity
 import com.solerunner26.zeusreader.data.local.LibraryDao
+import com.solerunner26.zeusreader.data.local.UnsupportedFileEntity
 import com.solerunner26.zeusreader.data.local.WorkEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -124,10 +125,39 @@ class LibraryImporter @Inject constructor(
                 when (val validation = ImportValidator.validateFile(partFile, source.displayName)) {
                     is ImportValidationResult.Rejected -> {
                         partFile.delete()
+                        libraryDao.insertUnsupportedFile(
+                            UnsupportedFileEntity(
+                                id = UUID.randomUUID().toString(),
+                                displayName = source.displayName,
+                                detectedType = validation.detectedSignature,
+                                reason = validation.reason,
+                                byteSize = totalBytes,
+                                createdAtEpochMs = System.currentTimeMillis()
+                            )
+                        )
                         rejected.add(RejectedImportInfo(source.displayName, validation.reason))
                     }
 
                     is ImportValidationResult.Valid -> {
+                        if (validation.format == SupportedImportFormat.TIFF) {
+                            val tiffCheck = TiffGuard.validate(partFile, totalBytes)
+                            if (tiffCheck is TiffGuardResult.Rejected) {
+                                partFile.delete()
+                                libraryDao.insertUnsupportedFile(
+                                    UnsupportedFileEntity(
+                                        id = UUID.randomUUID().toString(),
+                                        displayName = source.displayName,
+                                        detectedType = "tiff_limit_exceeded",
+                                        reason = tiffCheck.reason,
+                                        byteSize = totalBytes,
+                                        createdAtEpochMs = System.currentTimeMillis()
+                                    )
+                                )
+                                rejected.add(RejectedImportInfo(source.displayName, tiffCheck.reason))
+                                continue
+                            }
+                        }
+
                         val sha256 = digest.digest().joinToString("") { "%02x".format(it) }
                         val existing = libraryDao.findFileAssetBySha256(sha256)
                         if (existing != null) {

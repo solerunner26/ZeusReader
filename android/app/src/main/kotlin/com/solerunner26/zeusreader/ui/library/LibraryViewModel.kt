@@ -8,6 +8,7 @@ import com.solerunner26.zeusreader.data.importer.ImportBatchReport
 import com.solerunner26.zeusreader.data.importer.LibraryImporter
 import com.solerunner26.zeusreader.data.importer.WatchedFolderManager
 import com.solerunner26.zeusreader.data.local.LibraryBookSummary
+import com.solerunner26.zeusreader.data.local.UnsupportedFileEntity
 import com.solerunner26.zeusreader.data.local.WatchedFolderEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -49,6 +50,14 @@ class LibraryViewModel @Inject constructor(
 
     val watchedFolders: StateFlow<List<WatchedFolderEntity>> =
         libraryRepository.observeWatchedFolders()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyList()
+            )
+
+    val unsupportedFiles: StateFlow<List<UnsupportedFileEntity>> =
+        libraryRepository.observeUnsupportedFiles()
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
@@ -140,6 +149,12 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch {
             watchedFolderManager.removeFolder(folderId)
             _messages.tryEmit("Watched folder removed.")
+        }
+    }
+
+    fun clearUnsupportedFiles() {
+        viewModelScope.launch {
+            libraryRepository.clearUnsupportedFiles()
         }
     }
 

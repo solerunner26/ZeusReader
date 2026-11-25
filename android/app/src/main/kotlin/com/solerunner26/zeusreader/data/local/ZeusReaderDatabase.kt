@@ -14,15 +14,37 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ImageBookPageEntity::class,
         WatchedFolderEntity::class,
         ReadingProgressEntity::class,
-        HighlightEntity::class
+        HighlightEntity::class,
+        UnsupportedFileEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class ZeusReaderDatabase : RoomDatabase() {
     abstract fun libraryDao(): LibraryDao
 
     companion object {
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `unsupported_files` (
+                        `id` TEXT NOT NULL,
+                        `display_name` TEXT NOT NULL,
+                        `detected_type` TEXT NOT NULL,
+                        `reason` TEXT NOT NULL,
+                        `byte_size` INTEGER NOT NULL,
+                        `created_at_epoch_ms` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_unsupported_files_created_at_epoch_ms` ON `unsupported_files` (`created_at_epoch_ms`)"
+                )
+            }
+        }
+
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(

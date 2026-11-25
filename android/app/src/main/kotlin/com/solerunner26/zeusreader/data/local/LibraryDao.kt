@@ -190,4 +190,13 @@ interface LibraryDao {
         """
     )
     suspend fun softDeleteHighlight(highlightId: String, deletedAtEpochMs: Long)
+
+    @Query("SELECT * FROM unsupported_files ORDER BY created_at_epoch_ms DESC")
+    fun observeUnsupportedFiles(): Flow<List<UnsupportedFileEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertUnsupportedFile(entry: UnsupportedFileEntity)
+
+    @Query("DELETE FROM unsupported_files")
+    suspend fun clearUnsupportedFiles()
 }

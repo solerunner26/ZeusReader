@@ -37,6 +37,11 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/epub+zip" />
                 <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/vnd.ms-xpsdocument" />
+                <data android:mimeType="application/oxps" />
+                <data android:mimeType="application/vnd.comicbook+zip" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="image/tiff" />
                 <data android:mimeType="image/jpeg" />
                 <data android:mimeType="image/png" />
             </intent-filter>
@@ -46,6 +51,11 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/epub+zip" />
                 <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/vnd.ms-xpsdocument" />
+                <data android:mimeType="application/oxps" />
+                <data android:mimeType="application/vnd.comicbook+zip" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="image/tiff" />
                 <data android:mimeType="image/jpeg" />
                 <data android:mimeType="image/png" />
             </intent-filter>

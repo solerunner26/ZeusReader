@@ -8,6 +8,11 @@ import java.util.zip.ZipInputStream
 enum class SupportedImportFormat(val extension: String, val dbFormatName: String) {
     EPUB("epub", "EPUB"),
     PDF("pdf", "PDF"),
+    XPS("xps", "XPS"),
+    OXPS("oxps", "OXPS"),
+    CBZ("cbz", "CBZ"),
+    HTML("html", "HTML"),
+    TIFF("tiff", "TIFF"),
     JPG("jpg", "JPG"),
     PNG("png", "PNG");
 
@@ -22,7 +27,7 @@ sealed interface ImportValidationResult {
 
 /**
  * Magic-byte and ZIP container validator for local imports.
- * Never trusts file extensions alone; rejects disguised APKs, executables, and scripts.
+ * Never trusts file extensions alone; rejects disguised APKs, executables, DRM, and scripts.
  */
 object ImportValidator {
 
@@ -31,6 +36,8 @@ object ImportValidator {
         0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
     )
     private val JPG_MAGIC = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte())
+    private val TIFF_LE_MAGIC = byteArrayOf(0x49, 0x49, 0x2A, 0x00)
+    private val TIFF_BE_MAGIC = byteArrayOf(0x4D, 0x4D, 0x00, 0x2A)
     private val ZIP_MAGIC = byteArrayOf(0x50, 0x4B, 0x03, 0x04)
     private val PE_EXE_MAGIC = byteArrayOf(0x4D, 0x5A) // MZ
     private val ELF_MAGIC = byteArrayOf(0x7F, 0x45, 0x4C, 0x46) // \x7fELF
@@ -44,7 +51,7 @@ object ImportValidator {
             )
         }
 
-        val header = ByteArray(64)
+        val header = ByteArray(2048)
         val readCount = FileInputStream(file).use { input ->
             input.read(header)
         }.coerceAtLeast(0)
@@ -79,14 +86,26 @@ object ImportValidator {
         }
 
         val ext = declaredFileName.substringAfterLast('.', "").lowercase(Locale.ROOT)
-        if (ext == "oxp" || ext == "kfx" || ext == "apk" || ext == "exe" || ext == "sh") {
+        if (ext == "oxp") {
             return ImportValidationResult.Rejected(
-                reason = "Unsupported or unsafe file extension .$ext",
+                reason = "Unsupported .oxp format (did you mean .oxps?). Retained in Unsupported list.",
+                detectedSignature = "oxp"
+            )
+        }
+        if (ext == "kfx") {
+            return ImportValidationResult.Rejected(
+                reason = "Kindle KFX format is DRM/proprietary and unsupported.",
+                detectedSignature = "kfx"
+            )
+        }
+        if (ext in setOf("apk", "exe", "sh", "bat", "ps1")) {
+            return ImportValidationResult.Rejected(
+                reason = "Unsafe executable/script extension .$ext rejected",
                 detectedSignature = ext
             )
         }
 
-        // ZIP container check: allow valid EPUBs while rejecting disguised APKs or non-EPUB ZIPs
+        // ZIP-based containers: EPUB, XPS, OXPS, CBZ (and disguised APK detection)
         if (startsWith(header, ZIP_MAGIC)) {
             val zipInfo = runCatching { zipMetadataProvider?.invoke() }.getOrNull()
             val entries = zipInfo?.entryNames.orEmpty()
@@ -96,6 +115,13 @@ object ImportValidator {
                     detectedSignature = "android_apk"
                 )
             }
+            if ("META-INF/encryption.xml" in entries) {
+                return ImportValidationResult.Rejected(
+                    reason = "DRM-encrypted EPUB detected and rejected.",
+                    detectedSignature = "drm_epub"
+                )
+            }
+
             if (ext == "epub" || ext.isBlank()) {
                 val mimetype = zipInfo?.mimetypeContent?.trim()
                 if (mimetype == "application/epub+zip" && "META-INF/container.xml" in entries) {
@@ -108,6 +134,40 @@ object ImportValidator {
                     )
                 }
             }
+
+            if (ext == "xps" || ext == "oxps") {
+                val isXpsContainer = "[Content_Types].xml" in entries &&
+                    entries.any {
+                        it.equals("FixedDocumentSequence.fdseq", ignoreCase = true) ||
+                            it.endsWith(".fpage", ignoreCase = true) ||
+                            it.startsWith("Documents/", ignoreCase = true)
+                    }
+                if (isXpsContainer) {
+                    return ImportValidationResult.Valid(
+                        if (ext == "oxps") SupportedImportFormat.OXPS else SupportedImportFormat.XPS
+                    )
+                }
+                return ImportValidationResult.Rejected(
+                    reason = "Invalid .$ext container structure",
+                    detectedSignature = "zip_invalid_$ext"
+                )
+            }
+
+            if (ext == "cbz") {
+                val hasImages = entries.any { name ->
+                    val lower = name.lowercase(Locale.ROOT)
+                    lower.endsWith(".jpg") || lower.endsWith(".jpeg") ||
+                        lower.endsWith(".png") || lower.endsWith(".webp") || lower.endsWith(".gif")
+                }
+                if (hasImages) {
+                    return ImportValidationResult.Valid(SupportedImportFormat.CBZ)
+                }
+                return ImportValidationResult.Rejected(
+                    reason = "CBZ archive contains no supported comic images",
+                    detectedSignature = "cbz_empty"
+                )
+            }
+
             return ImportValidationResult.Rejected(
                 reason = "Disguised ZIP archive rejected for .$ext import",
                 detectedSignature = "zip_container"
@@ -118,15 +178,22 @@ object ImportValidator {
             startsWith(header, PDF_MAGIC) -> SupportedImportFormat.PDF
             startsWith(header, JPG_MAGIC) -> SupportedImportFormat.JPG
             startsWith(header, PNG_MAGIC) -> SupportedImportFormat.PNG
+            startsWith(header, TIFF_LE_MAGIC) || startsWith(header, TIFF_BE_MAGIC) -> SupportedImportFormat.TIFF
+            (ext == "htm" || ext == "html") && looksLikeHtml(header) -> SupportedImportFormat.HTML
             else -> null
         } ?: return ImportValidationResult.Rejected(
             reason = "Unrecognized or unsupported file signature",
-            detectedSignature = "unknown"
+            detectedSignature = if (ext.isNotBlank()) ext else "unknown"
         )
 
         val expectedGroup = when (ext) {
             "epub" -> SupportedImportFormat.EPUB
             "pdf" -> SupportedImportFormat.PDF
+            "xps" -> SupportedImportFormat.XPS
+            "oxps" -> SupportedImportFormat.OXPS
+            "cbz" -> SupportedImportFormat.CBZ
+            "htm", "html" -> SupportedImportFormat.HTML
+            "tif", "tiff" -> SupportedImportFormat.TIFF
             "jpg", "jpeg" -> SupportedImportFormat.JPG
             "png" -> SupportedImportFormat.PNG
             "" -> detected
@@ -142,12 +209,24 @@ object ImportValidator {
         return ImportValidationResult.Valid(detected)
     }
 
+    private fun looksLikeHtml(header: ByteArray): Boolean {
+        val text = header.toString(Charsets.UTF_8).trimStart('\uFEFF', ' ', '\t', '\r', '\n').lowercase(Locale.ROOT)
+        return text.startsWith("<!doctype html") ||
+            text.startsWith("<html") ||
+            text.startsWith("<head") ||
+            text.startsWith("<body") ||
+            text.startsWith("<meta") ||
+            text.startsWith("<title") ||
+            text.startsWith("<h1") ||
+            text.startsWith("<p")
+    }
+
     private fun readZipContainerInfo(file: File): ZipContainerInfo {
         val entries = linkedSetOf<String>()
         var mimetypeContent: String? = null
         ZipInputStream(FileInputStream(file)).use { zip ->
             var entry = zip.nextEntry
-            while (entry != null && entries.size < 128) {
+            while (entry != null && entries.size < 256) {
                 entries.add(entry.name)
                 if (entry.name == "mimetype") {
                     mimetypeContent = zip.readBytes().toString(Charsets.UTF_8)
