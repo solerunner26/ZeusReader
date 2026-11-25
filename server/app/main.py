@@ -155,7 +155,7 @@ def create_app(
                     "name": p.name,
                     "overall_status": p.overall_status,
                     "domains": [
-                        {"domain": d.domain, "role": d.role, "health": d.health}
+                        {"host": d.host, "url": d.url, "role": d.role, "health": d.health}
                         for d in p.domains
                     ],
                 }

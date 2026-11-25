@@ -38,6 +38,36 @@ def test_pairing_token_required_and_health_ok(tmp_path: Path) -> None:
     assert body["ai_enabled"] is False
 
 
+def test_slum_status_endpoint_returns_parsed_providers(tmp_path: Path) -> None:
+    sample_html = """
+    <div class="site-card">
+      <div class="site-card-header">
+        <a href="other.html" class="site-card-title">Other</a>
+        <span class="status-badge up">UP</span>
+      </div>
+      <ul class="domain-list-dense">
+        <li class="domain-item-dense">
+          <a href="https://library.memoryoftheworld.org" class="domain-link">library.memoryoftheworld.org</a>
+          <div class="status-col"><a class="status-badge compact up">UP</a></div>
+        </li>
+      </ul>
+    </div>
+    """
+
+    def mock_http() -> httpx.Client:
+        return httpx.Client(
+            transport=httpx.MockTransport(lambda req: httpx.Response(200, text=sample_html))
+        )
+
+    settings = ServerSettings(pairing_token="secret-token", data_dir=tmp_path)
+    client = TestClient(create_app(settings=settings, http_client_factory=mock_http))
+    res = client.get("/v1/slum/status", headers={"Authorization": "Bearer secret-token"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["stale"] is False
+    assert data["providers"][0]["domains"][0]["host"] == "library.memoryoftheworld.org"
+
+
 def test_transfer_idempotency_domain_guard_and_verified_download(tmp_path: Path) -> None:
     epub_bytes = _make_sample_epub_bytes()
     expected_sha = hashlib.sha256(epub_bytes).hexdigest()
