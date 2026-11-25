@@ -1,9 +1,14 @@
 [project]
 name = "zeusreader-server"
-version = "0.1.0"
-description = "ZeusReader private server and Phase 0 Open SLUM connector spike"
+version = "0.2.0"
+description = "ZeusReader private server: Open SLUM acquisition, sync, backup, and optional AI/converters"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.10.0",
+    "sqlalchemy>=2.0.35",
+    "python-multipart>=0.0.12",
     "httpx>=0.28.0",
     "lxml>=5.3.0",
 ]

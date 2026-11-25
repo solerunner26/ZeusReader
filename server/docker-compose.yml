@@ -1,0 +1,13 @@
+services:
+  zeusreader-server:
+    build: .
+    container_name: zeusreader-server
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8787:8787"
+    environment:
+      ZEUS_PAIRING_TOKEN: "${ZEUS_PAIRING_TOKEN:-zeus-dev-pairing-token}"
+      ZEUS_SERVER_DATA_DIR: "/srv/zeusreader/data"
+      ZEUS_AI_ENABLED: "${ZEUS_AI_ENABLED:-false}"
+    volumes:
+      - ./data:/srv/zeusreader/data
