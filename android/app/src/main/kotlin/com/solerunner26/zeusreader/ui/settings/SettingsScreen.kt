@@ -113,8 +113,10 @@ internal fun SettingsScreenContent(
     HueAuraBackground(config = config, darkTheme = darkTheme, modifier = modifier) {
         Scaffold(
             containerColor = Color.Transparent,
+            contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             topBar = {
                 TopAppBar(
+                    windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
                     title = { Text("Settings") },
                     navigationIcon = {
                         IconButton(

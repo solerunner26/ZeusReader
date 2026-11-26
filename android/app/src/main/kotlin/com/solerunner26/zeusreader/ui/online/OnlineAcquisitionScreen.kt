@@ -61,8 +61,10 @@ fun OnlineAcquisitionScreen(
     ) {
         Scaffold(
             containerColor = Color.Transparent,
+            contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             topBar = {
                 TopAppBar(
+                    windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
                     title = { Text("Private Server & Online") },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                     navigationIcon = {

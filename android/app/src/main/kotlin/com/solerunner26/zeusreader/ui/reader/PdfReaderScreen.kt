@@ -5,8 +5,10 @@ import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,11 +37,13 @@ import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -116,6 +120,9 @@ fun PdfReaderScreen(
     var focusRibbonEnabled by remember { mutableStateOf(false) }
     var ribbonBookmarked by remember { mutableStateOf(false) }
     var showSavePassageSheet by remember { mutableStateOf(false) }
+    var activeSearchQuery by remember { mutableStateOf("") }
+    var textSelectionMode by remember { mutableStateOf(false) }
+    var selectedTextBuffer by remember { mutableStateOf("") }
     val passageFolders by viewModel.passageFolders.collectAsStateWithLifecycle()
     var brightnessLevel by remember { mutableFloatStateOf(0.5f) }
 
@@ -201,42 +208,11 @@ fun PdfReaderScreen(
                 actions = {
                     val ready = uiState as? PdfReaderUiState.Ready
                     IconButton(
-                        onClick = { showTocSheet = true },
-                        enabled = ready != null,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(Icons.AutoMirrored.Rounded.FormatListBulleted, contentDescription = "Table of contents")
-                    }
-                    IconButton(
                         onClick = { showSearchSheet = true },
                         enabled = ready != null,
                         modifier = Modifier.size(48.dp)
                     ) {
                         Icon(Icons.Rounded.Search, contentDescription = "Search PDF")
-                    }
-                    IconButton(
-                        onClick = { showHighlightsSheet = true },
-                        enabled = ready != null,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(Icons.Rounded.BookmarkAdd, contentDescription = "Highlights & notes")
-                    }
-                    IconButton(
-                        onClick = { viewModel.toggleTranslatedReadingMode(!translatedModeEnabled) },
-                        enabled = ready != null,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(Icons.Rounded.AutoStories, contentDescription = "Translated reading mode")
-                    }
-                    IconButton(
-                        onClick = {
-                            viewModel.lookupWord("capillary", ready?.reflowedText?.take(220).orEmpty())
-                            showDictionarySheet = true
-                        },
-                        enabled = ready != null,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(Icons.Rounded.Translate, contentDescription = "Dictionary & translate")
                     }
                     IconButton(
                         onClick = { showTypographySheet = true },
@@ -257,7 +233,7 @@ fun PdfReaderScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
+                            .padding(horizontal = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -272,8 +248,35 @@ fun PdfReaderScreen(
                             )
                         }
                         Text(
-                            text = "Page ${ready.currentPage + 1} / ${ready.pageCount}",
-                            style = MaterialTheme.typography.titleMedium
+                            text = "${ready.currentPage + 1}/${ready.pageCount}",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                        IconButton(onClick = { showTocSheet = true }, modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.AutoMirrored.Rounded.FormatListBulleted, contentDescription = "Table of contents")
+                        }
+                        IconButton(onClick = { showHighlightsSheet = true }, modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.Rounded.BookmarkAdd, contentDescription = "Highlights & notes")
+                        }
+                        IconButton(
+                            onClick = { viewModel.toggleTranslatedReadingMode(!translatedModeEnabled) },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(Icons.Rounded.AutoStories, contentDescription = "Translated reading mode")
+                        }
+                        IconButton(
+                            onClick = {
+                                viewModel.lookupWord("capillary", ready.reflowedText?.take(220).orEmpty())
+                                showDictionarySheet = true
+                            },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(Icons.Rounded.Translate, contentDescription = "Dictionary & translate")
+                        }
+                        FilterChip(
+                            selected = textSelectionMode,
+                            onClick = { textSelectionMode = !textSelectionMode },
+                            label = { Text(if (textSelectionMode) "PDF" else "OCR") },
+                            modifier = Modifier.heightIn(min = 40.dp)
                         )
                         IconButton(
                             onClick = viewModel::nextPage,
@@ -333,21 +336,91 @@ fun PdfReaderScreen(
                             onRemoveGlossaryTerm = viewModel::removeGlossaryTerm,
                             onExitTranslatedMode = { viewModel.toggleTranslatedReadingMode(false) }
                         )
-                    } else if (settings.pdfReflowMode && state.reflowedText != null) {
+                    } else if (textSelectionMode || (settings.pdfReflowMode && state.reflowedText != null)) {
                         val baseSp = (16f * settings.fontSizePercent / 100f).sp
+                        val pageText = state.reflowedText?.takeIf { it.isNotBlank() }
+                            ?: "No selectable text extracted yet. Tap OCR or switch page."
+                        val sentences = remember(pageText) {
+                            pageText.split(Regex("(?<=[.!?])\\s+"))
+                                .map { it.trim() }
+                                .filter { it.isNotBlank() }
+                        }
+                        val annotated = highlightSearchMatches(
+                            text = pageText,
+                            query = activeSearchQuery,
+                            highlightBg = MaterialTheme.colorScheme.primaryContainer,
+                            highlightFg = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .verticalScroll(rememberScrollState())
-                                .padding(horizontal = settings.horizontalMarginDp.dp, vertical = 16.dp)
+                                .padding(horizontal = settings.horizontalMarginDp.dp, vertical = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Text(
-                                text = state.reflowedText,
-                                fontFamily = settings.fontChoice.toComposeFontFamily(),
-                                fontSize = baseSp,
-                                lineHeight = baseSp * settings.lineHeightMultiplier,
-                                color = settings.theme.textColor
-                            )
+                            if (activeSearchQuery.isNotBlank()) {
+                                AssistChip(
+                                    onClick = { activeSearchQuery = "" },
+                                    label = { Text("Highlight: \"$activeSearchQuery\" • Tap to clear") }
+                                )
+                            }
+                            SelectionContainer {
+                                Text(
+                                    text = annotated,
+                                    fontFamily = settings.fontChoice.toComposeFontFamily(),
+                                    fontSize = baseSp,
+                                    lineHeight = baseSp * settings.lineHeightMultiplier,
+                                    color = settings.theme.textColor
+                                )
+                            }
+                            if (textSelectionMode && sentences.isNotEmpty()) {
+                                Text(
+                                    text = "Tap a sentence below to Highlight, Save Passage, or Translate:",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                sentences.take(25).forEach { sentence ->
+                                    ElevatedCard(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                selectedTextBuffer = sentence
+                                                showSavePassageSheet = true
+                                            }
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(sentence, style = MaterialTheme.typography.bodyMedium)
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                AssistChip(
+                                                    onClick = {
+                                                        selectedTextBuffer = sentence
+                                                        showSavePassageSheet = true
+                                                    },
+                                                    label = { Text("Save passage") }
+                                                )
+                                                AssistChip(
+                                                    onClick = {
+                                                        viewModel.addHighlight(sentence, "")
+                                                    },
+                                                    label = { Text("Highlight") }
+                                                )
+                                                AssistChip(
+                                                    onClick = {
+                                                        val firstWord = sentence.split(Regex("\\s+")).firstOrNull().orEmpty()
+                                                        selectedTextBuffer = sentence
+                                                        viewModel.lookupWord(firstWord, sentence)
+                                                        showDictionarySheet = true
+                                                    },
+                                                    label = { Text("Define") }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     } else {
                         var scale by remember(state.currentPage, settings.pdfRetainZoomAcrossPages) {
@@ -360,9 +433,27 @@ fun PdfReaderScreen(
                             mutableFloatStateOf(state.initialScrollY)
                         }
 
+                        var swipeDeltaX by remember(state.currentPage) { mutableFloatStateOf(0f) }
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
+                                .pointerInput(state.currentPage, scale) {
+                                    if (scale <= 1.05f) {
+                                        detectHorizontalDragGestures(
+                                            onDragStart = { swipeDeltaX = 0f },
+                                            onHorizontalDrag = { _, dragAmount -> swipeDeltaX += dragAmount },
+                                            onDragEnd = {
+                                                // Left-to-right swipe moves forward; right-to-left moves backward
+                                                if (swipeDeltaX > 80f) {
+                                                    viewModel.nextPage()
+                                                } else if (swipeDeltaX < -80f) {
+                                                    viewModel.previousPage()
+                                                }
+                                                swipeDeltaX = 0f
+                                            }
+                                        )
+                                    }
+                                }
                                 .pointerInput(state.currentPage) {
                                     detectTransformGestures { _, pan, zoom, _ ->
                                         val nextScale = (scale * zoom).coerceIn(1f, 4f)
@@ -570,7 +661,10 @@ fun PdfReaderScreen(
                         placeholder = { Text("Search text…") }
                     )
                     Button(
-                        onClick = { viewModel.search(query) },
+                        onClick = {
+                            activeSearchQuery = query.trim()
+                            viewModel.search(query)
+                        },
                         modifier = Modifier.heightIn(min = 48.dp)
                     ) {
                         Text("Find")
@@ -591,6 +685,7 @@ fun PdfReaderScreen(
                                 .fillMaxWidth()
                                 .heightIn(min = 48.dp)
                                 .clickable {
+                                    activeSearchQuery = query.trim()
                                     viewModel.goToPage(hit.pageIndex)
                                     showSearchSheet = false
                                 }
@@ -624,10 +719,11 @@ fun PdfReaderScreen(
     }
 
     if (showHighlightsSheet) {
+        val snippet = selectedTextBuffer.ifBlank { readyState?.reflowedText?.take(160).orEmpty() }
         HighlightsBottomSheet(
             bookTitle = title,
             highlights = highlights,
-            defaultSnippet = readyState?.reflowedText?.take(160).orEmpty(),
+            defaultSnippet = snippet,
             onAddHighlight = viewModel::addHighlight,
             onDeleteHighlight = viewModel::deleteHighlight,
             onDismiss = { showHighlightsSheet = false }
@@ -635,7 +731,7 @@ fun PdfReaderScreen(
     }
 
     if (showDictionarySheet) {
-        val ctxSentence = readyState?.reflowedText?.take(220).orEmpty()
+        val ctxSentence = selectedTextBuffer.ifBlank { readyState?.reflowedText?.take(220).orEmpty() }
         DictionaryBottomSheet(
             initialWord = dictionaryResult?.queryWord ?: "capillary",
             sentenceContext = ctxSentence,
@@ -652,7 +748,7 @@ fun PdfReaderScreen(
     }
 
     if (showSavePassageSheet) {
-        val quote = readyState?.reflowedText?.take(220).orEmpty()
+        val quote = selectedTextBuffer.ifBlank { readyState?.reflowedText?.take(220).orEmpty() }
         SavePassageBottomSheet(
             quotePreview = quote,
             folders = passageFolders,
@@ -665,9 +761,37 @@ fun PdfReaderScreen(
                     folderId = folderId,
                     note = note
                 )
+                selectedTextBuffer = ""
                 showSavePassageSheet = false
             },
             onDismiss = { showSavePassageSheet = false }
         )
+    }
+}
+
+private fun highlightSearchMatches(
+    text: String,
+    query: String,
+    highlightBg: Color,
+    highlightFg: Color
+): androidx.compose.ui.text.AnnotatedString {
+    val q = query.trim()
+    if (q.isBlank()) return androidx.compose.ui.text.AnnotatedString(text)
+    return androidx.compose.ui.text.buildAnnotatedString {
+        append(text)
+        var startIndex = 0
+        while (startIndex < text.length) {
+            val found = text.indexOf(q, startIndex = startIndex, ignoreCase = true)
+            if (found < 0) break
+            addStyle(
+                style = androidx.compose.ui.text.SpanStyle(
+                    background = highlightBg,
+                    color = highlightFg
+                ),
+                start = found,
+                end = found + q.length
+            )
+            startIndex = found + q.length
+        }
     }
 }

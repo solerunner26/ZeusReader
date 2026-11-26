@@ -1,7 +1,10 @@
 package com.solerunner26.zeusreader.ui.reader
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,8 +25,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.solerunner26.zeusreader.reader.prefs.PdfFitMode
 import com.solerunner26.zeusreader.reader.prefs.ReaderFontChoice
 import com.solerunner26.zeusreader.reader.prefs.ReaderSettings
@@ -70,6 +76,33 @@ internal fun TypographyPanelContent(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Reading Appearance & Ergonomics", style = MaterialTheme.typography.titleLarge)
+
+        // Live preview so font size, line height, font family, surface, and warm filter are visible immediately
+        val previewSp = (16f * settings.fontSizePercent / 100f).sp
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.large)
+                .background(settings.theme.backgroundColor)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.large)
+                .padding(14.dp)
+                .testTag("typography_live_preview")
+        ) {
+            Text(
+                text = "Live Preview (${settings.fontSizePercent}%): The quick brown fox reads calmly across every page.",
+                fontFamily = settings.fontChoice.toComposeFontFamily(),
+                fontSize = previewSp,
+                lineHeight = previewSp * settings.lineHeightMultiplier,
+                color = settings.theme.textColor
+            )
+            if (settings.warmLightStrength > 0.01f) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(Color(0xFFFFA726).copy(alpha = settings.warmLightStrength))
+                )
+            }
+        }
 
         Text("Reading Surface", style = MaterialTheme.typography.titleMedium)
         Row(

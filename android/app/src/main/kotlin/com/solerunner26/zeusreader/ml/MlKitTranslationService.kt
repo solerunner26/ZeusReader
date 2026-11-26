@@ -96,7 +96,12 @@ class MlKitTranslationService @Inject constructor(
                 .build()
             val translator = Translation.getClient(options)
             try {
-                // Only translate using already-downloaded offline model when offline
+                val conditions = DownloadConditions.Builder().build()
+                suspendCancellableCoroutine<Unit> { cont ->
+                    translator.downloadModelIfNeeded(conditions)
+                        .addOnSuccessListener { if (cont.isActive) cont.resume(Unit) }
+                        .addOnFailureListener { exc -> if (cont.isActive) cont.resumeWithException(exc) }
+                }
                 suspendCancellableCoroutine<String> { cont ->
                     translator.translate(text)
                         .addOnSuccessListener { out -> if (cont.isActive) cont.resume(out) }

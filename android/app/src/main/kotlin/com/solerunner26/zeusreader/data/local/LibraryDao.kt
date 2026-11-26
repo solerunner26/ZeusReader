@@ -49,7 +49,9 @@ interface LibraryDao {
             (SELECT COUNT(*) FROM image_book_pages ibp WHERE ibp.edition_id = e.id) AS imagePageCount,
             (SELECT fa.local_uri FROM file_assets fa WHERE fa.edition_id = e.id ORDER BY fa.created_at_epoch_ms ASC LIMIT 1) AS primaryLocalPath,
             rp.page_index AS lastPageIndex,
-            w.updated_at_epoch_ms AS updatedAtEpochMs
+            w.updated_at_epoch_ms AS updatedAtEpochMs,
+            w.category AS category,
+            e.cover_path AS coverPath
         FROM works w
         JOIN editions e ON e.work_id = w.id AND e.deleted_at_epoch_ms IS NULL
         LEFT JOIN reading_progress rp ON rp.edition_id = e.id
@@ -78,7 +80,9 @@ interface LibraryDao {
             (SELECT COUNT(*) FROM image_book_pages ibp WHERE ibp.edition_id = e.id) AS imagePageCount,
             (SELECT fa.local_uri FROM file_assets fa WHERE fa.edition_id = e.id ORDER BY fa.created_at_epoch_ms ASC LIMIT 1) AS primaryLocalPath,
             rp.page_index AS lastPageIndex,
-            w.updated_at_epoch_ms AS updatedAtEpochMs
+            w.updated_at_epoch_ms AS updatedAtEpochMs,
+            w.category AS category,
+            e.cover_path AS coverPath
         FROM works w
         JOIN works_fts ON w.rowid = works_fts.rowid
         JOIN editions e ON e.work_id = w.id AND e.deleted_at_epoch_ms IS NULL
@@ -95,6 +99,12 @@ interface LibraryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertWork(work: WorkEntity)
+
+    @Query("UPDATE works SET authors = COALESCE(NULLIF(:authors, ''), authors), category = :category WHERE id = :workId")
+    suspend fun updateWorkMetadata(workId: String, authors: String?, category: String)
+
+    @Query("UPDATE editions SET cover_path = :coverPath WHERE id = :editionId")
+    suspend fun updateEditionCover(editionId: String, coverPath: String?)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertEdition(edition: EditionEntity)

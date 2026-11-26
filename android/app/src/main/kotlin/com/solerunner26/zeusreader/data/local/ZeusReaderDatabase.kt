@@ -24,7 +24,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PassageTagEntity::class,
         PassageFtsEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 abstract class ZeusReaderDatabase : RoomDatabase() {
@@ -281,6 +281,13 @@ abstract class ZeusReaderDatabase : RoomDatabase() {
                     )
                     """.trimIndent()
                 )
+            }
+        }
+
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `works` ADD COLUMN `category` TEXT NOT NULL DEFAULT 'General'")
+                db.execSQL("ALTER TABLE `editions` ADD COLUMN `cover_path` TEXT")
             }
         }
     }

@@ -34,7 +34,8 @@ object DatabaseModule {
                 ZeusReaderDatabase.MIGRATION_4_5,
                 ZeusReaderDatabase.MIGRATION_5_6,
                 ZeusReaderDatabase.MIGRATION_6_7,
-                ZeusReaderDatabase.MIGRATION_7_8
+                ZeusReaderDatabase.MIGRATION_7_8,
+                ZeusReaderDatabase.MIGRATION_8_9
             )
             .enableMultiInstanceInvalidation()
             .build()

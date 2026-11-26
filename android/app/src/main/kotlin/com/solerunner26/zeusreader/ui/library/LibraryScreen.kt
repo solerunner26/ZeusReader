@@ -4,12 +4,15 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,7 +22,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.solerunner26.zeusreader.data.importer.BookCoverAndMetadataExtractor
+import com.solerunner26.zeusreader.ui.home.BookCoverThumbnail
+import com.solerunner26.zeusreader.ui.theme.LiquidGlassCard
+import com.solerunner26.zeusreader.ui.theme.liquidGlass
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.Close
@@ -90,9 +102,17 @@ fun LibraryScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val selectedRack by viewModel.selectedRackCategory.collectAsStateWithLifecycle()
     val isImporting by viewModel.isImporting.collectAsStateWithLifecycle()
     val watchedFolders by viewModel.watchedFolders.collectAsStateWithLifecycle()
     val unsupportedFiles by viewModel.unsupportedFiles.collectAsStateWithLifecycle()
+
+    LaunchedEffect((uiState as? LibraryUiState.Populated)?.books?.size) {
+        val books = (uiState as? LibraryUiState.Populated)?.books.orEmpty()
+        if (books.isNotEmpty()) {
+            viewModel.refreshCoversAndMetadata(books)
+        }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     var showWatchedFoldersSheet by remember { mutableStateOf(false) }
     var showUnsupportedSheet by remember { mutableStateOf(false) }
@@ -121,6 +141,7 @@ fun LibraryScreen(
 
     LibraryScreenContent(
         uiState = uiState,
+        selectedRackCategory = selectedRack,
         isImporting = isImporting,
         unsupportedCount = unsupportedFiles.size,
         snackbarHostState = snackbarHostState,
@@ -136,6 +157,7 @@ fun LibraryScreen(
         onOpenSettings = onOpenSettings,
         onSearchQueryChange = viewModel::onSearchQueryChange,
         onFilterSelected = viewModel::onFilterSelected,
+        onRackSelected = viewModel::onRackCategorySelected,
         onOpenBook = onOpenBook,
         modifier = modifier
     )
@@ -163,6 +185,7 @@ fun LibraryScreen(
 @Composable
 internal fun LibraryScreenContent(
     uiState: LibraryUiState,
+    selectedRackCategory: String = "All",
     isImporting: Boolean,
     unsupportedCount: Int = 0,
     snackbarHostState: SnackbarHostState,
@@ -174,17 +197,20 @@ internal fun LibraryScreenContent(
     onOpenSettings: () -> Unit = {},
     onSearchQueryChange: (String) -> Unit,
     onFilterSelected: (LibraryFormatFilter) -> Unit,
+    onRackSelected: (String) -> Unit = {},
     onOpenBook: (LibraryBookSummary) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        contentWindowInsets = WindowInsets(0),
         modifier = modifier
             .fillMaxSize()
             .testTag("library_screen_root"),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
+                windowInsets = WindowInsets(0),
                 title = {
                     Text(
                         text = stringResource(R.string.app_name),
@@ -243,7 +269,7 @@ internal fun LibraryScreenContent(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
@@ -292,8 +318,10 @@ internal fun LibraryScreenContent(
                 is LibraryUiState.Populated -> {
                     PopulatedLibraryContent(
                         state = uiState,
+                        selectedRackCategory = selectedRackCategory,
                         onSearchQueryChange = onSearchQueryChange,
                         onFilterSelected = onFilterSelected,
+                        onRackSelected = onRackSelected,
                         onOpenBook = onOpenBook,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -322,8 +350,10 @@ internal fun LibraryScreenContent(
 @Composable
 private fun PopulatedLibraryContent(
     state: LibraryUiState.Populated,
+    selectedRackCategory: String = "All",
     onSearchQueryChange: (String) -> Unit,
     onFilterSelected: (LibraryFormatFilter) -> Unit,
+    onRackSelected: (String) -> Unit = {},
     onOpenBook: (LibraryBookSummary) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -333,7 +363,9 @@ private fun PopulatedLibraryContent(
             onValueChange = onSearchQueryChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 6.dp)
+                .liquidGlass(enabled = true, shape = RoundedCornerShape(24.dp), alpha = 0.65f),
+            shape = RoundedCornerShape(24.dp),
             singleLine = true,
             placeholder = { Text(stringResource(R.string.library_search_hint)) },
             leadingIcon = {
@@ -351,34 +383,54 @@ private fun PopulatedLibraryContent(
             }
         )
 
+        // Virtual Rack category shelf
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp),
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            BookCoverAndMetadataExtractor.RACK_CATEGORIES.forEach { category ->
+                FilterChip(
+                    selected = selectedRackCategory == category,
+                    onClick = { onRackSelected(category) },
+                    modifier = Modifier.heightIn(min = 44.dp),
+                    label = { Text(category) }
+                )
+            }
+        }
+
+        // Format filter chips
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 2.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             FilterChip(
                 selected = state.selectedFilter == LibraryFormatFilter.ALL,
                 onClick = { onFilterSelected(LibraryFormatFilter.ALL) },
-                modifier = Modifier.heightIn(min = 48.dp),
+                modifier = Modifier.heightIn(min = 44.dp),
                 label = { Text(stringResource(R.string.library_filter_all)) }
             )
             FilterChip(
                 selected = state.selectedFilter == LibraryFormatFilter.EPUB,
                 onClick = { onFilterSelected(LibraryFormatFilter.EPUB) },
-                modifier = Modifier.heightIn(min = 48.dp),
+                modifier = Modifier.heightIn(min = 44.dp),
                 label = { Text(stringResource(R.string.library_filter_epub)) }
             )
             FilterChip(
                 selected = state.selectedFilter == LibraryFormatFilter.PDF,
                 onClick = { onFilterSelected(LibraryFormatFilter.PDF) },
-                modifier = Modifier.heightIn(min = 48.dp),
+                modifier = Modifier.heightIn(min = 44.dp),
                 label = { Text(stringResource(R.string.library_filter_pdf)) }
             )
             FilterChip(
                 selected = state.selectedFilter == LibraryFormatFilter.IMAGE_BOOK,
                 onClick = { onFilterSelected(LibraryFormatFilter.IMAGE_BOOK) },
-                modifier = Modifier.heightIn(min = 48.dp),
+                modifier = Modifier.heightIn(min = 44.dp),
                 label = { Text(stringResource(R.string.library_filter_images)) }
             )
         }
@@ -391,15 +443,17 @@ private fun PopulatedLibraryContent(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No matching books in your library.",
+                    text = "No matching books in this rack.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         } else {
-            LazyColumn(
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 156.dp),
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(state.books, key = { it.editionId }) { book ->
@@ -415,72 +469,63 @@ private fun LibraryBookCard(
     book: LibraryBookSummary,
     onClick: () -> Unit
 ) {
-    ElevatedCard(
+    LiquidGlassCard(
+        glassEnabled = true,
+        cornerRadius = 20.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 72.dp)
-            .clickable(onClick = onClick),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+            .clickable(onClick = onClick)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Icon(
-                imageVector = if (book.isImageBook) {
-                    Icons.Rounded.CollectionsBookmark
-                } else {
-                    Icons.Rounded.PictureAsPdf
-                },
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(32.dp)
+            BookCoverThumbnail(
+                title = book.title,
+                format = if (book.isImageBook) "IMG" else book.primaryFormat,
+                coverPath = book.coverPath,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(0.68f)
             )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = book.title,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (book.authors.isNotBlank()) {
                 Text(
-                    text = book.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
+                    text = book.authors,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (book.authors.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = book.authors,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val badge = if (book.isImageBook) {
+                    "${book.imagePageCount.coerceAtLeast(1)}p IMG"
+                } else {
+                    book.primaryFormat.ifBlank { "BOOK" }.uppercase()
                 }
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    SuggestionChip(
-                        onClick = onClick,
-                        label = {
-                            Text(
-                                if (book.isImageBook) {
-                                    "${book.imagePageCount.coerceAtLeast(1)} pages • Images"
-                                } else {
-                                    book.primaryFormat.ifBlank { "PDF" }
-                                }
-                            )
-                        }
-                    )
-                    Text(
-                        text = formatFileSize(book.totalByteSize),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = badge,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = book.category.ifBlank { "General" },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
             }
         }
     }

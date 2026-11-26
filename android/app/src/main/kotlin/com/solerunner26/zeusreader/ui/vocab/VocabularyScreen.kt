@@ -191,8 +191,14 @@ fun VocabularyScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         topBar = {
             TopAppBar(
+                windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent
+                ),
                 title = { Text("Vocabulary & Flashcards") },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {

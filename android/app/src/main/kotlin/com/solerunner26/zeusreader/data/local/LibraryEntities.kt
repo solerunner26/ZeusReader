@@ -22,6 +22,7 @@ data class WorkEntity(
     val authors: String,
     val description: String = "",
     val language: String = "",
+    val category: String = "General",
     @ColumnInfo(name = "created_at_epoch_ms")
     val createdAtEpochMs: Long,
     @ColumnInfo(name = "updated_at_epoch_ms")
@@ -70,6 +71,8 @@ data class EditionEntity(
     val isbn: String = "",
     @ColumnInfo(name = "edition_notes")
     val editionNotes: String = "",
+    @ColumnInfo(name = "cover_path")
+    val coverPath: String? = null,
     val version: Long = 1L,
     @ColumnInfo(name = "deleted_at_epoch_ms")
     val deletedAtEpochMs: Long? = null
@@ -212,7 +215,9 @@ data class LibraryBookSummary(
     val imagePageCount: Int,
     val primaryLocalPath: String?,
     val lastPageIndex: Int?,
-    val updatedAtEpochMs: Long
+    val updatedAtEpochMs: Long,
+    val category: String = "General",
+    val coverPath: String? = null
 ) {
     val isImageBook: Boolean
         get() = imagePageCount > 0 || primaryFormat.uppercase() in setOf("JPG", "JPEG", "PNG", "IMAGE_BOOK")

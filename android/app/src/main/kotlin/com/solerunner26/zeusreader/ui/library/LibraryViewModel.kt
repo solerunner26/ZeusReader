@@ -4,10 +4,12 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.solerunner26.zeusreader.data.LibraryRepository
+import com.solerunner26.zeusreader.data.importer.BookCoverAndMetadataExtractor
 import com.solerunner26.zeusreader.data.importer.ImportBatchReport
 import com.solerunner26.zeusreader.data.importer.LibraryImporter
 import com.solerunner26.zeusreader.data.importer.WatchedFolderManager
 import com.solerunner26.zeusreader.data.local.LibraryBookSummary
+import com.solerunner26.zeusreader.data.local.LibraryDao
 import com.solerunner26.zeusreader.data.local.UnsupportedFileEntity
 import com.solerunner26.zeusreader.data.local.WatchedFolderEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,11 +39,15 @@ enum class LibraryFormatFilter {
 class LibraryViewModel @Inject constructor(
     private val libraryRepository: LibraryRepository,
     private val libraryImporter: LibraryImporter,
-    private val watchedFolderManager: WatchedFolderManager
+    private val watchedFolderManager: WatchedFolderManager,
+    private val coverExtractor: BookCoverAndMetadataExtractor? = null,
+    private val libraryDao: LibraryDao? = null
 ) : ViewModel() {
 
     private val searchQuery = MutableStateFlow("")
     private val formatFilter = MutableStateFlow(LibraryFormatFilter.ALL)
+    private val _selectedRackCategory = MutableStateFlow("All")
+    val selectedRackCategory: StateFlow<String> = _selectedRackCategory.asStateFlow()
     private val _isImporting = MutableStateFlow(false)
     val isImporting: StateFlow<Boolean> = _isImporting.asStateFlow()
 
@@ -73,12 +79,17 @@ class LibraryViewModel @Inject constructor(
     }
 
     val uiState: StateFlow<LibraryUiState> =
-        combine(booksFlow, searchQuery, formatFilter) { books, query, filter ->
-            val filtered = when (filter) {
+        combine(booksFlow, searchQuery, formatFilter, _selectedRackCategory) { books, query, filter, rack ->
+            val byFormat = when (filter) {
                 LibraryFormatFilter.ALL -> books
                 LibraryFormatFilter.EPUB -> books.filter { it.primaryFormat.equals("EPUB", ignoreCase = true) }
                 LibraryFormatFilter.PDF -> books.filter { it.primaryFormat.equals("PDF", ignoreCase = true) }
                 LibraryFormatFilter.IMAGE_BOOK -> books.filter { it.isImageBook }
+            }
+            val filtered = if (rack == "All") {
+                byFormat
+            } else {
+                byFormat.filter { it.category.equals(rack, ignoreCase = true) }
             }
             if (books.isEmpty() && query.isBlank()) {
                 LibraryUiState.Empty
@@ -105,6 +116,32 @@ class LibraryViewModel @Inject constructor(
 
     fun onFilterSelected(filter: LibraryFormatFilter) {
         formatFilter.value = filter
+    }
+
+    fun onRackCategorySelected(category: String) {
+        _selectedRackCategory.value = category
+    }
+
+    fun refreshCoversAndMetadata(books: List<LibraryBookSummary>) {
+        val extractor = coverExtractor ?: return
+        val dao = libraryDao ?: return
+        viewModelScope.launch {
+            books.filter { it.coverPath.isNullOrBlank() || it.authors.isBlank() || it.category == "General" }
+                .forEach { book ->
+                    val meta = extractor.extractAndEnrich(
+                        editionId = book.editionId,
+                        title = book.title,
+                        existingAuthors = book.authors,
+                        format = book.primaryFormat,
+                        localPath = book.primaryLocalPath,
+                        allowNetworkLookup = true
+                    )
+                    if (meta.coverPath != null && meta.coverPath != book.coverPath) {
+                        dao.updateEditionCover(book.editionId, meta.coverPath)
+                    }
+                    dao.updateWorkMetadata(book.workId, meta.authors, meta.category)
+                }
+        }
     }
 
     fun importUris(uris: List<Uri>, origin: String = "picker") {

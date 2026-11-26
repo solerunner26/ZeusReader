@@ -97,6 +97,7 @@ fun PassagesScreen(
 
     Scaffold(
         containerColor = Color.Transparent,
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         modifier = modifier
             .fillMaxSize()
             .testTag("passages_screen_root"),
@@ -104,6 +105,7 @@ fun PassagesScreen(
         topBar = {
             if (uiState.selectedIds.isNotEmpty()) {
                 TopAppBar(
+                    windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
                     title = { Text("${uiState.selectedIds.size} selected") },
                     actions = {
                         TextButton(onClick = viewModel::deleteSelected, modifier = Modifier.heightIn(min = 48.dp)) {
@@ -117,6 +119,7 @@ fun PassagesScreen(
                 )
             } else {
                 TopAppBar(
+                    windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
                     title = { Text("Passages (${uiState.passages.size})") },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )

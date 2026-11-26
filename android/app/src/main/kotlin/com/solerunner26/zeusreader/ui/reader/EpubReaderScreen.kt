@@ -61,6 +61,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.doOnAttach
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentContainerView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -181,44 +182,11 @@ fun EpubReaderScreen(
                 actions = {
                     val ready = uiState as? EpubReaderUiState.Ready
                     IconButton(
-                        onClick = { showTocSheet = true },
-                        enabled = ready != null,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(Icons.AutoMirrored.Rounded.FormatListBulleted, contentDescription = "Table of contents")
-                    }
-                    IconButton(
                         onClick = { showSearchSheet = true },
                         enabled = ready?.capabilities?.search == true,
                         modifier = Modifier.size(48.dp)
                     ) {
                         Icon(Icons.Rounded.Search, contentDescription = "Search in book")
-                    }
-                    IconButton(
-                        onClick = {
-                            scope.launch {
-                                val sel = navigatorRef?.currentSelection()?.locator?.text?.highlight.orEmpty()
-                                highlightSeedSnippet = sel
-                                showHighlightsSheet = true
-                            }
-                        },
-                        enabled = ready != null,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(Icons.Rounded.BookmarkAdd, contentDescription = "Highlights & notes")
-                    }
-                    IconButton(
-                        onClick = { viewModel.toggleTranslatedReadingMode(!translatedModeEnabled) },
-                        enabled = ready != null,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(Icons.Rounded.AutoStories, contentDescription = "Translated reading mode")
-                    }
-                    IconButton(
-                        onClick = { showTypographySheet = true },
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(Icons.Rounded.Tune, contentDescription = "Typography & ergonomics")
                     }
                 }
             )
@@ -233,22 +201,39 @@ fun EpubReaderScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
+                            .padding(horizontal = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = ready.currentChapterTitle.ifBlank { "EPUB • ${settings.theme.label}" },
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
                             text = "${ready.currentProgressionPercent}%",
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.padding(horizontal = 8.dp)
                         )
+                        IconButton(onClick = { showTocSheet = true }, modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.AutoMirrored.Rounded.FormatListBulleted, contentDescription = "Table of contents")
+                        }
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    val sel = navigatorRef?.currentSelection()?.locator?.text?.highlight.orEmpty()
+                                    highlightSeedSnippet = sel
+                                    showHighlightsSheet = true
+                                }
+                            },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(Icons.Rounded.BookmarkAdd, contentDescription = "Highlights & notes")
+                        }
+                        IconButton(
+                            onClick = { viewModel.toggleTranslatedReadingMode(!translatedModeEnabled) },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(Icons.Rounded.AutoStories, contentDescription = "Translated reading mode")
+                        }
+                        IconButton(onClick = { showTypographySheet = true }, modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.Rounded.Tune, contentDescription = "Typography & ergonomics")
+                        }
                     }
                 }
             }
@@ -280,27 +265,29 @@ fun EpubReaderScreen(
                         factory = { ctx ->
                             FragmentContainerView(ctx).apply {
                                 id = containerId
-                                val fm = activity.supportFragmentManager
-                                val existing = fm.findFragmentById(containerId) as? EpubNavigatorFragment
-                                if (existing == null) {
-                                    val factory = EpubNavigatorFactory(
-                                        publication = state.publication,
-                                        configuration = EpubNavigatorFactory.Configuration()
-                                    )
-                                    fm.fragmentFactory = factory.createFragmentFactory(
-                                        initialLocator = state.initialLocator,
-                                        initialPreferences = viewModel.toReadiumPreferences(settings)
-                                    )
-                                    val fragment = fm.fragmentFactory.instantiate(
-                                        ctx.classLoader,
-                                        EpubNavigatorFragment::class.java.name
-                                    ) as EpubNavigatorFragment
-                                    fm.beginTransaction()
-                                        .replace(containerId, fragment)
-                                        .commitNowAllowingStateLoss()
-                                    navigatorRef = fragment
-                                } else {
-                                    navigatorRef = existing
+                                doOnAttach {
+                                    val fm = activity.supportFragmentManager
+                                    val existing = fm.findFragmentById(containerId) as? EpubNavigatorFragment
+                                    if (existing == null) {
+                                        val factory = EpubNavigatorFactory(
+                                            publication = state.publication,
+                                            configuration = EpubNavigatorFactory.Configuration()
+                                        )
+                                        fm.fragmentFactory = factory.createFragmentFactory(
+                                            initialLocator = state.initialLocator,
+                                            initialPreferences = viewModel.toReadiumPreferences(settings)
+                                        )
+                                        val fragment = fm.fragmentFactory.instantiate(
+                                            ctx.classLoader,
+                                            EpubNavigatorFragment::class.java.name
+                                        ) as EpubNavigatorFragment
+                                        fm.beginTransaction()
+                                            .replace(containerId, fragment)
+                                            .commitAllowingStateLoss()
+                                        navigatorRef = fragment
+                                    } else {
+                                        navigatorRef = existing
+                                    }
                                 }
                             }
                         }
