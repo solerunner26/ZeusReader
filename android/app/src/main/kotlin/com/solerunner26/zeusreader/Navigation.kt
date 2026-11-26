@@ -280,7 +280,9 @@ fun MainNavigation(
                         val viewModel: OnlineAcquisitionViewModel = hiltViewModel()
                         OnlineAcquisitionScreen(
                             viewModel = viewModel,
-                            onBack = { backStack.removeLastOrNull() }
+                            onBack = { backStack.removeLastOrNull() },
+                            uiConfig = uiConfig,
+                            darkTheme = darkTheme
                         )
                     }
 
@@ -288,7 +290,9 @@ fun MainNavigation(
                         val viewModel: StatsViewModel = hiltViewModel()
                         StatsScreen(
                             viewModel = viewModel,
-                            onBack = { backStack.removeLastOrNull() }
+                            onBack = { backStack.removeLastOrNull() },
+                            uiConfig = uiConfig,
+                            darkTheme = darkTheme
                         )
                     }
 

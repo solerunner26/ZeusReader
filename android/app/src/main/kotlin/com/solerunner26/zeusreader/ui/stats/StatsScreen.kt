@@ -39,13 +39,15 @@ import com.solerunner26.zeusreader.ui.theme.HueAuraBackground
 fun StatsScreen(
     viewModel: StatsViewModel,
     onBack: () -> Unit,
+    uiConfig: AppUiConfig = AppUiConfig(),
+    darkTheme: Boolean = isSystemInDarkTheme(),
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     HueAuraBackground(
-        config = AppUiConfig(),
-        darkTheme = isSystemInDarkTheme(),
+        config = uiConfig,
+        darkTheme = darkTheme,
         modifier = modifier
     ) {
         Scaffold(

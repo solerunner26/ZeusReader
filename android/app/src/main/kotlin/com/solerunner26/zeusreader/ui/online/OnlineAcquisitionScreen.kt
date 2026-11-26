@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,10 +31,14 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -49,14 +54,18 @@ import com.solerunner26.zeusreader.ui.theme.HueAuraBackground
 fun OnlineAcquisitionScreen(
     viewModel: OnlineAcquisitionViewModel,
     onBack: () -> Unit,
+    uiConfig: AppUiConfig = AppUiConfig(),
+    darkTheme: Boolean = isSystemInDarkTheme(),
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var showPairingDialog by remember { mutableStateOf(false) }
+    var pairingJsonInput by remember { mutableStateOf("") }
 
     HueAuraBackground(
-        config = AppUiConfig(),
-        darkTheme = isSystemInDarkTheme(),
+        config = uiConfig,
+        darkTheme = darkTheme,
         modifier = modifier
     ) {
         Scaffold(
@@ -131,6 +140,27 @@ fun OnlineAcquisitionScreen(
                                         .heightIn(min = 48.dp)
                                 ) {
                                     Text("Sync Now")
+                                }
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { showPairingDialog = true },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(min = 48.dp)
+                                ) {
+                                    Text("Paste QR JSON")
+                                }
+                                OutlinedButton(
+                                    onClick = viewModel::backupToServer,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(min = 48.dp)
+                                ) {
+                                    Text("Backup Data")
                                 }
                             }
                             state.slumStatus?.let { slum ->
@@ -235,14 +265,22 @@ fun OnlineAcquisitionScreen(
                                             Text("Continue in browser")
                                         }
                                     }
-                                    if (job.state == "Failed" || job.state == "Cancelled") {
+                                    if (job.state == "ReadyOnServer") {
+                                        Button(
+                                            onClick = { viewModel.downloadToPhone(job) },
+                                            modifier = Modifier.heightIn(min = 48.dp)
+                                        ) {
+                                            Icon(Icons.Rounded.Download, contentDescription = null)
+                                            Text("  Download to Phone")
+                                        }
+                                    } else if (job.state == "Failed" || job.state == "Cancelled") {
                                         OutlinedButton(
                                             onClick = { viewModel.retryTransfer(job.job_id) },
                                             modifier = Modifier.heightIn(min = 48.dp)
                                         ) {
                                             Text("Retry")
                                         }
-                                    } else if (job.state != "ReadyOnServer") {
+                                    } else {
                                         OutlinedButton(
                                             onClick = { viewModel.cancelTransfer(job.job_id) },
                                             modifier = Modifier.heightIn(min = 48.dp)
@@ -259,5 +297,36 @@ fun OnlineAcquisitionScreen(
                 item { Spacer(Modifier.height(24.dp)) }
             }
         }
+    }
+
+    if (showPairingDialog) {
+        AlertDialog(
+            onDismissRequest = { showPairingDialog = false },
+            title = { Text("Paste Pairing QR Payload") },
+            text = {
+                OutlinedTextField(
+                    value = pairingJsonInput,
+                    onValueChange = { pairingJsonInput = it },
+                    label = { Text("{\"url\":\"http://...\",\"token\":\"...\"}") },
+                    minLines = 3,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.applyPairingPayload(pairingJsonInput)
+                        showPairingDialog = false
+                    }
+                ) {
+                    Text("Apply")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPairingDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

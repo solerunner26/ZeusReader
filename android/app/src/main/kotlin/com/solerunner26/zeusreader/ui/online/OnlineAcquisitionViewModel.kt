@@ -1,7 +1,10 @@
 package com.solerunner26.zeusreader.ui.online
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.solerunner26.zeusreader.data.importer.LibraryImporter
 import com.solerunner26.zeusreader.sync.OnlineSearchResultDto
 import com.solerunner26.zeusreader.sync.PrivateServerClient
 import com.solerunner26.zeusreader.sync.SlumStatusDto
@@ -9,11 +12,14 @@ import com.solerunner26.zeusreader.sync.SyncAndBackupRepository
 import com.solerunner26.zeusreader.sync.TransferCreateDto
 import com.solerunner26.zeusreader.sync.TransferJobDto
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.json.JSONObject
+import java.io.File
 import javax.inject.Inject
 
 data class OnlineAcquisitionUiState(
@@ -30,6 +36,8 @@ data class OnlineAcquisitionUiState(
 
 @HiltViewModel
 class OnlineAcquisitionViewModel @Inject constructor(
+    @param:ApplicationContext private val context: Context,
+    private val libraryImporter: LibraryImporter,
     private val serverClient: PrivateServerClient,
     private val syncRepository: SyncAndBackupRepository
 ) : ViewModel() {
@@ -138,6 +146,65 @@ class OnlineAcquisitionViewModel @Inject constructor(
                 .onFailure { err ->
                     _uiState.update { it.copy(statusMessage = err.message ?: "Sync failed") }
                 }
+        }
+    }
+
+    fun applyPairingPayload(rawJson: String) {
+        runCatching {
+            val obj = JSONObject(rawJson.trim())
+            val url = obj.optString("url").ifBlank { obj.optString("host") }
+            val token = obj.optString("token")
+            require(url.isNotBlank() && token.isNotBlank()) { "Missing url or token" }
+            _uiState.update {
+                it.copy(
+                    serverUrl = url.trimEnd('/'),
+                    pairingToken = token,
+                    statusMessage = "Pairing config applied. Tap Connect & Refresh."
+                )
+            }
+        }.onFailure { err ->
+            _uiState.update { it.copy(statusMessage = "Invalid pairing payload: ${err.message}") }
+        }
+    }
+
+    fun backupToServer() {
+        val state = _uiState.value
+        viewModelScope.launch {
+            syncRepository.uploadBackupToServer(state.serverUrl, state.pairingToken, "data_only")
+                .onSuccess { summary ->
+                    _uiState.update {
+                        it.copy(statusMessage = "Backup uploaded (${summary.byte_size} bytes, sha256=${summary.sha256.take(10)}…)")
+                    }
+                }
+                .onFailure { err ->
+                    _uiState.update { it.copy(statusMessage = err.message ?: "Backup failed") }
+                }
+        }
+    }
+
+    fun downloadToPhone(job: TransferJobDto) {
+        val state = _uiState.value
+        viewModelScope.launch {
+            val safeTitle = job.title.replace(Regex("[^a-zA-Z0-9._-]"), "_").take(48).ifBlank { job.job_id }
+            val ext = job.format.lowercase().ifBlank { "epub" }
+            val destFile = File(File(context.filesDir, "downloads"), "$safeTitle.$ext")
+            _uiState.update { it.copy(statusMessage = "Downloading ${job.title} to phone…") }
+            serverClient.downloadTransferFile(
+                baseUrl = state.serverUrl,
+                token = state.pairingToken,
+                jobId = job.job_id,
+                destFile = destFile,
+                expectedSha256 = job.file_sha256
+            ).onSuccess { file ->
+                val report = libraryImporter.importUris(listOf(Uri.fromFile(file)), origin = "server_transfer")
+                _uiState.update {
+                    it.copy(
+                        statusMessage = "Available offline: ${job.title} (imported=${report.importedFileCount}, skipped=${report.duplicates.size})"
+                    )
+                }
+            }.onFailure { err ->
+                _uiState.update { it.copy(statusMessage = "Phone transfer failed: ${err.message}") }
+            }
         }
     }
 

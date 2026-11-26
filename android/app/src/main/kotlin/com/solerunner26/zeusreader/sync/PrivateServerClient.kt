@@ -245,6 +245,49 @@ class PrivateServerClient @Inject constructor() {
     suspend fun retryTransfer(baseUrl: String, token: String, jobId: String): Result<TransferJobDto> =
         postEmpty("${baseUrl.trimEnd('/')}/v1/transfers/$jobId/retry", token)
 
+    suspend fun downloadTransferFile(
+        baseUrl: String,
+        token: String,
+        jobId: String,
+        destFile: java.io.File,
+        expectedSha256: String? = null
+    ): Result<java.io.File> = withContext(Dispatchers.IO) {
+        runCatching {
+            destFile.parentFile?.mkdirs()
+            val tempFile = java.io.File(destFile.parentFile, "${destFile.name}.tmp")
+            val conn = openConnection("${baseUrl.trimEnd('/')}/v1/transfers/$jobId/file", "GET", token)
+            try {
+                val code = conn.responseCode
+                if (code !in 200..299) error("Download failed with HTTP $code")
+                val digest = java.security.MessageDigest.getInstance("SHA-256")
+                conn.inputStream.use { input ->
+                    java.io.FileOutputStream(tempFile).use { output ->
+                        val buf = ByteArray(16_384)
+                        while (true) {
+                            val read = input.read(buf)
+                            if (read <= 0) break
+                            digest.update(buf, 0, read)
+                            output.write(buf, 0, read)
+                        }
+                    }
+                }
+                val actualSha = digest.digest().joinToString("") { "%02x".format(it) }
+                if (!expectedSha256.isNullOrBlank() && !actualSha.equals(expectedSha256, ignoreCase = true)) {
+                    tempFile.delete()
+                    error("SHA-256 verification failed")
+                }
+                if (destFile.exists()) destFile.delete()
+                if (!tempFile.renameTo(destFile)) {
+                    tempFile.copyTo(destFile, overwrite = true)
+                    tempFile.delete()
+                }
+                destFile
+            } finally {
+                conn.disconnect()
+            }
+        }
+    }
+
     private suspend fun postEmpty(url: String, token: String): Result<TransferJobDto> =
         withContext(Dispatchers.IO) {
             runCatching {
