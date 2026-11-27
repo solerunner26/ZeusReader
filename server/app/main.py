@@ -14,6 +14,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
+from app.ai_client import OllamaClient
 from app.auth import verify_pairing_token
 from app.config import ServerSettings
 from app.converter import OfflineLegacyConverter
@@ -534,17 +535,15 @@ def create_app(
     def explain_passage(req: AiPassageRequest, _: str = Depends(require_token)) -> dict[str, Any]:
         if not cfg.ai_enabled:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Server AI is disabled")
-        return {
-            "explanation": f"Context note for '{req.book_title}': {req.passage_text[:120]}",
-            "model": cfg.ollama_instruct_model,
-        }
+        explanation, model = OllamaClient(cfg).explain_passage(req.book_title, req.passage_text)
+        return {"explanation": explanation, "model": model}
 
     @app.post("/v1/ai/suggest-tags")
     def suggest_tags(req: AiPassageRequest, _: str = Depends(require_token)) -> dict[str, Any]:
         if not cfg.ai_enabled:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Server AI is disabled")
-        words = [w.strip(".,;:!?\"'").lower() for w in req.passage_text.split() if len(w) > 5]
-        return {"tags": list(dict.fromkeys(words))[:4], "model": cfg.ollama_instruct_model}
+        tags, model = OllamaClient(cfg).suggest_tags(req.book_title, req.passage_text)
+        return {"tags": tags, "model": model}
 
     @app.post("/v1/convert")
     def convert_legacy_book(

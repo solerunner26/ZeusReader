@@ -12,8 +12,9 @@ RUN pip install --no-cache-dir .
 
 COPY app ./app
 COPY spike ./spike
+COPY run_server.py ./run_server.py
 
 ENV ZEUS_SERVER_DATA_DIR=/data
 EXPOSE 8765
 
-CMD ["uvicorn", "app.main:app", "--factory", "--host", "0.0.0.0", "--port", "8765"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8765"]

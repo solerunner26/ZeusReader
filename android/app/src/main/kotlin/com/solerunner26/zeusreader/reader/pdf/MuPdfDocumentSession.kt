@@ -29,12 +29,20 @@ data class PdfSearchHit(
     val matchCount: Int
 )
 
+data class NormalizedSearchQuad(
+    val left: Float,
+    val top: Float,
+    val right: Float,
+    val bottom: Float
+)
+
 interface PdfSession : ReaderEngine, AutoCloseable {
     val pageCount: Int
     suspend fun renderPage(pageIndex: Int, targetWidthPx: Int, autoCropMargins: Boolean = false): Result<Bitmap>
     suspend fun extractReflowedPageText(pageIndex: Int): Result<String>
     suspend fun loadOutline(): List<PdfOutlineEntry>
     suspend fun searchText(query: String, maxHits: Int = 50): List<PdfSearchHit>
+    suspend fun findNormalizedSearchQuads(pageIndex: Int, query: String): List<NormalizedSearchQuad> = emptyList()
 }
 
 /**
@@ -207,6 +215,34 @@ class MuPdfDocumentSession(
             hits
         }
     }
+
+    override suspend fun findNormalizedSearchQuads(pageIndex: Int, query: String): List<NormalizedSearchQuad> =
+        withContext(Dispatchers.IO) {
+            if (query.isBlank()) return@withContext emptyList()
+            mutex.withLock {
+                val doc = document ?: return@withLock emptyList()
+                val count = if (cachedPageCount >= 0) cachedPageCount else doc.countPages()
+                if (pageIndex < 0 || pageIndex >= count) return@withLock emptyList()
+                val page = doc.loadPage(pageIndex)
+                try {
+                    val bounds = page.bounds
+                    val w = max(1f, bounds.x1 - bounds.x0)
+                    val h = max(1f, bounds.y1 - bounds.y0)
+                    val hits = page.search(query) ?: return@withContext emptyList()
+                    hits.flatMap { it.toList() }.map { q ->
+                        val r = q.toRect()
+                        NormalizedSearchQuad(
+                            left = ((r.x0 - bounds.x0) / w).coerceIn(0f, 1f),
+                            top = ((r.y0 - bounds.y0) / h).coerceIn(0f, 1f),
+                            right = ((r.x1 - bounds.x0) / w).coerceIn(0f, 1f),
+                            bottom = ((r.y1 - bounds.y0) / h).coerceIn(0f, 1f)
+                        )
+                    }
+                } finally {
+                    runCatching { page.destroy() }
+                }
+            }
+        }
 
     override fun close() {
         cache.evictAll()

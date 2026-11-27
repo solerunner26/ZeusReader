@@ -17,6 +17,7 @@ import com.solerunner26.zeusreader.ml.StudyTargetLanguage
 import com.solerunner26.zeusreader.ml.TranslationService
 import com.solerunner26.zeusreader.reader.core.UnifiedLocator
 import com.solerunner26.zeusreader.reader.pdf.MuPdfDocumentSession
+import com.solerunner26.zeusreader.reader.pdf.NormalizedSearchQuad
 import com.solerunner26.zeusreader.reader.pdf.PdfOutlineEntry
 import com.solerunner26.zeusreader.reader.pdf.PdfSearchHit
 import com.solerunner26.zeusreader.reader.prefs.ReaderPreferencesRepository
@@ -81,6 +82,10 @@ class PdfReaderViewModel @Inject constructor(
     private var lastScale: Float = 1f
     private var lastScrollX: Float = 0f
     private var lastScrollY: Float = 0f
+    private var activeSearchQuery: String = ""
+
+    private val _searchQuads = MutableStateFlow<List<NormalizedSearchQuad>>(emptyList())
+    val searchQuads: StateFlow<List<NormalizedSearchQuad>> = _searchQuads.asStateFlow()
 
     val settings: StateFlow<ReaderSettings> = preferencesRepository.settings
         .stateIn(
@@ -419,13 +424,33 @@ class PdfReaderViewModel @Inject constructor(
 
     fun search(query: String) {
         val active = session ?: return
+        activeSearchQuery = query.trim()
         viewModelScope.launch {
             _isSearching.value = true
             try {
                 _searchHits.value = active.searchText(query)
+                val current = (_uiState.value as? PdfReaderUiState.Ready)?.currentPage ?: 0
+                _searchQuads.value = active.findNormalizedSearchQuads(current, activeSearchQuery)
             } finally {
                 _isSearching.value = false
             }
+        }
+    }
+
+    fun clearSearchHighlights() {
+        activeSearchQuery = ""
+        _searchQuads.value = emptyList()
+    }
+
+    fun refreshSearchQuadsForPage(pageIndex: Int) {
+        val active = session ?: return
+        val q = activeSearchQuery
+        if (q.isBlank()) {
+            _searchQuads.value = emptyList()
+            return
+        }
+        viewModelScope.launch {
+            _searchQuads.value = active.findNormalizedSearchQuads(pageIndex, q)
         }
     }
 

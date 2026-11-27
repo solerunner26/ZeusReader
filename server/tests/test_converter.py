@@ -6,7 +6,7 @@ from app.converter import OfflineLegacyConverter
 
 
 def test_legacy_converter_rejects_drm_and_routes_azw3_and_docx(tmp_path: Path) -> None:
-    converter = OfflineLegacyConverter()
+    converter = OfflineLegacyConverter(execute_subprocess=False)
 
     drm_file = tmp_path / "locked.azw"
     drm_file.write_bytes(b"EA0DRM_LOCKED_CONTENT")
@@ -27,10 +27,13 @@ def test_legacy_converter_rejects_drm_and_routes_azw3_and_docx(tmp_path: Path) -
     assert res_docx.target_format == "EPUB"
 
 
-def test_convert_endpoint_rejects_drm_and_accepts_azw3(tmp_path: Path) -> None:
+def test_convert_endpoint_rejects_drm_and_accepts_azw3(tmp_path: Path, monkeypatch) -> None:
     from fastapi.testclient import TestClient
     from app.config import ServerSettings
     from app.main import create_app
+    import app.main as main_mod
+
+    monkeypatch.setattr(main_mod, "OfflineLegacyConverter", lambda: OfflineLegacyConverter(execute_subprocess=False))
 
     cfg = ServerSettings(pairing_token="tok", data_dir=tmp_path)
     app = create_app(cfg)

@@ -99,6 +99,7 @@ fun PdfReaderScreen(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val highlights by viewModel.highlights.collectAsStateWithLifecycle()
     val searchHits by viewModel.searchHits.collectAsStateWithLifecycle()
+    val searchQuads by viewModel.searchQuads.collectAsStateWithLifecycle()
     val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
     val dictionaryResult by viewModel.dictionaryResult.collectAsStateWithLifecycle()
     val sentenceTranslation by viewModel.sentenceTranslation.collectAsStateWithLifecycle()
@@ -434,6 +435,9 @@ fun PdfReaderScreen(
                         }
 
                         var swipeDeltaX by remember(state.currentPage) { mutableFloatStateOf(0f) }
+                        LaunchedEffect(state.currentPage, activeSearchQuery) {
+                            viewModel.refreshSearchQuadsForPage(state.currentPage)
+                        }
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -489,6 +493,45 @@ fun PdfReaderScreen(
                                             translationY = offsetY
                                         )
                                 )
+                                if (searchQuads.isNotEmpty()) {
+                                    androidx.compose.foundation.Canvas(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer(
+                                                scaleX = scale,
+                                                scaleY = scale,
+                                                translationX = offsetX,
+                                                translationY = offsetY
+                                            )
+                                    ) {
+                                        val bmpAspect = bmp.width.toFloat() / bmp.height.coerceAtLeast(1).toFloat()
+                                        val boxAspect = size.width / size.height.coerceAtLeast(1f)
+                                        val drawW: Float
+                                        val drawH: Float
+                                        if (settings.pdfFitMode == PdfFitMode.FIT_WIDTH || bmpAspect > boxAspect) {
+                                            drawW = size.width
+                                            drawH = size.width / bmpAspect
+                                        } else {
+                                            drawH = size.height
+                                            drawW = size.height * bmpAspect
+                                        }
+                                        val offsetLeft = (size.width - drawW) / 2f
+                                        val offsetTop = (size.height - drawH) / 2f
+                                        searchQuads.forEach { q ->
+                                            drawRect(
+                                                color = Color(0xFFFFD54F).copy(alpha = 0.45f),
+                                                topLeft = androidx.compose.ui.geometry.Offset(
+                                                    x = offsetLeft + q.left * drawW,
+                                                    y = offsetTop + q.top * drawH
+                                                ),
+                                                size = androidx.compose.ui.geometry.Size(
+                                                    width = ((q.right - q.left) * drawW).coerceAtLeast(6f),
+                                                    height = ((q.bottom - q.top) * drawH).coerceAtLeast(6f)
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
                             }
 
                             if (state.isRenderingPage) {
