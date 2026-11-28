@@ -3,64 +3,75 @@ package com.solerunner26.zeusreader.ui.online
 import android.content.Intent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Backup
+import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.MenuBook
+import androidx.compose.material.icons.rounded.OpenInBrowser
+import androidx.compose.material.icons.rounded.QrCode2
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.solerunner26.zeusreader.reader.prefs.AppUiConfig
-import com.solerunner26.zeusreader.ui.theme.HueAuraBackground
+import com.solerunner26.zeusreader.ui.components.GlassIconButton
+import com.solerunner26.zeusreader.ui.components.GlassPillButton
+import com.solerunner26.zeusreader.ui.components.GlassSection
+import com.solerunner26.zeusreader.ui.components.MetaLabel
+import com.solerunner26.zeusreader.ui.components.PrimaryPillButton
+import com.solerunner26.zeusreader.ui.components.ZeusBottomSheet
+import com.solerunner26.zeusreader.ui.components.ZeusDialog
+import com.solerunner26.zeusreader.ui.components.ZeusLinearProgress
+import com.solerunner26.zeusreader.ui.components.ZeusListRow
+import com.solerunner26.zeusreader.ui.components.ZeusSectionHeader
+import com.solerunner26.zeusreader.ui.components.ZeusTextField
+import com.solerunner26.zeusreader.ui.components.ZeusTopBar
+import com.solerunner26.zeusreader.ui.components.rememberNavBarClearance
+import com.solerunner26.zeusreader.ui.theme.ZeusSizes
+import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
+import com.solerunner26.zeusreader.ui.theme.ZeusTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Online Books (SLUM connector UI). Layout only — all behaviour stays in [OnlineAcquisitionViewModel].
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun OnlineAcquisitionScreen(
     viewModel: OnlineAcquisitionViewModel,
     onBack: () -> Unit,
-    uiConfig: AppUiConfig = AppUiConfig(),
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    @Suppress("UNUSED_PARAMETER") uiConfig: AppUiConfig = AppUiConfig(),
+    @Suppress("UNUSED_PARAMETER") darkTheme: Boolean = isSystemInDarkTheme(),
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -69,369 +80,230 @@ fun OnlineAcquisitionScreen(
     var showServerSettings by remember { mutableStateOf(false) }
     var showHistorySheet by remember { mutableStateOf(false) }
     var pairingJsonInput by remember { mutableStateOf("") }
+    var tokenVisible by remember { mutableStateOf(false) }
 
-    val colors = com.solerunner26.zeusreader.ui.theme.ZeusTheme.colors
-    HueAuraBackground(
-        config = uiConfig,
-        darkTheme = darkTheme,
-        modifier = modifier
-    ) {
-        Scaffold(
-            modifier = Modifier.statusBarsPadding().navigationBarsPadding(),
-            containerColor = Color.Transparent,
-            contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
-            topBar = {
-                TopAppBar(
-                    windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
-                    title = { Text("Online Books") },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        titleContentColor = colors.textOnSky,
-                        navigationIconContentColor = colors.textOnSky,
-                        actionIconContentColor = colors.textOnSky
-                    ),
-                    navigationIcon = {
-                        IconButton(onClick = onBack, modifier = Modifier.heightIn(min = 48.dp)) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    actions = {
-                        IconButton(
-                            onClick = { showHistorySheet = true },
-                            modifier = Modifier.heightIn(min = 48.dp)
-                        ) {
-                            Icon(Icons.Rounded.History, contentDescription = "Download history")
-                        }
-                        IconButton(
-                            onClick = viewModel::syncPassagesNow,
-                            modifier = Modifier.heightIn(min = 48.dp)
-                        ) {
-                            Icon(Icons.Rounded.Sync, contentDescription = "Sync passages")
-                        }
-                        IconButton(
-                            onClick = { showServerSettings = !showServerSettings },
-                            modifier = Modifier.heightIn(min = 48.dp)
-                        ) {
-                            Icon(Icons.Rounded.Tune, contentDescription = "Server settings")
-                        }
-                    }
-                )
+    val colors = ZeusTheme.colors
+    val type = ZeusTheme.type
+
+    Column(modifier = modifier.fillMaxSize().statusBarsPadding()) {
+        ZeusTopBar(
+            title = "Online books",
+            subtitle = when (state.isConnected) {
+                true -> "Connected to your relay"
+                false -> "Relay offline — check server settings"
+                null -> "Search open catalogues"
+            },
+            onBack = onBack
+        ) {
+            GlassIconButton(Icons.Rounded.History, "Download history", { showHistorySheet = true })
+            GlassIconButton(Icons.Rounded.Tune, "Server settings", { showServerSettings = !showServerSettings }, highlighted = showServerSettings)
+        }
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("online_acquisition_screen"),
+            contentPadding = PaddingValues(start = ZeusSpacing.gutter, end = ZeusSpacing.gutter, bottom = rememberNavBarClearance()),
+            verticalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
+        ) {
+            item(key = "search") {
+                GlassSection(neon = true) {
+                    ZeusTextField(
+                        value = state.query,
+                        onValueChange = viewModel::updateQuery,
+                        placeholder = "Title, author or ISBN",
+                        leadingIcon = Icons.Rounded.Search,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = {
+                            if (!state.isSearching && state.query.isNotBlank()) viewModel.searchOnline()
+                        }),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    PrimaryPillButton(
+                        label = if (state.isSearching) "Searching…" else "Search online",
+                        icon = Icons.Rounded.Search,
+                        leadingIcon = true,
+                        onClick = viewModel::searchOnline,
+                        enabled = !state.isSearching && state.query.isNotBlank(),
+                        height = ZeusSpacing.secondaryButtonHeight + ZeusSpacing.xs,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (state.isSearching) ZeusLinearProgress()
+                }
             }
-        ) { padding ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp)
-                    .testTag("online_acquisition_screen"),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                if (showServerSettings) {
-                    item {
-                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text("Server Settings (Saved Automatically)", style = MaterialTheme.typography.titleMedium)
-                                OutlinedTextField(
-                                    value = state.serverUrl,
-                                    onValueChange = { viewModel.updateServerConfig(it, state.pairingToken) },
-                                    label = { Text("Server URL") },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                OutlinedTextField(
-                                    value = state.pairingToken,
-                                    onValueChange = { viewModel.updateServerConfig(state.serverUrl, it) },
-                                    label = { Text("Pairing Token") },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Button(
-                                        onClick = viewModel::checkServerAndLoad,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .heightIn(min = 48.dp)
-                                    ) {
-                                        Text("Reconnect")
-                                    }
-                                    OutlinedButton(
-                                        onClick = viewModel::syncPassagesNow,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .heightIn(min = 48.dp)
-                                    ) {
-                                        Text("Sync Now")
-                                    }
-                                }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    OutlinedButton(
-                                        onClick = { showPairingDialog = true },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .heightIn(min = 48.dp)
-                                    ) {
-                                        Text("Paste QR JSON")
-                                    }
-                                    OutlinedButton(
-                                        onClick = viewModel::backupToServer,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .heightIn(min = 48.dp)
-                                    ) {
-                                        Text("Backup Data")
-                                    }
-                                }
-                                state.slumStatus?.let { slum ->
-                                    val staleText = if (slum.stale) " (cached/stale)" else ""
-                                    Text(
-                                        text = "Catalogue: ${slum.providers.size} sources tracked$staleText",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
 
-                state.activeActionLabel?.let { label ->
-                    item {
-                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                            Column(
-                                modifier = Modifier.padding(14.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                val pct = state.activeProgressPercent
-                                Text(
-                                    text = if (pct != null) {
-                                        "$label  $pct% (${state.activeElapsedSeconds}s)"
-                                    } else {
-                                        "$label (${state.activeElapsedSeconds}s)"
-                                    },
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                if (pct != null) {
-                                    LinearProgressIndicator(
-                                        progress = { pct / 100f },
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                } else {
-                                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                                }
-                            }
-                        }
-                    }
-                }
-
-                state.statusMessage?.let { msg ->
-                    item {
-                        Text(
-                            text = msg,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+            if (showServerSettings) {
+                item(key = "server") {
+                    GlassSection(title = "Server settings · saved automatically") {
+                        ZeusTextField(
+                            value = state.serverUrl,
+                            onValueChange = { viewModel.updateServerConfig(it, state.pairingToken) },
+                            label = "Server URL",
+                            leadingIcon = Icons.Rounded.Link,
+                            modifier = Modifier.fillMaxWidth()
                         )
-                    }
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = state.query,
-                            onValueChange = viewModel::updateQuery,
-                            label = { Text("Search title, author, or ISBN") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
+                        ZeusTextField(
+                            value = state.pairingToken,
+                            onValueChange = { viewModel.updateServerConfig(state.serverUrl, it) },
+                            label = "Pairing token",
+                            visualTransformation = if (tokenVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            trailing = {
+                                GlassIconButton(
+                                    icon = if (tokenVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                                    contentDescription = if (tokenVisible) "Hide token" else "Show token",
+                                    onClick = { tokenVisible = !tokenVisible },
+                                    size = ZeusSizes.avatar - ZeusSpacing.xs
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        Button(
-                            onClick = viewModel::searchOnline,
-                            enabled = !state.isSearching && state.query.isNotBlank(),
-                            modifier = Modifier.heightIn(min = 56.dp)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)
                         ) {
-                            Icon(Icons.Rounded.Search, contentDescription = "Search online")
+                            GlassPillButton("Reconnect", viewModel::checkServerAndLoad, icon = Icons.Rounded.Refresh)
+                            GlassPillButton("Sync now", viewModel::syncPassagesNow, icon = Icons.Rounded.Sync)
+                            GlassPillButton("Paste QR JSON", { showPairingDialog = true }, icon = Icons.Rounded.QrCode2)
+                            GlassPillButton("Backup data", viewModel::backupToServer, icon = Icons.Rounded.Backup)
+                        }
+                        state.slumStatus?.let { slum ->
+                            MetaLabel(
+                                text = "Catalogue: ${slum.providers.size} sources tracked" + if (slum.stale) " · cached" else "",
+                                accent = true
+                            )
                         }
                     }
-                    if (state.isSearching) {
-                        Spacer(Modifier.height(6.dp))
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
+
+            state.activeActionLabel?.let { label ->
+                item(key = "active") {
+                    GlassSection {
+                        val pct = state.activeProgressPercent
+                        Text(
+                            text = if (pct != null) "$label · $pct% · ${state.activeElapsedSeconds}s" else "$label · ${state.activeElapsedSeconds}s",
+                            style = type.label,
+                            color = colors.accentOnSky
+                        )
+                        ZeusLinearProgress(progress = pct?.let { it / 100f })
                     }
                 }
+            }
 
-                if (state.searchResults.isNotEmpty()) {
-                    item {
-                        Text("Editions Found (${state.searchResults.size})", style = MaterialTheme.typography.titleMedium)
+            state.statusMessage?.let { msg ->
+                item(key = "status") {
+                    Text(msg, style = type.caption, color = colors.textOnSkySecondary)
+                }
+            }
+
+            if (state.searchResults.isNotEmpty()) {
+                item(key = "results_header") { ZeusSectionHeader(title = "Editions found · ${state.searchResults.size}") }
+                itemsIndexed(state.searchResults, key = { idx, item -> "${idx}_${item.idempotency_key}" }) { _, item ->
+                    val isQueuingThis = state.queuingKey == item.idempotency_key
+                    GlassSection {
+                        ZeusListRow(
+                            title = item.title,
+                            subtitle = "${item.authors.joinToString()} · ${item.source}",
+                            icon = Icons.Rounded.MenuBook
+                        ) {
+                            MetaLabel(text = item.format, accent = true)
+                        }
+                        PrimaryPillButton(
+                            label = if (isQueuingThis) "Queuing… ${state.activeElapsedSeconds}s" else "Queue to server",
+                            icon = Icons.Rounded.Download,
+                            leadingIcon = true,
+                            onClick = { viewModel.queueDownload(item) },
+                            enabled = state.queuingKey == null && state.activeProgressPercent == null,
+                            height = ZeusSpacing.secondaryButtonHeight,
+                            shimmer = false,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
-                    itemsIndexed(state.searchResults, key = { idx, item -> "${idx}_${item.idempotency_key}" }) { _, item ->
-                        val isQueuingThis = state.queuingKey == item.idempotency_key
-                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                            Column(
-                                modifier = Modifier.padding(14.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text("[${item.format.uppercase()}] ${item.title}", style = MaterialTheme.typography.titleSmall)
-                                Text(
-                                    "${item.authors.joinToString()} • ${item.source}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            }
+
+            if (state.transfers.isNotEmpty()) {
+                item(key = "transfers_header") { ZeusSectionHeader(title = "Transfers · ${state.transfers.size}") }
+                itemsIndexed(state.transfers, key = { idx, job -> "${idx}_${job.job_id}" }) { _, job ->
+                    GlassSection {
+                        ZeusListRow(
+                            title = job.title,
+                            subtitle = "${job.state} · ${job.progress_percent}% · ${job.format.uppercase()}",
+                            icon = Icons.Rounded.Download
+                        )
+                        ZeusLinearProgress(progress = job.progress_percent / 100f)
+                        Row(horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
+                            if (job.state == "NeedsBrowser" && !job.browser_url.isNullOrBlank()) {
+                                GlassPillButton(
+                                    label = "Continue in browser",
+                                    icon = Icons.Rounded.OpenInBrowser,
+                                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, job.browser_url.toUri())) }
                                 )
-                                Button(
-                                    onClick = { viewModel.queueDownload(item) },
-                                    enabled = state.queuingKey == null && state.activeProgressPercent == null,
-                                    modifier = Modifier.heightIn(min = 48.dp)
-                                ) {
-                                    Icon(Icons.Rounded.Download, contentDescription = null)
-                                    Text(
-                                        if (isQueuingThis) "  Queuing… (${state.activeElapsedSeconds}s)"
-                                        else "  Queue to Server"
+                            }
+                            when {
+                                job.state == "ReadyOnServer" -> {
+                                    val isDownloading = state.activeProgressPercent != null
+                                    PrimaryPillButton(
+                                        label = if (isDownloading) "Downloading ${state.activeProgressPercent}%" else "Download to phone",
+                                        icon = Icons.Rounded.Download,
+                                        leadingIcon = true,
+                                        onClick = { viewModel.downloadToPhone(job) },
+                                        enabled = !isDownloading,
+                                        height = ZeusSpacing.secondaryButtonHeight,
+                                        shimmer = false,
+                                        modifier = Modifier.weight(1f)
                                     )
                                 }
+                                job.state == "Failed" || job.state == "Cancelled" ->
+                                    GlassPillButton("Retry", { viewModel.retryTransfer(job.job_id) }, icon = Icons.Rounded.Refresh)
+                                else ->
+                                    GlassPillButton("Cancel", { viewModel.cancelTransfer(job.job_id) }, icon = Icons.Rounded.Cancel, danger = true)
                             }
                         }
                     }
                 }
-
-                if (state.transfers.isNotEmpty()) {
-                    item {
-                        Text("Transfers (${state.transfers.size})", style = MaterialTheme.typography.titleMedium)
-                    }
-                    itemsIndexed(state.transfers, key = { idx, job -> "${idx}_${job.job_id}" }) { _, job ->
-                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                            Column(
-                                modifier = Modifier.padding(14.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(job.title, style = MaterialTheme.typography.titleSmall)
-                                Text(
-                                    "${job.state} • ${job.progress_percent}% • ${job.format.uppercase()}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    if (job.state == "NeedsBrowser" && !job.browser_url.isNullOrBlank()) {
-                                        Button(
-                                            onClick = {
-                                                context.startActivity(
-                                                    Intent(Intent.ACTION_VIEW, job.browser_url.toUri())
-                                                )
-                                            },
-                                            modifier = Modifier.heightIn(min = 48.dp)
-                                        ) {
-                                            Text("Continue in browser")
-                                        }
-                                    }
-                                    if (job.state == "ReadyOnServer") {
-                                        val isDownloading = state.activeProgressPercent != null
-                                        Button(
-                                            onClick = { viewModel.downloadToPhone(job) },
-                                            enabled = !isDownloading,
-                                            modifier = Modifier.heightIn(min = 48.dp)
-                                        ) {
-                                            Icon(Icons.Rounded.Download, contentDescription = null)
-                                            Text(
-                                                if (isDownloading) "  Downloading ${state.activeProgressPercent}% (${state.activeElapsedSeconds}s)"
-                                                else "  Download to Phone"
-                                            )
-                                        }
-                                    } else if (job.state == "Failed" || job.state == "Cancelled") {
-                                        OutlinedButton(
-                                            onClick = { viewModel.retryTransfer(job.job_id) },
-                                            modifier = Modifier.heightIn(min = 48.dp)
-                                        ) {
-                                            Text("Retry")
-                                        }
-                                    } else {
-                                        OutlinedButton(
-                                            onClick = { viewModel.cancelTransfer(job.job_id) },
-                                            modifier = Modifier.heightIn(min = 48.dp)
-                                        ) {
-                                            Text("Cancel")
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                item { Spacer(Modifier.height(24.dp)) }
             }
         }
     }
 
     if (showHistorySheet) {
-        androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showHistorySheet = false }) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text("Download History (${state.downloadHistory.size})", style = MaterialTheme.typography.titleLarge)
-                if (state.downloadHistory.isEmpty()) {
-                    Text(
-                        "No books downloaded in this session yet. Downloaded books appear directly in your Library.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    state.downloadHistory.forEach { h ->
-                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(h.title, style = MaterialTheme.typography.titleSmall)
-                                Text(
-                                    "${h.format.uppercase()} • ${h.source} • ${h.state}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
+        ZeusBottomSheet(
+            onDismissRequest = { showHistorySheet = false },
+            title = "Download history",
+            subtitle = "${state.downloadHistory.size} this session"
+        ) {
+            if (state.downloadHistory.isEmpty()) {
+                Text(
+                    "No books downloaded in this session yet. Downloaded books appear directly in Olympus.",
+                    style = type.body,
+                    color = colors.textOnSkySecondary
+                )
+            } else {
+                state.downloadHistory.forEach { h ->
+                    ZeusListRow(title = h.title, subtitle = "${h.format.uppercase()} · ${h.source} · ${h.state}", icon = Icons.Rounded.MenuBook)
                 }
-                Spacer(Modifier.height(16.dp))
             }
         }
     }
 
     if (showPairingDialog) {
-        AlertDialog(
+        ZeusDialog(
             onDismissRequest = { showPairingDialog = false },
-            title = { Text("Paste Pairing QR Payload") },
-            text = {
-                OutlinedTextField(
-                    value = pairingJsonInput,
-                    onValueChange = { pairingJsonInput = it },
-                    label = { Text("{\"url\":\"http://...\",\"token\":\"...\"}") },
-                    minLines = 3,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.applyPairingPayload(pairingJsonInput)
-                        showPairingDialog = false
-                    }
-                ) {
-                    Text("Apply")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPairingDialog = false }) {
-                    Text("Cancel")
-                }
+            title = "Paste pairing QR payload",
+            confirmLabel = "Apply",
+            onConfirm = {
+                viewModel.applyPairingPayload(pairingJsonInput)
+                showPairingDialog = false
             }
-        )
+        ) {
+            ZeusTextField(
+                value = pairingJsonInput,
+                onValueChange = { pairingJsonInput = it },
+                label = "{\"url\":\"https://…\",\"token\":\"…\"}",
+                singleLine = false,
+                minLines = 3,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }

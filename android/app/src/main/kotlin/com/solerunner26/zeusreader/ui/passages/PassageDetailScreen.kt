@@ -1,35 +1,25 @@
 package com.solerunner26.zeusreader.ui.passages
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.AddPhotoAlternate
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material.icons.rounded.Sell
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,12 +27,24 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.solerunner26.zeusreader.ui.components.EmptyState
+import com.solerunner26.zeusreader.ui.components.GlassIconButton
+import com.solerunner26.zeusreader.ui.components.GlassPillButton
+import com.solerunner26.zeusreader.ui.components.GlassSection
+import com.solerunner26.zeusreader.ui.components.MetaLabel
+import com.solerunner26.zeusreader.ui.components.PrimaryPillButton
+import com.solerunner26.zeusreader.ui.components.ZeusChip
+import com.solerunner26.zeusreader.ui.components.ZeusDialog
+import com.solerunner26.zeusreader.ui.components.ZeusTextField
+import com.solerunner26.zeusreader.ui.components.ZeusTopBar
+import com.solerunner26.zeusreader.ui.components.rememberNavBarClearance
+import com.solerunner26.zeusreader.ui.theme.ZeusSizes
+import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
+import com.solerunner26.zeusreader.ui.theme.ZeusTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PassageDetailScreen(
     passageId: String,
@@ -56,12 +58,15 @@ fun PassageDetailScreen(
 ) {
     val passage by viewModel.observePassage(passageId).collectAsStateWithLifecycle(initialValue = null)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val colors = ZeusTheme.colors
+    val type = ZeusTheme.type
 
     var editedText by remember(passage?.id) { mutableStateOf(passage?.text.orEmpty()) }
     var editedNote by remember(passage?.id) { mutableStateOf(passage?.note.orEmpty()) }
     var selectedFolderId by remember(passage?.id) { mutableStateOf(passage?.folderId) }
     var tagsInput by remember(passage?.id) { mutableStateOf("") }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var savedFlash by remember { mutableStateOf(false) }
 
     LaunchedEffect(passage?.id) {
         passage?.let { p ->
@@ -72,196 +77,115 @@ fun PassageDetailScreen(
         }
     }
 
-    Scaffold(
-        containerColor = Color.Transparent,
+    val save: () -> Unit = {
+        passage?.let { current ->
+            val tags = tagsInput.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+            viewModel.updatePassage(current, editedText, editedNote, selectedFolderId, tags)
+            savedFlash = true
+        }
+    }
+
+    Column(
         modifier = modifier
             .fillMaxSize()
-            .testTag("passage_detail_root"),
-        topBar = {
-            TopAppBar(
-                title = { Text("Passage") },
-                navigationIcon = {
-                    IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    passage?.let { current ->
-                        TextButton(
-                            onClick = {
-                                val tags = tagsInput.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-                                viewModel.updatePassage(current, editedText, editedNote, selectedFolderId, tags)
-                            },
-                            modifier = Modifier.heightIn(min = 48.dp)
-                        ) {
-                            Text("Save")
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
+            .statusBarsPadding()
+            .testTag("passage_detail_root")
+    ) {
+        ZeusTopBar(
+            title = "Spark",
+            subtitle = if (savedFlash) "Saved" else "Edit, file and share",
+            onBack = onBack
+        ) {
+            if (passage != null) {
+                GlassIconButton(Icons.Rounded.Check, "Save spark", save, highlighted = true, tint = colors.accentOnSky)
+            }
         }
-    ) { padding ->
         val current = passage
         if (current == null) {
-            Column(modifier = Modifier.padding(padding).padding(16.dp)) {
-                Text("Passage not found.")
-            }
-            return@Scaffold
+            EmptyState(
+                icon = Icons.Rounded.Lightbulb,
+                title = "Spark not found",
+                message = "It may have faded away. Go back to your star map.",
+                modifier = Modifier.padding(ZeusSpacing.gutter)
+            )
+            return@Column
         }
+        val book = uiState.books.firstOrNull { it.editionId == current.editionId }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = ZeusSpacing.gutter)
+                .padding(bottom = rememberNavBarClearance())
+                .widthIn(max = ZeusSizes.contentMaxWidth),
+            verticalArrangement = Arrangement.spacedBy(ZeusSpacing.lg)
         ) {
-            OutlinedTextField(
-                value = editedText,
-                onValueChange = { editedText = it },
-                label = { Text("Passage text") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3
-            )
-
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = current.chapterTitle ?: "Library book",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    current.pageLabel?.let {
-                        Text(it, style = MaterialTheme.typography.labelMedium)
-                    }
-                    val hasLocator = current.locatorJson.isNotBlank() && !current.editionId.isNullOrBlank()
-                    Button(
-                        enabled = hasLocator,
-                        onClick = {
-                            if (hasLocator) {
-                                onOpenInBook(current.editionId!!, current.locatorJson)
-                            }
-                        },
-                        modifier = Modifier.heightIn(min = 48.dp)
-                    ) {
-                        Text("Open")
-                    }
-                    if (!hasLocator) {
-                        Text(
-                            text = "Manual passage has no book location.",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            OutlinedTextField(
-                value = editedNote,
-                onValueChange = { editedNote = it },
-                label = { Text("Note") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2
-            )
-
-            Text("Folder", style = MaterialTheme.typography.titleMedium)
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilterChip(
-                    selected = selectedFolderId == null,
-                    onClick = { selectedFolderId = null },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                    label = { Text("Unsorted") }
+            GlassSection(neon = true) {
+                MetaLabel(
+                    text = listOfNotNull(book?.title, current.chapterTitle?.takeIf { it.isNotBlank() }, current.pageLabel).joinToString(" · ").ifBlank { "Manual spark" },
+                    accent = true,
+                    maxLines = 2
                 )
-                uiState.folders.forEach { folder ->
-                    FilterChip(
-                        selected = selectedFolderId == folder.id,
-                        onClick = { selectedFolderId = folder.id },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                        label = { Text(folder.name) }
+                Text("“${editedText.ifBlank { current.text }}”", style = type.quote, color = colors.textOnSky)
+                if (current.originalText.isNotBlank() && current.originalText != current.text) {
+                    MetaLabel(text = "Original kept")
+                    Text(current.originalText, style = type.caption, color = colors.textOnSkySecondary, maxLines = 4)
+                }
+                val hasLocator = current.locatorJson.isNotBlank() && !current.editionId.isNullOrBlank()
+                if (hasLocator) {
+                    GlassPillButton(
+                        label = "Jump to page",
+                        icon = Icons.AutoMirrored.Rounded.OpenInNew,
+                        onClick = { onOpenInBook(current.editionId!!, current.locatorJson) }
                     )
+                } else {
+                    Text("Manual spark — no book location.", style = type.caption, color = colors.textOnSkyMuted)
                 }
             }
 
-            OutlinedTextField(
-                value = tagsInput,
-                onValueChange = { tagsInput = it },
-                label = { Text("Tags (comma-separated)") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+            ZeusTextField(value = editedText, onValueChange = { editedText = it; savedFlash = false }, label = "Spark text", singleLine = false, minLines = 3, modifier = Modifier.fillMaxWidth())
+            ZeusTextField(value = editedNote, onValueChange = { editedNote = it; savedFlash = false }, label = "Note", singleLine = false, minLines = 2, modifier = Modifier.fillMaxWidth())
+
+            GlassSection(title = "Constellation") {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)) {
+                    ZeusChip("Unsorted", selectedFolderId == null, { selectedFolderId = null; savedFlash = false })
+                    uiState.folders.forEach { folder ->
+                        ZeusChip(folder.name, selectedFolderId == folder.id, { selectedFolderId = folder.id; savedFlash = false })
+                    }
+                }
+            }
+
+            ZeusTextField(value = tagsInput, onValueChange = { tagsInput = it; savedFlash = false }, label = "Tags (comma-separated)", leadingIcon = Icons.Rounded.Sell, modifier = Modifier.fillMaxWidth())
 
             if (onExplainPassage != null || onSuggestTags != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    onExplainPassage?.let { explain ->
-                        OutlinedButton(
-                            onClick = { explain(current.text) },
-                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)
-                        ) {
-                            Text("Explain this passage")
-                        }
-                    }
-                    onSuggestTags?.let { suggest ->
-                        OutlinedButton(
-                            onClick = { suggest(current.text) },
-                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)
-                        ) {
-                            Text("Suggest tags")
-                        }
-                    }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
+                    onExplainPassage?.let { explain -> GlassPillButton("Explain this", { explain(current.text) }, modifier = Modifier.weight(1f)) }
+                    onSuggestTags?.let { suggest -> GlassPillButton("Suggest tags", { suggest(current.text) }, modifier = Modifier.weight(1f)) }
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { showDeleteConfirm = true },
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp)
-                ) {
-                    Text("Delete")
-                }
-                Button(
-                    onClick = { onCreateCard(current.id) },
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp)
-                ) {
-                    Text("Create card")
-                }
+            PrimaryPillButton(label = "Save changes", icon = Icons.Rounded.Check, leadingIcon = true, onClick = save, modifier = Modifier.fillMaxWidth())
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
+                GlassPillButton("Delete", { showDeleteConfirm = true }, icon = Icons.Rounded.DeleteOutline, danger = true, modifier = Modifier.weight(1f))
+                GlassPillButton("Make a card", { onCreateCard(current.id) }, icon = Icons.Rounded.AddPhotoAlternate, modifier = Modifier.weight(1f))
             }
         }
     }
 
     if (showDeleteConfirm && passage != null) {
-        AlertDialog(
+        ZeusDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete passage?") },
-            text = { Text("You can undo right after deleting from the Passages list.") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.softDeletePassage(passage!!.id)
-                        showDeleteConfirm = false
-                        onBack()
-                    },
-                    modifier = Modifier.heightIn(min = 48.dp)
-                ) { Text("Delete") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text("Cancel")
-                }
+            title = "Let this spark fade?",
+            confirmLabel = "Delete",
+            dangerConfirm = true,
+            onConfirm = {
+                passage?.let { viewModel.softDeletePassage(it.id) }
+                showDeleteConfirm = false
+                onBack()
             }
-        )
+        ) {
+            Text("You can bring it back right after from the Sparks list.", style = type.body, color = colors.textOnSkySecondary)
+        }
     }
 }
