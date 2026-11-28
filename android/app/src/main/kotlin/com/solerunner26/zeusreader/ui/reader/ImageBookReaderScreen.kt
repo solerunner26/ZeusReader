@@ -52,14 +52,18 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import com.solerunner26.zeusreader.ui.components.GlassIconButton
+import com.solerunner26.zeusreader.ui.components.PrimaryPillButton
+import com.solerunner26.zeusreader.ui.components.ZeusBottomSheet
+import com.solerunner26.zeusreader.ui.components.ZeusListRow
+import com.solerunner26.zeusreader.ui.theme.ZeusSizes
+import com.solerunner26.zeusreader.ui.theme.ZeusTheme
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.solerunner26.zeusreader.R
 import com.solerunner26.zeusreader.data.local.ImageBookPageEntity
 import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImageBookReaderScreen(
     editionId: String,
@@ -79,152 +83,84 @@ fun ImageBookReaderScreen(
     val safeIndex = if (pages.isEmpty()) 0 else currentIndex.coerceIn(0, pages.lastIndex)
     val currentPage = pages.getOrNull(safeIndex)
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = title,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = stringResource(R.string.reader_back)
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = { showReorderSheet = true },
-                        enabled = pages.size > 1,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Reorder,
-                            contentDescription = stringResource(R.string.reader_reorder_pages)
-                        )
-                    }
-                }
+    StormlightReaderFrame(
+        title = title,
+        meta = currentPage?.displayName.orEmpty(),
+        paperColor = ZeusTheme.colors.sheetBackground,
+        onBack = onBack,
+        progressFraction = if (pages.size > 1) safeIndex.toFloat() / (pages.size - 1) else null,
+        progressLabel = if (pages.isEmpty()) "No pages" else "Page ${safeIndex + 1} / ${pages.size}",
+        tools = listOf(
+            OrbTool(stringResource(R.string.reader_reorder_pages), Icons.Rounded.Reorder, enabled = pages.size > 1) { showReorderSheet = true }
+        ),
+        fly = if (pages.size > 1) FlyModel(
+            count = pages.size,
+            current = safeIndex,
+            unitLabel = "pages",
+            labelFor = { i -> pages.getOrNull(i)?.displayName ?: "Page ${i + 1}" },
+            onFly = { i -> viewModel.selectPage(i) }
+        ) else null,
+        onPrevious = viewModel::previousPage,
+        onNext = viewModel::nextPage,
+        canGoPrevious = safeIndex > 0,
+        canGoNext = safeIndex + 1 < pages.size,
+        modifier = modifier
+    ) {
+        if (currentPage == null) {
+            Text(
+                text = "No image pages available.",
+                color = ZeusTheme.colors.textOnSky,
+                style = ZeusTheme.type.body,
+                modifier = Modifier.align(Alignment.Center)
             )
-        },
-        bottomBar = {
-            if (pages.isNotEmpty()) {
-                BottomAppBar {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            onClick = viewModel::previousPage,
-                            enabled = safeIndex > 0,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
-                                contentDescription = stringResource(R.string.reader_prev_page)
-                            )
-                        }
-                        Text(
-                            text = "Page ${safeIndex + 1} / ${pages.size}",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        IconButton(
-                            onClick = viewModel::nextPage,
-                            enabled = safeIndex + 1 < pages.size,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                                contentDescription = stringResource(R.string.reader_next_page)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.surface),
-            contentAlignment = Alignment.Center
-        ) {
-            if (currentPage == null) {
-                Text(
-                    text = "No image pages available.",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            } else {
-                var scale by remember(currentPage.id) { mutableFloatStateOf(1f) }
-                var offsetX by remember(currentPage.id) { mutableFloatStateOf(0f) }
-                var offsetY by remember(currentPage.id) { mutableFloatStateOf(0f) }
+        } else {
+            var scale by remember(currentPage.id) { mutableFloatStateOf(1f) }
+            var offsetX by remember(currentPage.id) { mutableFloatStateOf(0f) }
+            var offsetY by remember(currentPage.id) { mutableFloatStateOf(0f) }
 
-                Box(
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(currentPage.id) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            val nextScale = (scale * zoom).coerceIn(1f, 4f)
+                            scale = nextScale
+                            if (nextScale > 1f) {
+                                val maxX = size.width * (nextScale - 1f) / 2f
+                                val maxY = size.height * (nextScale - 1f) / 2f
+                                offsetX = (offsetX + pan.x).coerceIn(-maxX, maxX)
+                                offsetY = (offsetY + pan.y).coerceIn(-maxY, maxY)
+                            } else {
+                                offsetX = 0f
+                                offsetY = 0f
+                            }
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = File(currentPage.localPath),
+                    contentDescription = currentPage.displayName,
+                    contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxSize()
-                        .pointerInput(currentPage.id) {
-                            detectTransformGestures { _, pan, zoom, _ ->
-                                val nextScale = (scale * zoom).coerceIn(1f, 4f)
-                                scale = nextScale
-                                if (nextScale > 1f) {
-                                    offsetX += pan.x
-                                    offsetY += pan.y
-                                } else {
-                                    offsetX = 0f
-                                    offsetY = 0f
-                                }
-                            }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    AsyncImage(
-                        model = File(currentPage.localPath),
-                        contentDescription = currentPage.displayName,
-                        contentScale = ContentScale.Fit,
+                        .graphicsLayer(scaleX = scale, scaleY = scale, translationX = offsetX, translationY = offsetY)
+                )
+                if (scale <= 1.05f) {
+                    Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer(
-                                scaleX = scale,
-                                scaleY = scale,
-                                translationX = offsetX,
-                                translationY = offsetY
-                            )
+                            .align(Alignment.CenterStart)
+                            .width(ZeusSizes.edgeZoneWidth)
+                            .fillMaxHeight()
+                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = viewModel::previousPage)
                     )
-
-                    if (scale <= 1.05f) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.CenterStart)
-                                .width(64.dp)
-                                .fillMaxHeight()
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClick = viewModel::previousPage
-                                )
-                        )
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .width(64.dp)
-                                .fillMaxHeight()
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClick = viewModel::nextPage
-                                )
-                        )
-                    }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .width(ZeusSizes.edgeZoneWidth)
+                            .fillMaxHeight()
+                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = viewModel::nextPage)
+                    )
                 }
             }
         }
@@ -242,7 +178,6 @@ fun ImageBookReaderScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReorderImagePagesBottomSheet(
     initialPages: List<ImageBookPageEntity>,
@@ -251,85 +186,21 @@ private fun ReorderImagePagesBottomSheet(
 ) {
     var draftPages by remember(initialPages) { mutableStateOf(initialPages) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.reader_reorder_pages),
-                style = MaterialTheme.typography.titleLarge
-            )
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 360.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                itemsIndexed(draftPages, key = { _, p -> p.id }) { index, page ->
-                    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "${index + 1}. ${page.displayName}",
-                                style = MaterialTheme.typography.bodyLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
-                            )
-                            IconButton(
-                                onClick = {
-                                    if (index > 0) {
-                                        draftPages = draftPages.toMutableList().apply {
-                                            val item = removeAt(index)
-                                            add(index - 1, item)
-                                        }
-                                    }
-                                },
-                                enabled = index > 0,
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.ArrowUpward,
-                                    contentDescription = stringResource(R.string.reader_move_up)
-                                )
-                            }
-                            IconButton(
-                                onClick = {
-                                    if (index < draftPages.lastIndex) {
-                                        draftPages = draftPages.toMutableList().apply {
-                                            val item = removeAt(index)
-                                            add(index + 1, item)
-                                        }
-                                    }
-                                },
-                                enabled = index < draftPages.lastIndex,
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.ArrowDownward,
-                                    contentDescription = stringResource(R.string.reader_move_down)
-                                )
-                            }
-                        }
+    ZeusBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.reader_reorder_pages)) {
+        draftPages.forEachIndexed { index, page ->
+            ZeusListRow(title = "${index + 1}. ${page.displayName}", titleMaxLines = 1) {
+                GlassIconButton(Icons.Rounded.ArrowUpward, stringResource(R.string.reader_move_up), {
+                    if (index > 0) {
+                        draftPages = draftPages.toMutableList().apply { add(index - 1, removeAt(index)) }
                     }
-                }
+                }, enabled = index > 0)
+                GlassIconButton(Icons.Rounded.ArrowDownward, stringResource(R.string.reader_move_down), {
+                    if (index < draftPages.lastIndex) {
+                        draftPages = draftPages.toMutableList().apply { add(index + 1, removeAt(index)) }
+                    }
+                }, enabled = index < draftPages.lastIndex)
             }
-            Button(
-                onClick = { onSave(draftPages) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-            ) {
-                Text(stringResource(R.string.reader_save_order))
-            }
-            Spacer(modifier = Modifier.height(12.dp))
         }
+        PrimaryPillButton(label = stringResource(R.string.reader_save_order), onClick = { onSave(draftPages) }, modifier = Modifier.fillMaxWidth())
     }
 }

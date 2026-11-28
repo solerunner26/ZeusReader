@@ -43,7 +43,6 @@ import java.io.ByteArrayInputStream
 import java.io.File
 
 @SuppressLint("SetJavaScriptEnabled")
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HtmlReaderScreen(
     title: String,
@@ -81,96 +80,62 @@ fun HtmlReaderScreen(
         """.trimIndent()
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = settings.theme.backgroundColor,
-        topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = settings.theme.surfaceColor,
-                    titleContentColor = settings.theme.textColor,
-                    navigationIconContentColor = settings.theme.textColor,
-                    actionIconContentColor = settings.theme.textColor
-                ),
-                title = {
-                    Text(text = title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = stringResource(R.string.reader_back)
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { showTypographySheet = true }, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.Rounded.Tune, contentDescription = "Appearance")
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(settings.theme.backgroundColor)
-        ) {
-            AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = { ctx ->
-                    WebView(ctx).apply {
-                        val webSettings = this.settings
-                        webSettings.javaScriptEnabled = false
-                        webSettings.blockNetworkLoads = true
-                        webSettings.blockNetworkImage = true
-                        webSettings.allowFileAccess = true
-                        @Suppress("DEPRECATION")
-                        webSettings.allowFileAccessFromFileURLs = false
-                        @Suppress("DEPRECATION")
-                        webSettings.allowUniversalAccessFromFileURLs = false
+    var lastLoadedHtml by remember { mutableStateOf<String?>(null) }
+    StormlightReaderFrame(
+        title = title,
+        meta = "HTML",
+        paperColor = settings.theme.backgroundColor,
+        onBack = onBack,
+        progressFraction = null,
+        progressLabel = "Scroll to read",
+        tools = listOf(OrbTool("Vibe & type", Icons.Rounded.Tune) { showTypographySheet = true }),
+        modifier = modifier
+    ) {
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { ctx ->
+                WebView(ctx).apply {
+                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                    val webSettings = this.settings
+                    webSettings.javaScriptEnabled = false
+                    webSettings.blockNetworkLoads = true
+                    webSettings.blockNetworkImage = true
+                    webSettings.allowFileAccess = true
+                    @Suppress("DEPRECATION")
+                    webSettings.allowFileAccessFromFileURLs = false
+                    @Suppress("DEPRECATION")
+                    webSettings.allowUniversalAccessFromFileURLs = false
 
-                        webViewClient = object : WebViewClient() {
-                            override fun shouldInterceptRequest(
-                                view: WebView?,
-                                request: WebResourceRequest?
-                            ): WebResourceResponse? {
-                                val url = request?.url?.toString().orEmpty()
-                                if (!HtmlSandboxPolicy.isRequestAllowed(url, baseDir)) {
-                                    return WebResourceResponse(
-                                        "text/plain",
-                                        "utf-8",
-                                        403,
-                                        "Blocked by ZeusReader sandbox",
-                                        emptyMap(),
-                                        ByteArrayInputStream(ByteArray(0))
-                                    )
-                                }
-                                return super.shouldInterceptRequest(view, request)
+                    webViewClient = object : WebViewClient() {
+                        override fun shouldInterceptRequest(
+                            view: WebView?,
+                            request: WebResourceRequest?
+                        ): WebResourceResponse? {
+                            val url = request?.url?.toString().orEmpty()
+                            if (!HtmlSandboxPolicy.isRequestAllowed(url, baseDir)) {
+                                return WebResourceResponse(
+                                    "text/plain",
+                                    "utf-8",
+                                    403,
+                                    "Blocked by ZeusReader sandbox",
+                                    emptyMap(),
+                                    ByteArrayInputStream(ByteArray(0))
+                                )
                             }
+                            return super.shouldInterceptRequest(view, request)
                         }
                     }
-                },
-                update = { webView ->
-                    webView.loadDataWithBaseURL(
-                        baseDir.toURI().toString(),
-                        styledHtml,
-                        "text/html",
-                        "utf-8",
-                        null
-                    )
                 }
-            )
-
-            if (settings.warmLightStrength > 0.01f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFFFFA726).copy(alpha = settings.warmLightStrength))
-                )
+            },
+            update = { webView ->
+                // Reload only when the styled document actually changes (keeps scroll position stable).
+                if (lastLoadedHtml != styledHtml) {
+                    lastLoadedHtml = styledHtml
+                    webView.loadDataWithBaseURL(baseDir.toURI().toString(), styledHtml, "text/html", "utf-8", null)
+                }
             }
-        }
+        )
+        WarmLightOverlay(settings.warmLightStrength)
     }
 
     if (showTypographySheet) {
