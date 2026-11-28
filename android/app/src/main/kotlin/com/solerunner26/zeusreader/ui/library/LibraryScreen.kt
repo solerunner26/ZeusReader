@@ -3,15 +3,15 @@ package com.solerunner26.zeusreader.ui.library
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,56 +20,34 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import com.solerunner26.zeusreader.data.importer.BookCoverAndMetadataExtractor
-import com.solerunner26.zeusreader.ui.home.BookCoverThumbnail
-import com.solerunner26.zeusreader.ui.theme.LiquidGlassCard
-import com.solerunner26.zeusreader.ui.theme.liquidGlass
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.CollectionsBookmark
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.FileOpen
+import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.FolderCopy
-import androidx.compose.material.icons.rounded.OfflinePin
-import androidx.compose.material.icons.rounded.PictureAsPdf
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.WarningAmber
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -78,20 +56,49 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.solerunner26.zeusreader.R
+import com.solerunner26.zeusreader.data.importer.BookCoverAndMetadataExtractor
 import com.solerunner26.zeusreader.data.local.LibraryBookSummary
 import com.solerunner26.zeusreader.data.local.UnsupportedFileEntity
 import com.solerunner26.zeusreader.data.local.WatchedFolderEntity
+import com.solerunner26.zeusreader.ui.components.BookCover
+import com.solerunner26.zeusreader.ui.components.EmptyState
+import com.solerunner26.zeusreader.ui.components.GlassIconButton
+import com.solerunner26.zeusreader.ui.components.GlassPillButton
+import com.solerunner26.zeusreader.ui.components.GradientHeading
+import com.solerunner26.zeusreader.ui.components.MetaLabel
+import com.solerunner26.zeusreader.ui.components.PrimaryPillButton
+import com.solerunner26.zeusreader.ui.components.StickerChip
+import com.solerunner26.zeusreader.ui.components.ZeusBottomSheet
+import com.solerunner26.zeusreader.ui.components.ZeusChip
+import com.solerunner26.zeusreader.ui.components.ZeusChipRow
+import com.solerunner26.zeusreader.ui.components.ZeusLinearProgress
+import com.solerunner26.zeusreader.ui.components.ZeusListRow
+import com.solerunner26.zeusreader.ui.components.ZeusSnackbarHost
+import com.solerunner26.zeusreader.ui.components.ZeusTextField
+import com.solerunner26.zeusreader.ui.components.rememberDockClearance
+import com.solerunner26.zeusreader.ui.home.knownProgress
+import com.solerunner26.zeusreader.ui.home.progressLabel
+import com.solerunner26.zeusreader.ui.theme.GlassSurface
 import com.solerunner26.zeusreader.ui.theme.ZeusReaderTheme
+import com.solerunner26.zeusreader.ui.theme.ZeusShapes
+import com.solerunner26.zeusreader.ui.theme.ZeusSizes
+import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
+import com.solerunner26.zeusreader.ui.theme.ZeusTheme
+import com.solerunner26.zeusreader.ui.theme.rememberPrimaryGradient
+import kotlin.math.absoluteValue
 
 @Composable
 fun LibraryScreen(
@@ -182,7 +189,6 @@ fun LibraryScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun LibraryScreenContent(
     uiState: LibraryUiState,
@@ -202,161 +208,167 @@ internal fun LibraryScreenContent(
     onOpenBook: (LibraryBookSummary) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = com.solerunner26.zeusreader.ui.theme.ZeusTheme.colors
-    val sky = com.solerunner26.zeusreader.ui.theme.ZeusTheme.sky
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        contentWindowInsets = WindowInsets(0),
+    val colors = ZeusTheme.colors
+    val type = ZeusTheme.type
+    val dockClearance = rememberDockClearance()
+    val bookCount = (uiState as? LibraryUiState.Populated)?.books?.size ?: 0
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
-            .testTag("library_screen_root"),
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        topBar = {
-            CenterAlignedTopAppBar(
-                windowInsets = WindowInsets(0),
-                title = {
-                    Text(
-                        text = "Olympus",
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.semantics { heading() }
-                    )
-                },
-                actions = {
-                    if (unsupportedCount > 0) {
-                        IconButton(
-                            onClick = onOpenUnsupportedFiles,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.WarningAmber,
-                                contentDescription = "Unsupported files ($unsupportedCount)",
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                    IconButton(
-                        onClick = onOpenVocabulary,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.School,
-                            contentDescription = "Vocabulary & flashcards"
-                        )
-                    }
-                    IconButton(
-                        onClick = onOpenSettings,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Settings,
-                            contentDescription = "Settings"
-                        )
-                    }
-                    IconButton(
-                        onClick = onOpenPrepareOffline,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Translate,
-                            contentDescription = "Prepare for offline reading"
-                        )
-                    }
-                    IconButton(
-                        onClick = onOpenWatchedFolders,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.FolderCopy,
-                            contentDescription = stringResource(R.string.library_watched_folders)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
-                    titleContentColor = colors.textOnSky,
-                    actionIconContentColor = colors.textOnSky,
-                    navigationIconContentColor = colors.textOnSky
-                )
+            .testTag("library_screen_root")
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            OlympusHeader(
+                bookCount = bookCount,
+                unsupportedCount = unsupportedCount,
+                onImportClick = onImportClick,
+                onOpenWatchedFolders = onOpenWatchedFolders,
+                onOpenUnsupportedFiles = onOpenUnsupportedFiles,
+                onOpenVocabulary = onOpenVocabulary,
+                onOpenPrepareOffline = onOpenPrepareOffline,
+                onOpenSettings = onOpenSettings
             )
-        },
-        floatingActionButton = {
-            if (uiState is LibraryUiState.Populated) {
-                FloatingActionButton(
-                    onClick = onImportClick,
-                    containerColor = sky.accent,
-                    contentColor = sky.baseA,
+            if (isImporting) {
+                ZeusLinearProgress(modifier = Modifier.padding(horizontal = ZeusSpacing.gutter, vertical = ZeusSpacing.xs))
+            }
+            when (uiState) {
+                LibraryUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    ZeusLinearProgress(modifier = Modifier.padding(horizontal = ZeusSpacing.huge))
+                }
+
+                LibraryUiState.Empty -> Box(
                     modifier = Modifier
-                        .padding(bottom = com.solerunner26.zeusreader.ui.theme.ZeusSpacing.dockBottomClearance)
-                        .heightIn(min = 56.dp)
+                        .fillMaxSize()
+                        .padding(horizontal = ZeusSpacing.gutter)
+                        .padding(bottom = dockClearance),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.FileOpen,
-                        contentDescription = stringResource(R.string.library_import_cta)
+                    EmptyState(
+                        icon = Icons.Rounded.AutoStories,
+                        title = stringResource(R.string.library_empty_title),
+                        message = stringResource(R.string.library_empty_subtitle),
+                        actionLabel = stringResource(R.string.library_import_cta),
+                        actionIcon = Icons.Rounded.FileOpen,
+                        onAction = onImportClick,
+                        secondaryLabel = stringResource(R.string.library_watched_folders),
+                        onSecondary = onOpenWatchedFolders
                     )
+                }
+
+                is LibraryUiState.Populated -> PopulatedLibraryContent(
+                    state = uiState,
+                    selectedRackCategory = selectedRackCategory,
+                    onSearchQueryChange = onSearchQueryChange,
+                    onFilterSelected = onFilterSelected,
+                    onRackSelected = onRackSelected,
+                    onOpenBook = onOpenBook,
+                    bottomPadding = dockClearance,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                is LibraryUiState.Error -> Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(ZeusSpacing.xxl),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(uiState.message, style = type.body, color = colors.errorGlow, textAlign = TextAlign.Center)
                 }
             }
         }
-    ) { innerPadding ->
-        Column(
+        ZeusSnackbarHost(
+            hostState = snackbarHostState,
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = ZeusSpacing.gutter)
+                .padding(bottom = dockClearance)
+        )
+    }
+}
+
+@Composable
+private fun OlympusHeader(
+    bookCount: Int,
+    unsupportedCount: Int,
+    onImportClick: () -> Unit,
+    onOpenWatchedFolders: () -> Unit,
+    onOpenUnsupportedFiles: () -> Unit,
+    onOpenVocabulary: () -> Unit,
+    onOpenPrepareOffline: () -> Unit,
+    onOpenSettings: () -> Unit
+) {
+    val colors = ZeusTheme.colors
+    val type = ZeusTheme.type
+    var menuOpen by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = ZeusSpacing.gutter, end = ZeusSpacing.gutter, top = ZeusSpacing.md, bottom = ZeusSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            GradientHeading(text = "Olympus", modifier = Modifier.semantics { contentDescription = "Olympus library" })
+            Text(
+                text = if (bookCount == 1) "1 book on your mountain" else "$bookCount books on your mountain",
+                style = type.caption,
+                color = colors.textOnSkySecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        if (unsupportedCount > 0) {
+            GlassIconButton(
+                icon = Icons.Rounded.WarningAmber,
+                contentDescription = "Unsupported files ($unsupportedCount)",
+                onClick = onOpenUnsupportedFiles,
+                tint = colors.errorGlow
+            )
+        }
+        Box {
+            GlassIconButton(icon = Icons.Rounded.MoreVert, contentDescription = "More library options", onClick = { menuOpen = true })
+            DropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+                shape = ZeusShapes.cardSmall,
+                containerColor = colors.sheetBackground
+            ) {
+                OlympusMenuItem(Icons.Rounded.FolderCopy, stringResource(R.string.library_watched_folders)) { menuOpen = false; onOpenWatchedFolders() }
+                OlympusMenuItem(Icons.Rounded.Translate, "Prepare for offline reading") { menuOpen = false; onOpenPrepareOffline() }
+                OlympusMenuItem(Icons.Rounded.School, "Vocabulary & flashcards") { menuOpen = false; onOpenVocabulary() }
+                OlympusMenuItem(Icons.Rounded.Settings, "Settings") { menuOpen = false; onOpenSettings() }
+            }
+        }
+        // Import orb
+        Box(
+            modifier = Modifier
+                .size(ZeusSpacing.giant)
+                .shadow(ZeusSizes.shadowGlow, ZeusShapes.circle, ambientColor = ZeusTheme.sky.glow2, spotColor = ZeusTheme.sky.glow2)
+                .clip(ZeusShapes.circle)
+                .background(rememberPrimaryGradient())
+                .clickable(role = Role.Button, onClick = onImportClick)
+                .semantics { contentDescription = "Import files" },
+            contentAlignment = Alignment.Center
         ) {
-            if (isImporting) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-
-            when (uiState) {
-                LibraryUiState.Loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-
-                LibraryUiState.Empty -> {
-                    EmptyLibraryState(
-                        onImportClick = onImportClick,
-                        onOpenWatchedFolders = onOpenWatchedFolders,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
-                is LibraryUiState.Populated -> {
-                    PopulatedLibraryContent(
-                        state = uiState,
-                        selectedRackCategory = selectedRackCategory,
-                        onSearchQueryChange = onSearchQueryChange,
-                        onFilterSelected = onFilterSelected,
-                        onRackSelected = onRackSelected,
-                        onOpenBook = onOpenBook,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
-                is LibraryUiState.Error -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = uiState.message,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-            }
+            Icon(Icons.Rounded.Add, contentDescription = null, tint = colors.textOnAccent, modifier = Modifier.size(ZeusSizes.iconLg))
         }
     }
 }
 
+@Composable
+private fun OlympusMenuItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+    val colors = ZeusTheme.colors
+    DropdownMenuItem(
+        leadingIcon = { Icon(icon, contentDescription = null, tint = colors.accentOnSky) },
+        text = { Text(label, style = ZeusTheme.type.label, color = colors.textOnSky) },
+        onClick = onClick,
+        modifier = Modifier.heightIn(min = ZeusSpacing.touchMin)
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PopulatedLibraryContent(
     state: LibraryUiState.Populated,
@@ -365,111 +377,145 @@ private fun PopulatedLibraryContent(
     onFilterSelected: (LibraryFormatFilter) -> Unit,
     onRackSelected: (String) -> Unit = {},
     onOpenBook: (LibraryBookSummary) -> Unit,
+    bottomPadding: androidx.compose.ui.unit.Dp,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        OutlinedTextField(
-            value = state.searchQuery,
-            onValueChange = onSearchQueryChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp)
-                .liquidGlass(enabled = true, shape = RoundedCornerShape(24.dp), alpha = 0.65f),
-            shape = RoundedCornerShape(24.dp),
-            singleLine = true,
-            placeholder = { Text(stringResource(R.string.library_search_hint)) },
-            leadingIcon = {
-                Icon(imageVector = Icons.Rounded.Search, contentDescription = null)
-            },
-            trailingIcon = {
-                if (state.searchQuery.isNotEmpty()) {
-                    IconButton(
-                        onClick = { onSearchQueryChange("") },
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(imageVector = Icons.Rounded.Close, contentDescription = "Clear search")
-                    }
-                }
-            }
-        )
+    val colors = ZeusTheme.colors
+    val type = ZeusTheme.type
+    val showFlow = state.searchQuery.isBlank() && state.books.size >= 2
+    val flowBooks = remember(state.books) { state.books.sortedByDescending { it.updatedAtEpochMs }.take(8) }
 
-        // Virtual Rack category shelf
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            BookCoverAndMetadataExtractor.RACK_CATEGORIES.forEach { category ->
-                FilterChip(
-                    selected = selectedRackCategory == category,
-                    onClick = { onRackSelected(category) },
-                    modifier = Modifier.heightIn(min = 44.dp),
-                    label = { Text(category) }
-                )
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = ZeusSizes.gridCoverMin),
+        modifier = modifier,
+        contentPadding = PaddingValues(start = ZeusSpacing.gutter, end = ZeusSpacing.gutter, top = ZeusSpacing.xs, bottom = bottomPadding),
+        horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(ZeusSpacing.lg)
+    ) {
+        item(key = "search", span = { GridItemSpan(maxLineSpan) }) {
+            ZeusTextField(
+                value = state.searchQuery,
+                onValueChange = onSearchQueryChange,
+                placeholder = stringResource(R.string.library_search_hint),
+                leadingIcon = Icons.Rounded.Search,
+                modifier = Modifier.fillMaxWidth(),
+                trailing = if (state.searchQuery.isNotEmpty()) {
+                    {
+                        GlassIconButton(
+                            icon = Icons.Rounded.Close,
+                            contentDescription = "Clear search",
+                            onClick = { onSearchQueryChange("") },
+                            size = ZeusSizes.avatar - ZeusSpacing.xs
+                        )
+                    }
+                } else {
+                    null
+                }
+            )
+        }
+
+        if (showFlow) {
+            item(key = "flow", span = { GridItemSpan(maxLineSpan) }) {
+                CoverFlow(books = flowBooks, onOpenBook = onOpenBook)
             }
         }
 
-        // Format filter chips
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            FilterChip(
-                selected = state.selectedFilter == LibraryFormatFilter.ALL,
-                onClick = { onFilterSelected(LibraryFormatFilter.ALL) },
-                modifier = Modifier.heightIn(min = 44.dp),
-                label = { Text(stringResource(R.string.library_filter_all)) }
-            )
-            FilterChip(
-                selected = state.selectedFilter == LibraryFormatFilter.EPUB,
-                onClick = { onFilterSelected(LibraryFormatFilter.EPUB) },
-                modifier = Modifier.heightIn(min = 44.dp),
-                label = { Text(stringResource(R.string.library_filter_epub)) }
-            )
-            FilterChip(
-                selected = state.selectedFilter == LibraryFormatFilter.PDF,
-                onClick = { onFilterSelected(LibraryFormatFilter.PDF) },
-                modifier = Modifier.heightIn(min = 44.dp),
-                label = { Text(stringResource(R.string.library_filter_pdf)) }
-            )
-            FilterChip(
-                selected = state.selectedFilter == LibraryFormatFilter.IMAGE_BOOK,
-                onClick = { onFilterSelected(LibraryFormatFilter.IMAGE_BOOK) },
-                modifier = Modifier.heightIn(min = 44.dp),
-                label = { Text(stringResource(R.string.library_filter_images)) }
-            )
+        item(key = "filters", span = { GridItemSpan(maxLineSpan) }) {
+            Column(
+                                verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)
+            ) {
+                ZeusChipRow(contentPadding = ZeusSpacing.none) {
+                    BookCoverAndMetadataExtractor.RACK_CATEGORIES.forEach { category ->
+                        ZeusChip(label = category, selected = selectedRackCategory == category, onClick = { onRackSelected(category) })
+                    }
+                }
+                ZeusChipRow(contentPadding = ZeusSpacing.none) {
+                    ZeusChip(stringResource(R.string.library_filter_all), state.selectedFilter == LibraryFormatFilter.ALL, { onFilterSelected(LibraryFormatFilter.ALL) })
+                    ZeusChip(stringResource(R.string.library_filter_epub), state.selectedFilter == LibraryFormatFilter.EPUB, { onFilterSelected(LibraryFormatFilter.EPUB) })
+                    ZeusChip(stringResource(R.string.library_filter_pdf), state.selectedFilter == LibraryFormatFilter.PDF, { onFilterSelected(LibraryFormatFilter.PDF) })
+                    ZeusChip(stringResource(R.string.library_filter_images), state.selectedFilter == LibraryFormatFilter.IMAGE_BOOK, { onFilterSelected(LibraryFormatFilter.IMAGE_BOOK) })
+                }
+            }
         }
 
         if (state.books.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
+            item(key = "none", span = { GridItemSpan(maxLineSpan) }) {
                 Text(
-                    text = "No matching books in this rack.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "No matching books on this shelf.",
+                    style = type.body,
+                    color = colors.textOnSkySecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = ZeusSpacing.huge)
                 )
             }
         } else {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 156.dp),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(state.books, key = { it.editionId }) { book ->
-                    LibraryBookCard(book = book, onClick = { onOpenBook(book) })
-                }
+            items(state.books, key = { it.editionId }) { book ->
+                LibraryBookCard(book = book, onClick = { onOpenBook(book) })
             }
+        }
+    }
+}
+
+/** Cover-flow: centre book large and upright, neighbours smaller, tilted and dimmed. */
+@Composable
+private fun CoverFlow(books: List<LibraryBookSummary>, onOpenBook: (LibraryBookSummary) -> Unit) {
+    val colors = ZeusTheme.colors
+    val type = ZeusTheme.type
+    val pagerState = rememberPagerState(pageCount = { books.size })
+    Column(verticalArrangement = Arrangement.spacedBy(ZeusSpacing.md)) {
+        HorizontalPager(
+            state = pagerState,
+            contentPadding = PaddingValues(horizontal = ZeusSizes.coverFlowSideWidth),
+            pageSpacing = ZeusSpacing.sm,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(ZeusSizes.coverFlowHeight)
+        ) { page ->
+            val book = books[page]
+            val offset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
+            val abs = offset.absoluteValue.coerceIn(0f, 1f)
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                BookCover(
+                    title = book.title,
+                    authors = book.authors,
+                    format = if (book.isImageBook) "IMG" else book.primaryFormat,
+                    coverPath = book.coverPath,
+                    shape = ZeusShapes.coverLarge,
+                    modifier = Modifier
+                        .height(ZeusSizes.coverHeroHeight)
+                        .aspectRatio(2f / 3f)
+                        .graphicsLayer {
+                            val scale = 1f - 0.22f * abs
+                            scaleX = scale
+                            scaleY = scale
+                            rotationY = offset.coerceIn(-1f, 1f) * 24f
+                            alpha = 1f - 0.35f * abs
+                            cameraDistance = 14f * density
+                        }
+                        .shadow(ZeusSizes.shadowCover, ZeusShapes.coverLarge)
+                        .clickable(role = Role.Button) { onOpenBook(book) }
+                )
+            }
+        }
+        val current = books.getOrNull(pagerState.currentPage)
+        if (current != null) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(current.title, style = type.title.copy(fontFamily = type.Unbounded), color = colors.textOnSky, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    if (current.authors.isNotBlank()) {
+                        Text(current.authors, style = type.caption, color = colors.textOnSkySecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+                StickerChip(text = current.progressLabel(), accentFill = true, rotation = 3f)
+            }
+            GlassPillButton(
+                label = "Open ${current.title}",
+                icon = Icons.AutoMirrored.Rounded.ArrowForward,
+                onClick = { onOpenBook(current) },
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
@@ -479,160 +525,41 @@ private fun LibraryBookCard(
     book: LibraryBookSummary,
     onClick: () -> Unit
 ) {
-    LiquidGlassCard(
-        glassEnabled = true,
-        cornerRadius = 20.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
+    val colors = ZeusTheme.colors
+    val type = ZeusTheme.type
+    GlassSurface(shape = ZeusShapes.cardSmall, modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(ZeusSpacing.smPlus),
+            verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xsPlus)
         ) {
-            BookCoverThumbnail(
+            BookCover(
                 title = book.title,
+                authors = book.authors,
                 format = if (book.isImageBook) "IMG" else book.primaryFormat,
                 coverPath = book.coverPath,
+                compact = true,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(0.68f)
+                    .aspectRatio(2f / 3f)
             )
-            Text(
-                text = book.title,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            Text(book.title, style = type.label.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = colors.textOnSky, maxLines = 2, overflow = TextOverflow.Ellipsis)
             if (book.authors.isNotBlank()) {
-                Text(
-                    text = book.authors,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Text(book.authors, style = type.caption, color = colors.textOnSkySecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val badge = if (book.isImageBook) {
-                    "${book.imagePageCount.coerceAtLeast(1)}p IMG"
-                } else {
-                    book.primaryFormat.ifBlank { "BOOK" }.uppercase()
-                }
-                Text(
-                    text = badge,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = book.category.ifBlank { "General" },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
+            book.knownProgress()?.let { ZeusLinearProgress(progress = it) }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)) {
+                val badge = if (book.isImageBook) "${book.imagePageCount.coerceAtLeast(1)}p IMG" else book.primaryFormat.ifBlank { "Book" }
+                MetaLabel(text = badge, accent = true)
+                Spacer(Modifier.weight(1f))
+                MetaLabel(text = book.category.ifBlank { "General" }, modifier = Modifier.weight(1f, fill = false))
             }
         }
     }
 }
 
-@Composable
-private fun EmptyLibraryState(
-    onImportClick: () -> Unit,
-    onOpenWatchedFolders: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        ElevatedCard(
-            modifier = Modifier
-                .widthIn(max = 440.dp)
-                .fillMaxWidth(),
-            colors = CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.AutoStories,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = stringResource(R.string.library_empty_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.library_empty_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                AssistChip(
-                    onClick = {},
-                    modifier = Modifier.heightIn(min = 48.dp),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.OfflinePin,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    },
-                    label = { Text(stringResource(R.string.library_offline_ready_badge)) }
-                )
-                Spacer(modifier = Modifier.height(20.dp))
-                Button(
-                    onClick = onImportClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.FileOpen,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(stringResource(R.string.library_import_cta))
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-                OutlinedButton(
-                    onClick = onOpenWatchedFolders,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.FolderCopy,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(stringResource(R.string.library_watched_folders))
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WatchedFoldersBottomSheet(
     folders: List<WatchedFolderEntity>,
@@ -641,161 +568,67 @@ private fun WatchedFoldersBottomSheet(
     onRescanAll: () -> Unit,
     onRemoveFolder: (String) -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.watched_folders_title),
-                style = MaterialTheme.typography.titleLarge
+    ZeusBottomSheet(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.watched_folders_title),
+        subtitle = "New books dropped into these folders are imported automatically."
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)) {
+            PrimaryPillButton(
+                label = stringResource(R.string.watched_folders_add),
+                icon = Icons.Rounded.Add,
+                leadingIcon = true,
+                onClick = onAddFolder,
+                height = ZeusSpacing.secondaryButtonHeight,
+                modifier = Modifier.weight(1f)
             )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Button(
-                    onClick = onAddFolder,
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 48.dp)
+            GlassPillButton(
+                label = stringResource(R.string.watched_folders_rescan),
+                icon = Icons.Rounded.Refresh,
+                onClick = onRescanAll,
+                enabled = folders.isNotEmpty(),
+                modifier = Modifier.weight(1f)
+            )
+        }
+        if (folders.isEmpty()) {
+            Text(stringResource(R.string.watched_folders_empty), style = ZeusTheme.type.body, color = ZeusTheme.colors.textOnSkySecondary)
+        } else {
+            folders.forEach { folder ->
+                ZeusListRow(
+                    title = folder.displayName,
+                    subtitle = if (folder.lastScannedEpochMs != null) "Synced" else "Pending first scan",
+                    icon = Icons.Rounded.Folder
                 ) {
-                    Text(stringResource(R.string.watched_folders_add))
-                }
-                OutlinedButton(
-                    onClick = onRescanAll,
-                    enabled = folders.isNotEmpty(),
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Refresh,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(stringResource(R.string.watched_folders_rescan))
+                    GlassIconButton(icon = Icons.Rounded.DeleteOutline, contentDescription = "Remove watched folder", onClick = { onRemoveFolder(folder.id) })
                 }
             }
-
-            if (folders.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.watched_folders_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            } else {
-                folders.forEach { folder ->
-                    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = folder.displayName,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Text(
-                                    text = if (folder.lastScannedEpochMs != null) {
-                                        "Synced"
-                                    } else {
-                                        "Pending first scan"
-                                    },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            IconButton(
-                                onClick = { onRemoveFolder(folder.id) },
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.DeleteOutline,
-                                    contentDescription = "Remove watched folder"
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun UnsupportedFilesBottomSheet(
     files: List<UnsupportedFileEntity>,
     onClear: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Unsupported Files", style = MaterialTheme.typography.titleLarge)
-                if (files.isNotEmpty()) {
-                    OutlinedButton(onClick = onClear, modifier = Modifier.heightIn(min = 48.dp)) {
-                        Text("Clear")
-                    }
-                }
+    ZeusBottomSheet(
+        onDismissRequest = onDismiss,
+        title = "Unsupported files",
+        headerAction = if (files.isNotEmpty()) {
+            { GlassPillButton(label = "Clear", onClick = onClear) }
+        } else {
+            null
+        }
+    ) {
+        if (files.isEmpty()) {
+            Text("No rejected or unsupported files.", style = ZeusTheme.type.body, color = ZeusTheme.colors.textOnSkySecondary)
+        } else {
+            files.forEach { item ->
+                ZeusListRow(title = item.displayName, subtitle = item.reason, icon = Icons.Rounded.WarningAmber)
             }
-            if (files.isEmpty()) {
-                Text(
-                    text = "No rejected or unsupported files.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 360.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(files, key = { it.id }) { item ->
-                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.padding(14.dp)) {
-                                Text(item.displayName, style = MaterialTheme.typography.titleMedium)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = item.reason,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
-}
-
-private fun formatFileSize(bytes: Long): String {
-    if (bytes <= 0L) return "0 B"
-    val kb = bytes / 1024.0
-    if (kb < 1024.0) return "${kb.toInt().coerceAtLeast(1)} KB"
-    val mb = kb / 1024.0
-    return String.format("%.1f MB", mb)
 }
 
 @Preview(showBackground = true, showSystemUi = true)

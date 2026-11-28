@@ -2,158 +2,100 @@ package com.solerunner26.zeusreader.ui.stats
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.navigationBarsPadding
-import com.solerunner26.zeusreader.ui.theme.LiquidGlassCard
-import com.solerunner26.zeusreader.ui.theme.ZeusTheme
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.AutoStories
+import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.solerunner26.zeusreader.reader.prefs.AppUiConfig
-import com.solerunner26.zeusreader.ui.theme.HueAuraBackground
+import com.solerunner26.zeusreader.ui.components.MetaLabel
+import com.solerunner26.zeusreader.ui.components.ProgressRing
+import com.solerunner26.zeusreader.ui.components.StatTile
+import com.solerunner26.zeusreader.ui.components.StickerChip
+import com.solerunner26.zeusreader.ui.components.ZeusTopBar
+import com.solerunner26.zeusreader.ui.components.rememberNavBarClearance
+import com.solerunner26.zeusreader.ui.theme.GlassSurface
+import com.solerunner26.zeusreader.ui.theme.ZeusSizes
+import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
+import com.solerunner26.zeusreader.ui.theme.ZeusTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
     viewModel: StatsViewModel,
     onBack: () -> Unit,
-    uiConfig: AppUiConfig = AppUiConfig(),
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    @Suppress("UNUSED_PARAMETER") uiConfig: AppUiConfig = AppUiConfig(),
+    @Suppress("UNUSED_PARAMETER") darkTheme: Boolean = isSystemInDarkTheme(),
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-
-    val colors = ZeusTheme.colors
-    HueAuraBackground(
-        config = uiConfig,
-        darkTheme = darkTheme,
-        modifier = modifier
-    ) {
-        Scaffold(
-            modifier = Modifier.statusBarsPadding().navigationBarsPadding(),
-            containerColor = Color.Transparent,
-            contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
-            topBar = {
-                TopAppBar(
-                    windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
-                    title = { Text("Reading Stats") },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        titleContentColor = colors.textOnSky,
-                        navigationIconContentColor = colors.textOnSky
-                    ),
-                    navigationIcon = {
-                        IconButton(
-                            onClick = onBack,
-                            modifier = Modifier.heightIn(min = 48.dp)
-                        ) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                        }
-                    }
-                )
-            }
-        ) { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp)
-                    .verticalScroll(rememberScrollState())
-                    .testTag("stats_screen"),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                LiquidGlassCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text(
-                            text = "${state.currentStreakDays} day streak",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = "${state.activeReadingDays} active reading days recorded",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    StatCard(
-                        label = "Library books",
-                        value = "${state.totalBooks}",
-                        subtitle = "${state.booksInProgress} in progress",
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatCard(
-                        label = "Saved passages",
-                        value = "${state.totalPassages}",
-                        subtitle = "Offline quotes",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    StatCard(
-                        label = "Vocabulary",
-                        value = "${state.totalVocabWords}",
-                        subtitle = "${state.dueVocabWords} due for review",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Spacer(Modifier.height(24.dp))
-            }
-        }
-    }
+    StatsContent(state = state, onBack = onBack, modifier = modifier)
 }
 
 @Composable
-private fun StatCard(
-    label: String,
-    value: String,
-    subtitle: String,
-    modifier: Modifier = Modifier
-) {
-    ElevatedCard(modifier = modifier) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(6.dp))
-            Text(value, style = MaterialTheme.typography.headlineSmall)
-            Spacer(Modifier.height(2.dp))
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+internal fun StatsContent(state: ReadingStatsUiState, onBack: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = ZeusTheme.colors
+    val type = ZeusTheme.type
+    Column(modifier = modifier.fillMaxSize().statusBarsPadding()) {
+        ZeusTopBar(title = "Reading stats", subtitle = "Your charge, streak and harvest", onBack = onBack)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = ZeusSpacing.gutter)
+                .padding(bottom = rememberNavBarClearance())
+                .widthIn(max = ZeusSizes.contentMaxWidth)
+                .testTag("stats_screen"),
+            verticalArrangement = Arrangement.spacedBy(ZeusSpacing.lg)
+        ) {
+            GlassSurface(modifier = Modifier.fillMaxWidth(), neon = true) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(ZeusSpacing.cardPadding),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.lg)
+                ) {
+                    val progress = if (state.totalBooks > 0) state.booksInProgress.toFloat() / state.totalBooks else 0f
+                    ProgressRing(progress = progress, size = ZeusSizes.chargeRing, stroke = ZeusSizes.chargeRingStroke) {
+                        Text("${state.currentStreakDays}", style = type.displayNumber, color = colors.textOnSky, maxLines = 1)
+                    }
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)) {
+                        MetaLabel(text = "Current streak", accent = true)
+                        Text(
+                            text = if (state.currentStreakDays == 1) "1 day of lightning" else "${state.currentStreakDays} days of lightning",
+                            style = type.headline,
+                            color = colors.textOnSky,
+                            maxLines = 2
+                        )
+                        Text("${state.activeReadingDays} active reading days recorded", style = type.caption, color = colors.textOnSkySecondary)
+                    }
+                }
+            }
+            StickerChip(text = "Keep the charge alive today", icon = Icons.Rounded.Bolt, rotation = -2f, cream = true)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)) {
+                StatTile(value = "${state.totalBooks}", label = "Books in Olympus", caption = "${state.booksInProgress} in progress", icon = Icons.Rounded.AutoStories, modifier = Modifier.weight(1f))
+                StatTile(value = "${state.totalPassages}", label = "Sparks saved", caption = "Offline quotes", icon = Icons.Rounded.AutoAwesome, modifier = Modifier.weight(1f))
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)) {
+                StatTile(value = "${state.totalVocabWords}", label = "Words collected", caption = "${state.dueVocabWords} due for review", icon = Icons.Rounded.Translate, modifier = Modifier.weight(1f))
+                StatTile(value = "${state.activeReadingDays}", label = "Reading days", caption = "All time", icon = Icons.Rounded.Bolt, modifier = Modifier.weight(1f))
+            }
         }
     }
 }
