@@ -42,10 +42,13 @@ From `android/` run `gradlew.bat uiCheck` (Windows) or `./gradlew uiCheck`. If i
 `/stormlight-fix` workflow, Phase 5. Do not report done while it fails.
 
 ## Build commands
-- After each small change: `gradlew.bat :app:compileDebugKotlin`
-- After finishing a screen: `gradlew.bat assembleDebug installDebug`
-- Only at the END of a phase: `gradlew.bat testDebugUnitTest lintDebug`
+- ALWAYS run Gradle from the repo root using `android/build.ps1` with `< /dev/null`:
+  `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File android/build.ps1 assembleDebug < /dev/null`
+  (Never inline `JAVA_HOME` or stopwatch code, never omit `< /dev/null`.)
+- After each small change: `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File android/build.ps1 :app:compileDebugKotlin < /dev/null`
+- After finishing a screen: `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File android/build.ps1 assembleDebug installDebug < /dev/null`
+- Only at the END of a phase: `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File android/build.ps1 testDebugUnitTest lintDebug < /dev/null`
 - `assembleRelease`: only when the user asks for a release build. Never during UI work.
-- Always run from the `android` folder. Never use `--no-daemon` or `--rerun-tasks`.
+- Never use `--no-daemon` or `--rerun-tasks`.
 
 
