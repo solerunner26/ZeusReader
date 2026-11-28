@@ -50,3 +50,7 @@ server/*.sqlite*
 .gemini/logs/
 .DS_Store
 Thumbs.db
+
+# Cloudflare Worker local deps
+relay/node_modules/
+relay/.wrangler/

@@ -1,0 +1,20 @@
+name = "zeusreader-relay"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[ai]
+binding = "AI"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "zeusreader-db"
+database_id = "82fc694a-d6da-4d12-a87f-0dbf33809578"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "d7e2c295443c4f8e984d43b40acd521b"
+
+# Uncomment after enabling R2 in Cloudflare Dashboard:
+# [[r2_buckets]]
+# binding = "BACKUPS"
+# bucket_name = "zeusreader-backups"

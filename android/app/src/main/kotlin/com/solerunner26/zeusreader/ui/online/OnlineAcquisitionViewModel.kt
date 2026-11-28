@@ -23,7 +23,7 @@ import java.io.File
 import javax.inject.Inject
 
 data class OnlineAcquisitionUiState(
-    val serverUrl: String = "http://100.64.0.1:8765",
+    val serverUrl: String = "https://zeusreader-relay.jaldip-sac.workers.dev",
     val pairingToken: String = "zeus-dev-pairing-token",
     val isConnected: Boolean? = null,
     val slumStatus: SlumStatusDto? = null,
