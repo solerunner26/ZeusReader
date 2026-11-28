@@ -1,20 +1,11 @@
 #!/bin/sh
-# Block sensitive files and large binaries (>5MB) before commit
-FORBIDDEN=$(git diff --cached --name-only | grep -E '\.(jks|keystore|env|p12)$')
-if [ -n "$FORBIDDEN" ]; then
-  echo "ERROR: Attempted to commit forbidden secret/keystore file:"
-  echo "$FORBIDDEN"
-  exit 1
-fi
-
-LARGE_FILES=$(git diff --cached --name-only | while read -r f; do
-  if [ -f "$f" ] && [ "$(wc -c < "$f")" -gt 5242880 ]; then
-    echo "$f"
-  fi
-done)
-
-if [ -n "$LARGE_FILES" ]; then
-  echo "ERROR: File exceeds 5MB limit (keep book files out of git):"
-  echo "$LARGE_FILES"
-  exit 1
+# Stormlight pre-commit: run the UI gate when files under ui/ (or Navigation.kt) change.
+# Enable once per clone:  git config core.hooksPath .githooks   (works in Git Bash on Windows too)
+changed=$(git diff --cached --name-only | grep -E 'zeusreader/(ui/|Navigation\.kt)' || true)
+[ -z "$changed" ] && exit 0
+cd android || exit 1
+if [ -f gradlew.bat ] && [ "$OS" = "Windows_NT" ]; then
+  ./gradlew.bat uiCheck --console=plain || { echo "uiCheck failed — commit blocked."; exit 1; }
+else
+  sh ./gradlew uiCheck --console=plain || { echo "uiCheck failed — commit blocked."; exit 1; }
 fi

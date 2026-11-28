@@ -54,3 +54,6 @@ Thumbs.db
 # Cloudflare Worker local deps
 relay/node_modules/
 relay/.wrangler/
+
+# Stormlight matrix snapshots: commit only after the design is approved (see docs/CLAUDE_UI_HANDOFF.md)
+android/app/src/test/snapshots/stormlight/

@@ -485,8 +485,16 @@ fun StickerChip(
         cream -> colors.stickerCreamBg
         else -> colors.stickerLightBg
     }
-    val angle = if (ZeusTheme.reduceMotion && ZeusTheme.paper.isEink) 0f else rotation
-    Box(modifier = modifier.rotate(angle)) {
+    val angle = if (ZeusTheme.paper.isEink) 0f else rotation
+    val touch = if (onClick != null) {
+        Modifier
+            .minimumInteractiveComponentSize()
+            .clickable(role = Role.Button, onClick = onClick)
+    } else {
+        Modifier
+    }
+    Box(modifier = modifier.then(touch), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.rotate(angle)) {
         if (!ZeusTheme.paper.isEink) {
             Box(
                 modifier = Modifier
@@ -502,7 +510,6 @@ fun StickerChip(
                 .clip(ZeusShapes.sticker)
                 .background(bg)
                 .then(if (ZeusTheme.paper.isEink) Modifier.border(ZeusSpacing.hairline, colors.textOnSky, ZeusShapes.sticker) else Modifier)
-                .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
                 .padding(horizontal = ZeusSpacing.md, vertical = ZeusSpacing.xsPlus),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.xsPlus)
@@ -512,6 +519,7 @@ fun StickerChip(
             }
             Text(text = text, style = type.sticker, color = colors.stickerInk, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+    }
     }
 }
 
