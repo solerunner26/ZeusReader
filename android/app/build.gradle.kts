@@ -165,11 +165,11 @@ dependencies {
     androidTestImplementation(libs.hilt.android.testing)
 }
 
-// Stormlight Phase 5 lock-in: token guard + contrast tests + Roborazzi matrix (render + touch-target checks).
-// Record baselines after design approval:  ./gradlew :app:recordRoborazziDebug --tests '*StormlightSnapshotMatrixTest*'
+// Sunset UI lock-in: token guard + contrast tests + Roborazzi matrix (render + touch-target checks).
+// Record baselines after design approval:  ./gradlew :app:recordRoborazziDebug --tests '*ZeusSnapshotMatrixTest*'
 // Then compare on every change:            ./gradlew :app:verifyRoborazziDebug
 tasks.register("uiCheck") {
     group = "verification"
-    description = "Stormlight UI gate: token guard, contrast, snapshot matrix and all unit tests."
+    description = "Sunset UI gate: token guard, contrast, snapshot matrix and all unit tests."
     dependsOn("testDebugUnitTest")
 }

@@ -1,14 +1,14 @@
-package com.solerunner26.zeusreader.ui.stormlight
+package com.solerunner26.zeusreader.ui.sunset
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
 /**
- * Phase 5 lock-in: screen code must use Stormlight tokens from ui/theme.
+ * Sunset lock-in: screen code must use tokens from ui/theme.
  * Fails on `Color(0x…)`, hex colour strings and raw `.dp` / `.sp` literals outside ui/theme/.
  */
-class StormlightTokenGuardTest {
+class ZeusTokenGuardTest {
 
     private val root: File = listOf(
         File("src/main/kotlin/com/solerunner26/zeusreader"),
@@ -41,7 +41,7 @@ class StormlightTokenGuardTest {
             }
         }
         assertTrue(
-            "Use ZeusTheme tokens (ZeusSpacing/ZeusSizes/ZeusType/ZeusColors) instead:\n" + violations.joinToString("\n"),
+            "Use Sunset tokens (ZeusSpacing/ZeusSizes/ZeusType/ZeusColors) instead:\n" + violations.joinToString("\n"),
             violations.isEmpty()
         )
     }

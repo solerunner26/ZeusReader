@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -81,14 +81,14 @@ fun HtmlReaderScreen(
     }
 
     var lastLoadedHtml by remember { mutableStateOf<String?>(null) }
-    StormlightReaderFrame(
+    ReaderFrame(
         title = title,
         meta = "HTML",
         paperColor = settings.theme.backgroundColor,
         onBack = onBack,
         progressFraction = null,
         progressLabel = "Scroll to read",
-        tools = listOf(OrbTool("Vibe & type", Icons.Rounded.Tune) { showTypographySheet = true }),
+        tools = listOf(ReaderTool("Appearance", Icons.Rounded.TextFields) { showTypographySheet = true }),
         modifier = modifier
     ) {
         AndroidView(

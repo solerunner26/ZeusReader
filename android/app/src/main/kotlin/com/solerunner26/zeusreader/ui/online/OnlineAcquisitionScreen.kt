@@ -45,16 +45,16 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.solerunner26.zeusreader.reader.prefs.AppUiConfig
-import com.solerunner26.zeusreader.ui.components.GlassIconButton
-import com.solerunner26.zeusreader.ui.components.GlassPillButton
-import com.solerunner26.zeusreader.ui.components.GlassSection
-import com.solerunner26.zeusreader.ui.components.MetaLabel
-import com.solerunner26.zeusreader.ui.components.PrimaryPillButton
+import com.solerunner26.zeusreader.ui.components.CircleIconButton
+import com.solerunner26.zeusreader.ui.components.SecondaryButton
+import com.solerunner26.zeusreader.ui.components.SectionCard
+import com.solerunner26.zeusreader.ui.components.Eyebrow
+import com.solerunner26.zeusreader.ui.components.PrimaryButton
 import com.solerunner26.zeusreader.ui.components.ZeusBottomSheet
 import com.solerunner26.zeusreader.ui.components.ZeusDialog
 import com.solerunner26.zeusreader.ui.components.ZeusLinearProgress
-import com.solerunner26.zeusreader.ui.components.ZeusListRow
-import com.solerunner26.zeusreader.ui.components.ZeusSectionHeader
+import com.solerunner26.zeusreader.ui.components.MenuRow
+import com.solerunner26.zeusreader.ui.components.SectionHeader
 import com.solerunner26.zeusreader.ui.components.ZeusTextField
 import com.solerunner26.zeusreader.ui.components.ZeusTopBar
 import com.solerunner26.zeusreader.ui.components.rememberNavBarClearance
@@ -95,8 +95,8 @@ fun OnlineAcquisitionScreen(
             },
             onBack = onBack
         ) {
-            GlassIconButton(Icons.Rounded.History, "Download history", { showHistorySheet = true })
-            GlassIconButton(Icons.Rounded.Tune, "Server settings", { showServerSettings = !showServerSettings }, highlighted = showServerSettings)
+            CircleIconButton(Icons.Rounded.History, "Download history", { showHistorySheet = true })
+            CircleIconButton(Icons.Rounded.Tune, "Server settings", { showServerSettings = !showServerSettings })
         }
 
         LazyColumn(
@@ -107,7 +107,7 @@ fun OnlineAcquisitionScreen(
             verticalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
         ) {
             item(key = "search") {
-                GlassSection(neon = true) {
+                SectionCard(selected = true) {
                     ZeusTextField(
                         value = state.query,
                         onValueChange = viewModel::updateQuery,
@@ -119,7 +119,7 @@ fun OnlineAcquisitionScreen(
                         }),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    PrimaryPillButton(
+                    PrimaryButton(
                         label = if (state.isSearching) "Searching…" else "Search online",
                         icon = Icons.Rounded.Search,
                         leadingIcon = true,
@@ -134,7 +134,7 @@ fun OnlineAcquisitionScreen(
 
             if (showServerSettings) {
                 item(key = "server") {
-                    GlassSection(title = "Server settings · saved automatically") {
+                    SectionCard(title = "Server settings · saved automatically") {
                         ZeusTextField(
                             value = state.serverUrl,
                             onValueChange = { viewModel.updateServerConfig(it, state.pairingToken) },
@@ -148,7 +148,7 @@ fun OnlineAcquisitionScreen(
                             label = "Pairing token",
                             visualTransformation = if (tokenVisible) VisualTransformation.None else PasswordVisualTransformation(),
                             trailing = {
-                                GlassIconButton(
+                                CircleIconButton(
                                     icon = if (tokenVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
                                     contentDescription = if (tokenVisible) "Hide token" else "Show token",
                                     onClick = { tokenVisible = !tokenVisible },
@@ -161,13 +161,13 @@ fun OnlineAcquisitionScreen(
                             horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm),
                             verticalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)
                         ) {
-                            GlassPillButton("Reconnect", viewModel::checkServerAndLoad, icon = Icons.Rounded.Refresh)
-                            GlassPillButton("Sync now", viewModel::syncPassagesNow, icon = Icons.Rounded.Sync)
-                            GlassPillButton("Paste QR JSON", { showPairingDialog = true }, icon = Icons.Rounded.QrCode2)
-                            GlassPillButton("Backup data", viewModel::backupToServer, icon = Icons.Rounded.Backup)
+                            SecondaryButton("Reconnect", viewModel::checkServerAndLoad, icon = Icons.Rounded.Refresh)
+                            SecondaryButton("Sync now", viewModel::syncPassagesNow, icon = Icons.Rounded.Sync)
+                            SecondaryButton("Paste QR JSON", { showPairingDialog = true }, icon = Icons.Rounded.QrCode2)
+                            SecondaryButton("Backup data", viewModel::backupToServer, icon = Icons.Rounded.Backup)
                         }
                         state.slumStatus?.let { slum ->
-                            MetaLabel(
+                            Eyebrow(
                                 text = "Catalogue: ${slum.providers.size} sources tracked" + if (slum.stale) " · cached" else "",
                                 accent = true
                             )
@@ -178,12 +178,12 @@ fun OnlineAcquisitionScreen(
 
             state.activeActionLabel?.let { label ->
                 item(key = "active") {
-                    GlassSection {
+                    SectionCard {
                         val pct = state.activeProgressPercent
                         Text(
                             text = if (pct != null) "$label · $pct% · ${state.activeElapsedSeconds}s" else "$label · ${state.activeElapsedSeconds}s",
                             style = type.label,
-                            color = colors.accentOnSky
+                            color = colors.accentInk
                         )
                         ZeusLinearProgress(progress = pct?.let { it / 100f })
                     }
@@ -192,30 +192,30 @@ fun OnlineAcquisitionScreen(
 
             state.statusMessage?.let { msg ->
                 item(key = "status") {
-                    Text(msg, style = type.caption, color = colors.textOnSkySecondary)
+                    Text(msg, style = type.caption, color = colors.muted)
                 }
             }
 
             if (state.searchResults.isNotEmpty()) {
-                item(key = "results_header") { ZeusSectionHeader(title = "Editions found · ${state.searchResults.size}") }
+                item(key = "results_header") { SectionHeader(title = "Editions found · ${state.searchResults.size}") }
                 itemsIndexed(state.searchResults, key = { idx, item -> "${idx}_${item.idempotency_key}" }) { _, item ->
                     val isQueuingThis = state.queuingKey == item.idempotency_key
-                    GlassSection {
-                        ZeusListRow(
+                    SectionCard {
+                        MenuRow(
                             title = item.title,
                             subtitle = "${item.authors.joinToString()} · ${item.source}",
                             icon = Icons.Rounded.MenuBook
                         ) {
-                            MetaLabel(text = item.format, accent = true)
+                            Eyebrow(text = item.format, accent = true)
                         }
-                        PrimaryPillButton(
+                        PrimaryButton(
                             label = if (isQueuingThis) "Queuing… ${state.activeElapsedSeconds}s" else "Queue to server",
                             icon = Icons.Rounded.Download,
                             leadingIcon = true,
                             onClick = { viewModel.queueDownload(item) },
                             enabled = state.queuingKey == null && state.activeProgressPercent == null,
                             height = ZeusSpacing.secondaryButtonHeight,
-                            shimmer = false,
+                            shine = false,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -223,10 +223,10 @@ fun OnlineAcquisitionScreen(
             }
 
             if (state.transfers.isNotEmpty()) {
-                item(key = "transfers_header") { ZeusSectionHeader(title = "Transfers · ${state.transfers.size}") }
+                item(key = "transfers_header") { SectionHeader(title = "Transfers · ${state.transfers.size}") }
                 itemsIndexed(state.transfers, key = { idx, job -> "${idx}_${job.job_id}" }) { _, job ->
-                    GlassSection {
-                        ZeusListRow(
+                    SectionCard {
+                        MenuRow(
                             title = job.title,
                             subtitle = "${job.state} · ${job.progress_percent}% · ${job.format.uppercase()}",
                             icon = Icons.Rounded.Download
@@ -234,7 +234,7 @@ fun OnlineAcquisitionScreen(
                         ZeusLinearProgress(progress = job.progress_percent / 100f)
                         Row(horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
                             if (job.state == "NeedsBrowser" && !job.browser_url.isNullOrBlank()) {
-                                GlassPillButton(
+                                SecondaryButton(
                                     label = "Continue in browser",
                                     icon = Icons.Rounded.OpenInBrowser,
                                     onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, job.browser_url.toUri())) }
@@ -243,21 +243,21 @@ fun OnlineAcquisitionScreen(
                             when {
                                 job.state == "ReadyOnServer" -> {
                                     val isDownloading = state.activeProgressPercent != null
-                                    PrimaryPillButton(
+                                    PrimaryButton(
                                         label = if (isDownloading) "Downloading ${state.activeProgressPercent}%" else "Download to phone",
                                         icon = Icons.Rounded.Download,
                                         leadingIcon = true,
                                         onClick = { viewModel.downloadToPhone(job) },
                                         enabled = !isDownloading,
                                         height = ZeusSpacing.secondaryButtonHeight,
-                                        shimmer = false,
+                                        shine = false,
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
                                 job.state == "Failed" || job.state == "Cancelled" ->
-                                    GlassPillButton("Retry", { viewModel.retryTransfer(job.job_id) }, icon = Icons.Rounded.Refresh)
+                                    SecondaryButton("Retry", { viewModel.retryTransfer(job.job_id) }, icon = Icons.Rounded.Refresh)
                                 else ->
-                                    GlassPillButton("Cancel", { viewModel.cancelTransfer(job.job_id) }, icon = Icons.Rounded.Cancel, danger = true)
+                                    SecondaryButton("Cancel", { viewModel.cancelTransfer(job.job_id) }, icon = Icons.Rounded.Cancel, danger = true)
                             }
                         }
                     }
@@ -274,13 +274,13 @@ fun OnlineAcquisitionScreen(
         ) {
             if (state.downloadHistory.isEmpty()) {
                 Text(
-                    "No books downloaded in this session yet. Downloaded books appear directly in Olympus.",
+                    "No books downloaded in this session yet. Downloaded books appear directly in your Library.",
                     style = type.body,
-                    color = colors.textOnSkySecondary
+                    color = colors.muted
                 )
             } else {
                 state.downloadHistory.forEach { h ->
-                    ZeusListRow(title = h.title, subtitle = "${h.format.uppercase()} · ${h.source} · ${h.state}", icon = Icons.Rounded.MenuBook)
+                    MenuRow(title = h.title, subtitle = "${h.format.uppercase()} · ${h.source} · ${h.state}", icon = Icons.Rounded.MenuBook)
                 }
             }
         }

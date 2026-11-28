@@ -55,6 +55,7 @@ Thumbs.db
 relay/node_modules/
 relay/.wrangler/
 
-# Stormlight matrix snapshots: commit only after the design is approved (see docs/CLAUDE_UI_HANDOFF.md)
+# Sunset snapshot matrix output (record baselines deliberately; see design/sunset/DESIGN.md)
+android/app/src/test/snapshots/sunset/
 android/app/src/test/snapshots/stormlight/
 android/.kotlin/

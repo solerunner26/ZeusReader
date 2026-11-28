@@ -1,20 +1,19 @@
 package com.solerunner26.zeusreader.ui.stats
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.AutoStories
-import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,80 +21,107 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.solerunner26.zeusreader.reader.prefs.AppUiConfig
-import com.solerunner26.zeusreader.ui.components.MetaLabel
+import com.solerunner26.zeusreader.ui.components.CrownArtifact
+import com.solerunner26.zeusreader.ui.components.FlameArtifact
+import com.solerunner26.zeusreader.ui.components.MenuRow
+import com.solerunner26.zeusreader.ui.components.ProgressBar
 import com.solerunner26.zeusreader.ui.components.ProgressRing
-import com.solerunner26.zeusreader.ui.components.StatTile
-import com.solerunner26.zeusreader.ui.components.StickerChip
+import com.solerunner26.zeusreader.ui.components.SectionCard
+import com.solerunner26.zeusreader.ui.components.Tone
+import com.solerunner26.zeusreader.ui.components.TrophyArtifact
+import com.solerunner26.zeusreader.ui.components.ZeusCard
+import com.solerunner26.zeusreader.ui.components.ZeusDivider
 import com.solerunner26.zeusreader.ui.components.ZeusTopBar
+import com.solerunner26.zeusreader.ui.components.radialGlow
 import com.solerunner26.zeusreader.ui.components.rememberNavBarClearance
-import com.solerunner26.zeusreader.ui.theme.GlassSurface
+import com.solerunner26.zeusreader.ui.components.staggerIn
 import com.solerunner26.zeusreader.ui.theme.ZeusSizes
 import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
 import com.solerunner26.zeusreader.ui.theme.ZeusTheme
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
 
 @Composable
 fun StatsScreen(
     viewModel: StatsViewModel,
     onBack: () -> Unit,
     @Suppress("UNUSED_PARAMETER") uiConfig: AppUiConfig = AppUiConfig(),
-    @Suppress("UNUSED_PARAMETER") darkTheme: Boolean = isSystemInDarkTheme(),
+    @Suppress("UNUSED_PARAMETER") darkTheme: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refresh() }
     StatsContent(state = state, onBack = onBack, modifier = modifier)
 }
 
+private data class Badge(val title: String, val current: Int, val target: Int, val art: @Composable () -> Unit)
+
 @Composable
 internal fun StatsContent(state: ReadingStatsUiState, onBack: () -> Unit, modifier: Modifier = Modifier) {
-    val colors = ZeusTheme.colors
+    val c = ZeusTheme.colors
     val type = ZeusTheme.type
-    Column(modifier = modifier.fillMaxSize().statusBarsPadding()) {
-        ZeusTopBar(title = "Reading stats", subtitle = "Your charge, streak and harvest", onBack = onBack)
+    val today = LocalDate.now()
+    val monthGoal = state.dailyGoalMinutes * today.lengthOfMonth()
+    val monthProgress = if (monthGoal > 0) state.monthMinutes.toFloat() / monthGoal else 0f
+    val badges = listOf(
+        Badge("Bookworm · 10 books", state.totalBooks, 10) { CrownArtifact(ZeusSizes.artifactSmall) },
+        Badge("On fire · 30-day streak", state.currentStreakDays, 30) { FlameArtifact(ZeusSizes.artifactSmall) },
+        Badge("Word collector · 50 words", state.totalVocabWords, 50) { CrownArtifact(ZeusSizes.artifactSmall) },
+        Badge("Highlighter · 25 highlights", state.totalPassages, 25) { FlameArtifact(ZeusSizes.artifactSmall) },
+        Badge("Marathon · 20 hours read", state.totalMinutes / 60, 20) { TrophyArtifact(ZeusSizes.artifactSmall, float = false) }
+    )
+    Column(modifier.fillMaxSize().statusBarsPadding()) {
+        ZeusTopBar("Your ${today.month.getDisplayName(TextStyle.FULL, Locale.getDefault())}", subtitle = "Reading stats & badges", onBack = onBack)
         Column(
-            modifier = Modifier
+            Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = ZeusSpacing.gutter)
                 .padding(bottom = rememberNavBarClearance())
-                .widthIn(max = ZeusSizes.contentMaxWidth)
                 .testTag("stats_screen"),
-            verticalArrangement = Arrangement.spacedBy(ZeusSpacing.lg)
+            verticalArrangement = Arrangement.spacedBy(ZeusSpacing.section)
         ) {
-            GlassSurface(modifier = Modifier.fillMaxWidth(), neon = true) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(ZeusSpacing.cardPadding),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.lg)
-                ) {
-                    val progress = if (state.totalBooks > 0) state.booksInProgress.toFloat() / state.totalBooks else 0f
-                    ProgressRing(progress = progress, size = ZeusSizes.chargeRing, stroke = ZeusSizes.chargeRingStroke) {
-                        Text("${state.currentStreakDays}", style = type.displayNumber, color = colors.textOnSky, maxLines = 1)
-                    }
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)) {
-                        MetaLabel(text = "Current streak", accent = true)
-                        Text(
-                            text = if (state.currentStreakDays == 1) "1 day of lightning" else "${state.currentStreakDays} days of lightning",
-                            style = type.headline,
-                            color = colors.textOnSky,
-                            maxLines = 2
-                        )
-                        Text("${state.activeReadingDays} active reading days recorded", style = type.caption, color = colors.textOnSkySecondary)
+            ZeusCard(Modifier.fillMaxWidth().staggerIn(0)) {
+                Box(Modifier.fillMaxWidth().radialGlow(c.glow, 0.5f).padding(vertical = ZeusSpacing.sm), contentAlignment = Alignment.Center) {
+                    ProgressRing(monthProgress) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("${(monthProgress * 100).toInt().coerceAtMost(999)}%", style = type.number, color = c.ink)
+                            Text("of ${monthGoal / 60} h goal", style = type.caption, color = c.muted)
+                        }
                     }
                 }
             }
-            StickerChip(text = "Keep the charge alive today", icon = Icons.Rounded.Bolt, rotation = -2f, cream = true)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)) {
-                StatTile(value = "${state.totalBooks}", label = "Books in Olympus", caption = "${state.booksInProgress} in progress", icon = Icons.Rounded.AutoStories, modifier = Modifier.weight(1f))
-                StatTile(value = "${state.totalPassages}", label = "Sparks saved", caption = "Offline quotes", icon = Icons.Rounded.AutoAwesome, modifier = Modifier.weight(1f))
+            ZeusCard(Modifier.fillMaxWidth().staggerIn(1)) {
+                MenuRow("Time read this month", icon = Icons.Rounded.Schedule, value = minutesLabel(state.monthMinutes))
+                ZeusDivider()
+                MenuRow("Books in progress", icon = Icons.AutoMirrored.Rounded.MenuBook, tone = Tone.Info, value = "${state.booksInProgress} of ${state.totalBooks}")
+                ZeusDivider()
+                MenuRow("Highlights saved", icon = Icons.Rounded.AutoAwesome, tone = Tone.Rose, value = "${state.totalPassages}")
+                ZeusDivider()
+                MenuRow("Words collected", icon = Icons.Rounded.Translate, tone = Tone.Ok, value = "${state.totalVocabWords} · ${state.dueVocabWords} due")
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)) {
-                StatTile(value = "${state.totalVocabWords}", label = "Words collected", caption = "${state.dueVocabWords} due for review", icon = Icons.Rounded.Translate, modifier = Modifier.weight(1f))
-                StatTile(value = "${state.activeReadingDays}", label = "Reading days", caption = "All time", icon = Icons.Rounded.Bolt, modifier = Modifier.weight(1f))
+            SectionCard(title = "Badges", modifier = Modifier.staggerIn(2)) {
+                badges.forEach { b ->
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)) {
+                        b.art()
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xsPlus)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(b.title, style = type.label, color = c.ink, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                                Text("${b.current.coerceAtMost(b.target)}/${b.target}", style = type.caption, color = c.muted)
+                            }
+                            ProgressBar(b.current.toFloat() / b.target, height = ZeusSizes.progressThin)
+                        }
+                    }
+                }
             }
         }
     }
 }
+
+internal fun minutesLabel(minutes: Int): String = if (minutes < 60) "$minutes min" else "${minutes / 60} h ${minutes % 60} m"

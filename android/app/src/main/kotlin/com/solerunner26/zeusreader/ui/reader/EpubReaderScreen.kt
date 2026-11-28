@@ -15,13 +15,14 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.BorderColor
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Translate
-import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -43,12 +44,12 @@ import androidx.fragment.app.FragmentContainerView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.solerunner26.zeusreader.reader.epub.EpubSearchResultItem
 import com.solerunner26.zeusreader.reader.epub.EpubTocItem
-import com.solerunner26.zeusreader.ui.components.GlassIconButton
-import com.solerunner26.zeusreader.ui.components.GlassPillButton
-import com.solerunner26.zeusreader.ui.components.MetaLabel
+import com.solerunner26.zeusreader.ui.components.CircleIconButton
+import com.solerunner26.zeusreader.ui.components.SecondaryButton
+import com.solerunner26.zeusreader.ui.components.Eyebrow
 import com.solerunner26.zeusreader.ui.components.ZeusBottomSheet
 import com.solerunner26.zeusreader.ui.components.ZeusLinearProgress
-import com.solerunner26.zeusreader.ui.components.ZeusListRow
+import com.solerunner26.zeusreader.ui.components.MenuRow
 import com.solerunner26.zeusreader.ui.components.ZeusTextField
 import com.solerunner26.zeusreader.ui.dictionary.DictionaryBottomSheet
 import com.solerunner26.zeusreader.ui.passages.SavePassageBottomSheet
@@ -139,10 +140,11 @@ fun EpubReaderScreen(
 
     val ready = uiState as? EpubReaderUiState.Ready
     val tools = listOf(
-        OrbTool("Lens", Icons.Rounded.Translate, enabled = ready != null, active = translatedModeEnabled) {
+        ReaderTool("Contents", Icons.AutoMirrored.Rounded.FormatListBulleted, enabled = ready != null) { showTocSheet = true },
+        ReaderTool("Translate", Icons.Rounded.Translate, enabled = ready != null, active = translatedModeEnabled) {
             viewModel.toggleTranslatedReadingMode(!translatedModeEnabled)
         },
-        OrbTool("Zap a word", Icons.Rounded.Bolt, enabled = ready != null) {
+        ReaderTool("Dictionary", Icons.AutoMirrored.Rounded.MenuBook, enabled = ready != null) {
             scope.launch {
                 val sel = currentSelectionText()
                 selectionSnippet = sel
@@ -152,51 +154,50 @@ fun EpubReaderScreen(
                 showDictionarySheet = true
             }
         },
-        OrbTool("Vibe & type", Icons.Rounded.Tune) { showTypographySheet = true },
-        OrbTool("Listen", Icons.AutoMirrored.Rounded.VolumeUp, enabled = ready != null) {
+        ReaderTool("Listen", Icons.AutoMirrored.Rounded.VolumeUp, enabled = ready != null) {
             scope.launch {
                 listenText = currentSelectionText().ifBlank { viewModel.currentSectionPlainText() }
             }
         },
-        OrbTool("Spark it", Icons.Rounded.AutoAwesome, enabled = ready != null) {
+        ReaderTool("Save highlight", Icons.Rounded.AutoAwesome, enabled = ready != null) {
             scope.launch {
                 selectionSnippet = currentSelectionText()
                 showSavePassageSheet = true
             }
         },
-        OrbTool("Glow", Icons.Rounded.BorderColor) {
+        ReaderTool("Highlights", Icons.Rounded.BorderColor) {
             scope.launch {
                 selectionSnippet = currentSelectionText()
                 showHighlightsSheet = true
             }
-        },
-        OrbTool("Contents", Icons.AutoMirrored.Rounded.FormatListBulleted, enabled = ready != null) { showTocSheet = true }
+        }
     )
     val fly = ready?.tocItems?.takeIf { it.size > 1 }?.let { toc ->
         val currentIdx = toc.indexOfLast { it.title == ready.currentChapterTitle }.coerceAtLeast(0)
-        FlyModel(
+        JumpModel(
             count = toc.size,
             current = currentIdx,
             unitLabel = "chapters",
             labelFor = { i -> toc.getOrNull(i)?.title.orEmpty() },
-            onFly = { i -> toc.getOrNull(i)?.let { navigatorRef?.go(it.link, animated = true) } }
+            onJump = { i -> toc.getOrNull(i)?.let { navigatorRef?.go(it.link, animated = true) } }
         )
     }
 
-    StormlightReaderFrame(
+    ReaderFrame(
         title = title,
         meta = ready?.currentChapterTitle.orEmpty(),
         paperColor = settings.theme.backgroundColor,
         onBack = onBack,
         progressFraction = ready?.currentProgressionPercent?.let { it / 100f },
-        progressLabel = ready?.let { "${it.currentProgressionPercent}% · drag the orb to fly" } ?: "Opening…",
+        progressLabel = ready?.let { "${it.currentProgressionPercent}%" } ?: "Opening…",
         tools = tools,
-        fly = fly,
+        jump = fly,
         onPrevious = { navigatorRef?.goBackward(animated = true) },
         onNext = { navigatorRef?.goForward(animated = true) },
         modifier = modifier,
         actions = {
-            GlassIconButton(Icons.Rounded.Search, "Search in book", { showSearchSheet = true }, enabled = ready?.capabilities?.search == true)
+            CircleIconButton(Icons.Rounded.TextFields, "Appearance", { showTypographySheet = true })
+            CircleIconButton(Icons.Rounded.Search, "Search in book", { showSearchSheet = true }, enabled = ready?.capabilities?.search == true)
         }
     ) {
         when (val state = uiState) {
@@ -382,7 +383,7 @@ fun EpubReaderScreen(
     if (showSavePassageSheet) {
         val quote = selectionSnippet.ifBlank { ready?.currentChapterTitle.orEmpty() }
         SavePassageBottomSheet(
-            quotePreview = quote.ifBlank { "Select text on the page first, then tap Spark it." },
+            quotePreview = quote.ifBlank { "Select text on the page first, then tap Save highlight." },
             folders = passageFolders,
             onCreateFolder = viewModel::createPassageFolder,
             onSave = { folderId, note, _ ->
@@ -411,14 +412,14 @@ private fun EpubTocBottomSheet(
 ) {
     ZeusBottomSheet(onDismissRequest = onDismiss, title = "Contents", subtitle = "${items.size} chapters") {
         if (items.isEmpty()) {
-            Text("No table of contents in this EPUB.", style = ZeusTheme.type.body, color = ZeusTheme.colors.textOnSkySecondary)
+            Text("No table of contents in this EPUB.", style = ZeusTheme.type.body, color = ZeusTheme.colors.muted)
         } else {
             items.forEachIndexed { index, item ->
-                ZeusListRow(
+                MenuRow(
                     title = item.title,
                     modifier = Modifier.padding(start = ZeusSpacing.md * item.depth.coerceAtMost(3)),
                     onClick = { onSelect(item) },
-                    leading = { MetaLabel(text = "${index + 1}".padStart(2, '0'), accent = item.title == currentTitle) }
+                    leading = { Eyebrow(text = "${index + 1}".padStart(2, '0'), accent = item.title == currentTitle) }
                 )
             }
         }
@@ -445,11 +446,11 @@ private fun EpubSearchBottomSheet(
                 keyboardActions = KeyboardActions(onSearch = { if (query.isNotBlank()) onSearch(query) }),
                 modifier = Modifier.weight(1f)
             )
-            GlassPillButton(label = "Find", onClick = { onSearch(query) }, enabled = query.isNotBlank())
+            SecondaryButton(label = "Find", onClick = { onSearch(query) }, enabled = query.isNotBlank())
         }
         if (isSearching) ZeusLinearProgress()
         results.forEach { match ->
-            ZeusListRow(title = match.chapterTitle, subtitle = match.snippet, onClick = { onSelect(match) }, modifier = Modifier.fillMaxWidth())
+            MenuRow(title = match.chapterTitle, subtitle = match.snippet, onClick = { onSelect(match) }, modifier = Modifier.fillMaxWidth())
         }
     }
 }

@@ -36,10 +36,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bolt
-import com.solerunner26.zeusreader.ui.components.GlassPillButton
-import com.solerunner26.zeusreader.ui.components.PrimaryPillButton
-import com.solerunner26.zeusreader.ui.components.StickerChip
-import com.solerunner26.zeusreader.ui.theme.GlassSurface
+import com.solerunner26.zeusreader.ui.components.SecondaryButton
+import com.solerunner26.zeusreader.ui.components.PrimaryButton
+import com.solerunner26.zeusreader.ui.components.AccentBadge
 import com.solerunner26.zeusreader.ui.theme.ZeusSizes
 import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
 import com.solerunner26.zeusreader.ui.theme.ZeusTheme
@@ -264,19 +263,19 @@ fun ChapterBreathCard(
 ) {
     val colors = ZeusTheme.colors
     val type = ZeusTheme.type
-    GlassSurface(
+    com.solerunner26.zeusreader.ui.components.ZeusCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(ZeusSpacing.lg)
             .testTag("chapter_breath_card"),
-        neon = true
+        selected = true
     ) {
         Column(
             modifier = Modifier.padding(ZeusSpacing.xl),
             verticalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
         ) {
-            StickerChip(text = "Chapter Strike", icon = Icons.Rounded.Bolt, accentFill = true, rotation = -3f)
-            Text(text = chapterTitle, style = type.headline, color = colors.textOnSky)
+            AccentBadge(text = "Chapter Strike", icon = Icons.Rounded.Bolt)
+            Text(text = chapterTitle, style = type.headline, color = colors.ink)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
@@ -289,8 +288,8 @@ fun ChapterBreathCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
             ) {
-                GlassPillButton(label = "Stay here", onClick = onDismiss, modifier = Modifier.weight(1f))
-                PrimaryPillButton(label = "Next chapter", onClick = onNextChapter, height = ZeusSpacing.secondaryButtonHeight, modifier = Modifier.weight(1f))
+                SecondaryButton(label = "Stay here", onClick = onDismiss, modifier = Modifier.weight(1f))
+                PrimaryButton(label = "Next chapter", onClick = onNextChapter, height = ZeusSpacing.secondaryButtonHeight, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -300,7 +299,7 @@ fun ChapterBreathCard(
 private fun BreathStat(label: String, value: String, modifier: Modifier = Modifier) {
     val colors = ZeusTheme.colors
     Column(modifier = modifier) {
-        Text(value, style = ZeusTheme.type.numberMedium, color = colors.textOnSky, maxLines = 1)
-        Text(label, style = ZeusTheme.type.labelSmall, color = colors.textOnSkySecondary, maxLines = 3)
+        Text(value, style = ZeusTheme.type.numberSmall, color = colors.ink, maxLines = 1)
+        Text(label, style = ZeusTheme.type.tiny, color = colors.muted, maxLines = 3)
     }
 }

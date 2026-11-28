@@ -4,8 +4,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 
 /**
- * Activity-level theme. The sky comes from [hue] (Theme Pack), [darkTheme] picks
- * Night (dark) or Daylight (light) mood, [pureBlackOled] uses the OLED paper.
+ * Activity-level theme. [hue] selects the theme pack, [darkTheme] picks Night or Day,
+ * [pureBlackOled] uses true black.
  */
 @Composable
 fun ZeusReaderTheme(
@@ -15,19 +15,10 @@ fun ZeusReaderTheme(
     animateHue: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val sky = ZeusSky.fromHue(hue)
-    val paper = when {
-        pureBlackOled -> ZeusPaper.OLED
-        darkTheme -> ZeusPaper.NIGHT
-        else -> ZeusPaper.CLOUD
+    val mode = when {
+        pureBlackOled -> ZeusMode.OLED
+        darkTheme -> ZeusMode.NIGHT
+        else -> ZeusMode.DAY
     }
-    ZeusTheme(
-        sky = sky,
-        paper = paper,
-        darkTheme = darkTheme,
-        reduceMotion = !animateHue,
-        hueOverride = hue,
-        daylight = !darkTheme && !pureBlackOled,
-        content = content
-    )
+    ZeusTheme(pack = ZeusPack.fromHue(hue), mode = mode, reduceMotion = !animateHue, hueOverride = hue, content = content)
 }

@@ -59,10 +59,10 @@ import androidx.core.content.FileProvider
 import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.solerunner26.zeusreader.R
-import com.solerunner26.zeusreader.ui.components.GlassPillButton
-import com.solerunner26.zeusreader.ui.components.GlassSection
-import com.solerunner26.zeusreader.ui.components.MetaLabel
-import com.solerunner26.zeusreader.ui.components.PrimaryPillButton
+import com.solerunner26.zeusreader.ui.components.SecondaryButton
+import com.solerunner26.zeusreader.ui.components.SectionCard
+import com.solerunner26.zeusreader.ui.components.Eyebrow
+import com.solerunner26.zeusreader.ui.components.PrimaryButton
 import com.solerunner26.zeusreader.ui.components.ZeusChip
 import com.solerunner26.zeusreader.ui.components.ZeusSegmented
 import com.solerunner26.zeusreader.ui.components.ZeusSnackbarHost
@@ -72,7 +72,7 @@ import com.solerunner26.zeusreader.ui.theme.LocalZeusPalette
 import com.solerunner26.zeusreader.ui.theme.ZeusPalette
 import com.solerunner26.zeusreader.ui.theme.ZeusShapes
 import com.solerunner26.zeusreader.ui.theme.ZeusSizes
-import com.solerunner26.zeusreader.ui.theme.ZeusSky
+import com.solerunner26.zeusreader.ui.theme.ZeusPack
 import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
 import com.solerunner26.zeusreader.ui.theme.ZeusTheme
 import com.solerunner26.zeusreader.ui.theme.contrastRatio
@@ -160,17 +160,17 @@ fun renderShareCardBitmap(
 
         CardStyle.INK -> {
             // Aurora: sky base gradient + two glows + 38% dark veil (DESIGN.md §7)
-            val sky = ZeusSky.fromHue(hueAngle)
+            val sky = ZeusPack.fromHue(hueAngle)
             val basePaint = Paint().apply {
-                shader = LinearGradient(0f, 0f, w.toFloat(), h.toFloat(), sky.baseA.toArgb(), sky.baseB.toArgb(), Shader.TileMode.CLAMP)
+                shader = LinearGradient(0f, 0f, w.toFloat(), h.toFloat(), ZeusPalette.obsidian.toArgb(), ZeusPalette.charcoal.toArgb(), Shader.TileMode.CLAMP)
             }
             canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), basePaint)
             val g1 = Paint().apply {
-                shader = android.graphics.RadialGradient(w * 0.15f, h * 0.12f, w * 0.75f, sky.glow1.copy(alpha = 0.75f).toArgb(), Color.Transparent.toArgb(), Shader.TileMode.CLAMP)
+                shader = android.graphics.RadialGradient(w * 0.15f, h * 0.12f, w * 0.75f, sky.g1.copy(alpha = 0.75f).toArgb(), Color.Transparent.toArgb(), Shader.TileMode.CLAMP)
             }
             canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), g1)
             val g2 = Paint().apply {
-                shader = android.graphics.RadialGradient(w * 0.9f, h * 0.7f, w * 0.7f, sky.glow2.copy(alpha = 0.6f).toArgb(), Color.Transparent.toArgb(), Shader.TileMode.CLAMP)
+                shader = android.graphics.RadialGradient(w * 0.9f, h * 0.7f, w * 0.7f, sky.g2.copy(alpha = 0.6f).toArgb(), Color.Transparent.toArgb(), Shader.TileMode.CLAMP)
             }
             canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), g2)
             canvas.drawColor(Color.Black.copy(alpha = 0.38f).toArgb())
@@ -203,8 +203,8 @@ fun renderShareCardBitmap(
     val contentWidth = (w - 2f * padding).toInt().coerceAtLeast(100)
     val quoteMarkColor = when (effectiveStyle) {
         CardStyle.COVER_BLUR -> Color.White
-        CardStyle.PAPER -> ZeusSky.fromHue(hueAngle).accentInk
-        CardStyle.INK -> ZeusSky.fromHue(hueAngle).accent
+        CardStyle.PAPER -> ZeusPack.fromHue(hueAngle).accentInkDay
+        CardStyle.INK -> ZeusPack.fromHue(hueAngle).g2
     }
 
     val typeface = loadCardTypeface(context, language)
@@ -353,25 +353,25 @@ fun CardStudioScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = if (size == CardSize.STORY_9_16) ZeusSizes.coverFlowSideWidth / 2 else ZeusSpacing.none)
+                            .padding(horizontal = if (size == CardSize.STORY_9_16) ZeusSizes.coverShelfWidth / 2 else ZeusSpacing.none)
                             .aspectRatio(size.widthPx.toFloat() / size.heightPx.toFloat())
                             .neonBorder(shape = ZeusShapes.cardSmall)
                             .clip(ZeusShapes.cardSmall)
                     ) {
                         Image(
                             bitmap = rendered.bitmap.asImageBitmap(),
-                            contentDescription = "Spark card preview",
+                            contentDescription = "Share card preview",
                             modifier = Modifier.fillMaxSize()
                         )
                     }
                     val contrast = contrastRatio(rendered.effectiveTextColor, rendered.effectiveBackdropSample)
-                    MetaLabel(text = "Readability ${String.format(java.util.Locale.US, "%.1f", contrast)}:1" + if (contrast >= 4.5) " · passes" else " · low", accent = contrast >= 4.5)
+                    Eyebrow(text = "Readability ${String.format(java.util.Locale.US, "%.1f", contrast)}:1" + if (contrast >= 4.5) " · passes" else " · low", accent = contrast >= 4.5)
                     if (rendered.needsTrimHint) {
-                        Text("This spark is long — trim it in the editor for best legibility.", style = type.caption, color = colors.accentOnSky)
+                        Text("This spark is long — trim it in the editor for best legibility.", style = type.caption, color = colors.accentInk)
                     }
                 }
 
-                GlassSection(title = "Style") {
+                SectionCard(title = "Style") {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)) {
                         CardStyle.entries.forEach { entry ->
                             val enabled = entry != CardStyle.COVER_BLUR || hasCover
@@ -383,13 +383,13 @@ fun CardStudioScreen(
                             )
                         }
                     }
-                    MetaLabel(text = "Size", accent = true)
+                    Eyebrow(text = "Size", accent = true)
                     ZeusSegmented(
                         options = listOf("Square", "Post 4:5", "Story 9:16"),
                         selectedIndex = CardSize.entries.indexOf(size),
                         onSelect = { size = CardSize.entries[it] }
                     )
-                    MetaLabel(text = "Format", accent = true)
+                    Eyebrow(text = "Format", accent = true)
                     ZeusSegmented(
                         options = CardFormat.entries.map { it.label },
                         selectedIndex = CardFormat.entries.indexOf(format),
@@ -398,12 +398,12 @@ fun CardStudioScreen(
                 }
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)) {
-                    GlassPillButton(
+                    SecondaryButton(
                         label = "Save",
                         icon = Icons.Rounded.Download,
                         enabled = rendered != null,
                         onClick = {
-                            val bmp = rendered?.bitmap ?: return@GlassPillButton
+                            val bmp = rendered?.bitmap ?: return@SecondaryButton
                             scope.launch {
                                 val ok = saveToGallery(context, bmp, format)
                                 snackbarHostState.showSnackbar(if (ok) "Saved to Pictures/ZeusReader" else "Save failed")
@@ -412,13 +412,13 @@ fun CardStudioScreen(
                         height = ZeusSpacing.primaryButtonHeight,
                         modifier = Modifier.weight(1f)
                     )
-                    PrimaryPillButton(
+                    PrimaryButton(
                         label = "Share",
                         icon = Icons.Rounded.IosShare,
                         enabled = rendered != null,
                         onClick = {
-                            val bmp = rendered?.bitmap ?: return@PrimaryPillButton
-                            val current = passage ?: return@PrimaryPillButton
+                            val bmp = rendered?.bitmap ?: return@PrimaryButton
+                            val current = passage ?: return@PrimaryButton
                             scope.launch {
                                 shareCardViaSheet(context, bmp, format)
                                 viewModel.incrementShareCount(current.id)

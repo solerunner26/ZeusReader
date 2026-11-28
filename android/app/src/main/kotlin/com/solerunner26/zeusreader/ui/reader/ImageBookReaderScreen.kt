@@ -52,10 +52,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import com.solerunner26.zeusreader.ui.components.GlassIconButton
-import com.solerunner26.zeusreader.ui.components.PrimaryPillButton
+import com.solerunner26.zeusreader.ui.components.CircleIconButton
+import com.solerunner26.zeusreader.ui.components.PrimaryButton
 import com.solerunner26.zeusreader.ui.components.ZeusBottomSheet
-import com.solerunner26.zeusreader.ui.components.ZeusListRow
+import com.solerunner26.zeusreader.ui.components.MenuRow
 import com.solerunner26.zeusreader.ui.theme.ZeusSizes
 import com.solerunner26.zeusreader.ui.theme.ZeusTheme
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -83,22 +83,22 @@ fun ImageBookReaderScreen(
     val safeIndex = if (pages.isEmpty()) 0 else currentIndex.coerceIn(0, pages.lastIndex)
     val currentPage = pages.getOrNull(safeIndex)
 
-    StormlightReaderFrame(
+    ReaderFrame(
         title = title,
         meta = currentPage?.displayName.orEmpty(),
-        paperColor = ZeusTheme.colors.sheetBackground,
+        paperColor = ZeusTheme.colors.card,
         onBack = onBack,
         progressFraction = if (pages.size > 1) safeIndex.toFloat() / (pages.size - 1) else null,
         progressLabel = if (pages.isEmpty()) "No pages" else "Page ${safeIndex + 1} / ${pages.size}",
         tools = listOf(
-            OrbTool(stringResource(R.string.reader_reorder_pages), Icons.Rounded.Reorder, enabled = pages.size > 1) { showReorderSheet = true }
+            ReaderTool(stringResource(R.string.reader_reorder_pages), Icons.Rounded.Reorder, enabled = pages.size > 1) { showReorderSheet = true }
         ),
-        fly = if (pages.size > 1) FlyModel(
+        jump = if (pages.size > 1) JumpModel(
             count = pages.size,
             current = safeIndex,
             unitLabel = "pages",
             labelFor = { i -> pages.getOrNull(i)?.displayName ?: "Page ${i + 1}" },
-            onFly = { i -> viewModel.selectPage(i) }
+            onJump = { i -> viewModel.selectPage(i) }
         ) else null,
         onPrevious = viewModel::previousPage,
         onNext = viewModel::nextPage,
@@ -109,7 +109,7 @@ fun ImageBookReaderScreen(
         if (currentPage == null) {
             Text(
                 text = "No image pages available.",
-                color = ZeusTheme.colors.textOnSky,
+                color = ZeusTheme.colors.ink,
                 style = ZeusTheme.type.body,
                 modifier = Modifier.align(Alignment.Center)
             )
@@ -188,19 +188,19 @@ private fun ReorderImagePagesBottomSheet(
 
     ZeusBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.reader_reorder_pages)) {
         draftPages.forEachIndexed { index, page ->
-            ZeusListRow(title = "${index + 1}. ${page.displayName}", titleMaxLines = 1) {
-                GlassIconButton(Icons.Rounded.ArrowUpward, stringResource(R.string.reader_move_up), {
+            MenuRow(title = "${index + 1}. ${page.displayName}", titleMaxLines = 1) {
+                CircleIconButton(Icons.Rounded.ArrowUpward, stringResource(R.string.reader_move_up), {
                     if (index > 0) {
                         draftPages = draftPages.toMutableList().apply { add(index - 1, removeAt(index)) }
                     }
                 }, enabled = index > 0)
-                GlassIconButton(Icons.Rounded.ArrowDownward, stringResource(R.string.reader_move_down), {
+                CircleIconButton(Icons.Rounded.ArrowDownward, stringResource(R.string.reader_move_down), {
                     if (index < draftPages.lastIndex) {
                         draftPages = draftPages.toMutableList().apply { add(index + 1, removeAt(index)) }
                     }
                 }, enabled = index < draftPages.lastIndex)
             }
         }
-        PrimaryPillButton(label = stringResource(R.string.reader_save_order), onClick = { onSave(draftPages) }, modifier = Modifier.fillMaxWidth())
+        PrimaryButton(label = stringResource(R.string.reader_save_order), onClick = { onSave(draftPages) }, modifier = Modifier.fillMaxWidth())
     }
 }

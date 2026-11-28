@@ -30,11 +30,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.solerunner26.zeusreader.ui.components.EmptyState
-import com.solerunner26.zeusreader.ui.components.GlassIconButton
-import com.solerunner26.zeusreader.ui.components.GlassPillButton
-import com.solerunner26.zeusreader.ui.components.GlassSection
-import com.solerunner26.zeusreader.ui.components.MetaLabel
-import com.solerunner26.zeusreader.ui.components.PrimaryPillButton
+import com.solerunner26.zeusreader.ui.components.CircleIconButton
+import com.solerunner26.zeusreader.ui.components.SecondaryButton
+import com.solerunner26.zeusreader.ui.components.SectionCard
+import com.solerunner26.zeusreader.ui.components.Eyebrow
+import com.solerunner26.zeusreader.ui.components.PrimaryButton
 import com.solerunner26.zeusreader.ui.components.ZeusChip
 import com.solerunner26.zeusreader.ui.components.ZeusDialog
 import com.solerunner26.zeusreader.ui.components.ZeusTextField
@@ -92,20 +92,19 @@ fun PassageDetailScreen(
             .testTag("passage_detail_root")
     ) {
         ZeusTopBar(
-            title = "Spark",
+            title = "Highlight",
             subtitle = if (savedFlash) "Saved" else "Edit, file and share",
             onBack = onBack
         ) {
             if (passage != null) {
-                GlassIconButton(Icons.Rounded.Check, "Save spark", save, highlighted = true, tint = colors.accentOnSky)
+                CircleIconButton(Icons.Rounded.Check, "Save highlight", save, tint = colors.accentInk)
             }
         }
         val current = passage
         if (current == null) {
             EmptyState(
-                icon = Icons.Rounded.Lightbulb,
-                title = "Spark not found",
-                message = "It may have faded away. Go back to your star map.",
+                title = "Highlight not found",
+                message = "It may have been deleted. Go back to your highlights.",
                 modifier = Modifier.padding(ZeusSpacing.gutter)
             )
             return@Column
@@ -121,33 +120,33 @@ fun PassageDetailScreen(
                 .widthIn(max = ZeusSizes.contentMaxWidth),
             verticalArrangement = Arrangement.spacedBy(ZeusSpacing.lg)
         ) {
-            GlassSection(neon = true) {
-                MetaLabel(
-                    text = listOfNotNull(book?.title, current.chapterTitle?.takeIf { it.isNotBlank() }, current.pageLabel).joinToString(" · ").ifBlank { "Manual spark" },
+            SectionCard(selected = true) {
+                Eyebrow(
+                    text = listOfNotNull(book?.title, current.chapterTitle?.takeIf { it.isNotBlank() }, current.pageLabel).joinToString(" · ").ifBlank { "Manual highlight" },
                     accent = true,
                     maxLines = 2
                 )
-                Text("“${editedText.ifBlank { current.text }}”", style = type.quote, color = colors.textOnSky)
+                Text("“${editedText.ifBlank { current.text }}”", style = type.quote, color = colors.ink)
                 if (current.originalText.isNotBlank() && current.originalText != current.text) {
-                    MetaLabel(text = "Original kept")
-                    Text(current.originalText, style = type.caption, color = colors.textOnSkySecondary, maxLines = 4)
+                    Eyebrow(text = "Original kept")
+                    Text(current.originalText, style = type.caption, color = colors.muted, maxLines = 4)
                 }
                 val hasLocator = current.locatorJson.isNotBlank() && !current.editionId.isNullOrBlank()
                 if (hasLocator) {
-                    GlassPillButton(
+                    SecondaryButton(
                         label = "Jump to page",
                         icon = Icons.AutoMirrored.Rounded.OpenInNew,
                         onClick = { onOpenInBook(current.editionId!!, current.locatorJson) }
                     )
                 } else {
-                    Text("Manual spark — no book location.", style = type.caption, color = colors.textOnSkyMuted)
+                    Text("Added by hand — no book location.", style = type.caption, color = colors.muted)
                 }
             }
 
-            ZeusTextField(value = editedText, onValueChange = { editedText = it; savedFlash = false }, label = "Spark text", singleLine = false, minLines = 3, modifier = Modifier.fillMaxWidth())
+            ZeusTextField(value = editedText, onValueChange = { editedText = it; savedFlash = false }, label = "Highlight text", singleLine = false, minLines = 3, modifier = Modifier.fillMaxWidth())
             ZeusTextField(value = editedNote, onValueChange = { editedNote = it; savedFlash = false }, label = "Note", singleLine = false, minLines = 2, modifier = Modifier.fillMaxWidth())
 
-            GlassSection(title = "Constellation") {
+            SectionCard(title = "Collection") {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)) {
                     ZeusChip("Unsorted", selectedFolderId == null, { selectedFolderId = null; savedFlash = false })
                     uiState.folders.forEach { folder ->
@@ -160,15 +159,15 @@ fun PassageDetailScreen(
 
             if (onExplainPassage != null || onSuggestTags != null) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
-                    onExplainPassage?.let { explain -> GlassPillButton("Explain this", { explain(current.text) }, modifier = Modifier.weight(1f)) }
-                    onSuggestTags?.let { suggest -> GlassPillButton("Suggest tags", { suggest(current.text) }, modifier = Modifier.weight(1f)) }
+                    onExplainPassage?.let { explain -> SecondaryButton("Explain this", { explain(current.text) }, modifier = Modifier.weight(1f)) }
+                    onSuggestTags?.let { suggest -> SecondaryButton("Suggest tags", { suggest(current.text) }, modifier = Modifier.weight(1f)) }
                 }
             }
 
-            PrimaryPillButton(label = "Save changes", icon = Icons.Rounded.Check, leadingIcon = true, onClick = save, modifier = Modifier.fillMaxWidth())
+            PrimaryButton(label = "Save changes", icon = Icons.Rounded.Check, leadingIcon = true, onClick = save, modifier = Modifier.fillMaxWidth())
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
-                GlassPillButton("Delete", { showDeleteConfirm = true }, icon = Icons.Rounded.DeleteOutline, danger = true, modifier = Modifier.weight(1f))
-                GlassPillButton("Make a card", { onCreateCard(current.id) }, icon = Icons.Rounded.AddPhotoAlternate, modifier = Modifier.weight(1f))
+                SecondaryButton("Delete", { showDeleteConfirm = true }, icon = Icons.Rounded.DeleteOutline, danger = true, modifier = Modifier.weight(1f))
+                SecondaryButton("Make a card", { onCreateCard(current.id) }, icon = Icons.Rounded.AddPhotoAlternate, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -176,7 +175,7 @@ fun PassageDetailScreen(
     if (showDeleteConfirm && passage != null) {
         ZeusDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = "Let this spark fade?",
+            title = "Delete this highlight?",
             confirmLabel = "Delete",
             dangerConfirm = true,
             onConfirm = {
@@ -185,7 +184,7 @@ fun PassageDetailScreen(
                 onBack()
             }
         ) {
-            Text("You can bring it back right after from the Sparks list.", style = type.body, color = colors.textOnSkySecondary)
+            Text("You can undo right after from the Highlights list.", style = type.body, color = colors.muted)
         }
     }
 }

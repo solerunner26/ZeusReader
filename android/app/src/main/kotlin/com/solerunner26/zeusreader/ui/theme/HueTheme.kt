@@ -20,7 +20,7 @@ enum class HuePreset(val hue: Float, val label: String) {
     PLUM(290f, "Plum");
 
     companion object {
-        const val DEFAULT_HUE = 250f
+        const val DEFAULT_HUE = 30f
     }
 }
 

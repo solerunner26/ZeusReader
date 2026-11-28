@@ -32,14 +32,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.testTag
 import com.solerunner26.zeusreader.data.local.PassageFolderEntity
-import com.solerunner26.zeusreader.ui.components.GlassIconButton
-import com.solerunner26.zeusreader.ui.components.GlassPillButton
-import com.solerunner26.zeusreader.ui.components.MetaLabel
-import com.solerunner26.zeusreader.ui.components.PrimaryPillButton
+import com.solerunner26.zeusreader.ui.components.CircleIconButton
+import com.solerunner26.zeusreader.ui.components.SecondaryButton
+import com.solerunner26.zeusreader.ui.components.Eyebrow
+import com.solerunner26.zeusreader.ui.components.PrimaryButton
 import com.solerunner26.zeusreader.ui.components.ZeusBottomSheet
 import com.solerunner26.zeusreader.ui.components.ZeusChip
 import com.solerunner26.zeusreader.ui.components.ZeusTextField
-import com.solerunner26.zeusreader.ui.theme.GlassSurface
 import com.solerunner26.zeusreader.ui.theme.ZeusShapes
 import com.solerunner26.zeusreader.ui.theme.ZeusSizes
 import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
@@ -65,20 +64,20 @@ fun SelectionFloatingToolbar(
             .testTag("selection_floating_toolbar")
             .shadow(ZeusSizes.shadowSoft, ZeusShapes.pill)
             .clip(ZeusShapes.pill)
-            .background(colors.chipSelectedBg)
+            .background(colors.ink)
             .padding(horizontal = ZeusSpacing.xs, vertical = ZeusSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)
     ) {
-        PrimaryPillButton(label = "Spark it", onClick = onSavePassage, icon = Icons.Rounded.AutoAwesome, leadingIcon = true, height = ZeusSpacing.touchMin, shimmer = false)
-        ToolbarText("Glow", onHighlight)
-        ToolbarText("Lens", onTranslate)
+        PrimaryButton(label = "Save", onClick = onSavePassage, icon = Icons.Rounded.AutoAwesome, leadingIcon = true, height = ZeusSpacing.touchMin, shine = false)
+        ToolbarText("Highlight", onHighlight)
+        ToolbarText("Translate", onTranslate)
         Box {
-            GlassIconButton(Icons.Rounded.MoreHoriz, "More selection actions", { showMore = true }, tint = colors.chipSelectedFg)
-            DropdownMenu(expanded = showMore, onDismissRequest = { showMore = false }, containerColor = colors.sheetBackground, shape = ZeusShapes.cardSmall) {
-                DropdownMenuItem(leadingIcon = { Icon(Icons.Rounded.Search, null, tint = colors.accentOnSky) }, text = { Text("Zap (define)", color = colors.textOnSky) }, onClick = { showMore = false; onDefine() })
-                DropdownMenuItem(leadingIcon = { Icon(Icons.Rounded.ContentCopy, null, tint = colors.accentOnSky) }, text = { Text("Copy", color = colors.textOnSky) }, onClick = { showMore = false; onCopy() })
-                DropdownMenuItem(leadingIcon = { Icon(Icons.Rounded.AddPhotoAlternate, null, tint = colors.accentOnSky) }, text = { Text("Make a card", color = colors.textOnSky) }, onClick = { showMore = false; onCreateCard() })
+            CircleIconButton(Icons.Rounded.MoreHoriz, "More selection actions", { showMore = true }, tint = colors.canvas)
+            DropdownMenu(expanded = showMore, onDismissRequest = { showMore = false }, containerColor = colors.card, shape = ZeusShapes.cardSmall) {
+                DropdownMenuItem(leadingIcon = { Icon(Icons.Rounded.Search, null, tint = colors.accentInk) }, text = { Text("Dictionary", color = colors.ink) }, onClick = { showMore = false; onDefine() })
+                DropdownMenuItem(leadingIcon = { Icon(Icons.Rounded.ContentCopy, null, tint = colors.accentInk) }, text = { Text("Copy", color = colors.ink) }, onClick = { showMore = false; onCopy() })
+                DropdownMenuItem(leadingIcon = { Icon(Icons.Rounded.AddPhotoAlternate, null, tint = colors.accentInk) }, text = { Text("Make a card", color = colors.ink) }, onClick = { showMore = false; onCreateCard() })
             }
         }
     }
@@ -90,7 +89,7 @@ private fun ToolbarText(label: String, onClick: () -> Unit) {
     Text(
         text = label,
         style = ZeusTheme.type.label,
-        color = colors.chipSelectedFg,
+        color = colors.canvas,
         modifier = Modifier
             .clip(ZeusShapes.pill)
             .clickable(role = Role.Button, onClick = onClick)
@@ -100,7 +99,7 @@ private fun ToolbarText(label: String, onClick: () -> Unit) {
 
 
 /**
- * "Spark it" capture sheet: quote preview, constellation picker (+ new), note, save / save & card.
+ * Save-highlight sheet: quote preview, collection picker (+ new), note, save / save & card.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -120,20 +119,20 @@ fun SavePassageBottomSheet(
 
     ZeusBottomSheet(
         onDismissRequest = onDismiss,
-        title = "Spark it",
-        subtitle = "Save this line to your star map",
+        title = "Save highlight",
+        subtitle = "Keep this line in your highlights",
         modifier = Modifier.testTag("save_passage_sheet")
     ) {
-        GlassSurface(modifier = Modifier.fillMaxWidth(), shape = ZeusShapes.cardCompact, neon = true) {
+        com.solerunner26.zeusreader.ui.components.ZeusCard(modifier = Modifier.fillMaxWidth(), selected = true, padding = androidx.compose.foundation.layout.PaddingValues(ZeusSpacing.none)) {
             Text(
                 text = "“$quotePreview”",
                 style = type.quote,
-                color = colors.textOnSky,
+                color = colors.ink,
                 maxLines = 5,
                 modifier = Modifier.padding(ZeusSpacing.lg)
             )
         }
-        MetaLabel(text = "Constellation", accent = true)
+        Eyebrow(text = "Collection")
         FlowRow(horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)) {
             ZeusChip("Unsorted", selectedFolderId == null, { selectedFolderId = null })
             folders.forEach { folder ->
@@ -143,8 +142,8 @@ fun SavePassageBottomSheet(
         }
         if (showNewFolderInput) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
-                ZeusTextField(value = newFolderName, onValueChange = { newFolderName = it }, label = "Constellation name", modifier = Modifier.weight(1f))
-                GlassPillButton(
+                ZeusTextField(value = newFolderName, onValueChange = { newFolderName = it }, label = "Collection name", modifier = Modifier.weight(1f))
+                SecondaryButton(
                     label = "Create",
                     enabled = newFolderName.isNotBlank(),
                     onClick = {
@@ -157,13 +156,13 @@ fun SavePassageBottomSheet(
         }
         ZeusTextField(value = note, onValueChange = { note = it }, label = "Note (optional)", singleLine = false, minLines = 2, maxLines = 4, modifier = Modifier.fillMaxWidth())
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)) {
-            GlassPillButton(
+            SecondaryButton(
                 label = "Save",
                 onClick = { onSave(selectedFolderId, note.takeIf { it.isNotBlank() }, false) },
                 height = ZeusSpacing.primaryButtonHeight,
                 modifier = Modifier.weight(1f)
             )
-            PrimaryPillButton(
+            PrimaryButton(
                 label = "Save & card",
                 icon = Icons.Rounded.AddPhotoAlternate,
                 onClick = { onSave(selectedFolderId, note.takeIf { it.isNotBlank() }, true) },

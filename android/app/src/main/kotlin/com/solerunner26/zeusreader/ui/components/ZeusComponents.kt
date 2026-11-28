@@ -1,12 +1,15 @@
 package com.solerunner26.zeusreader.ui.components
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -18,12 +21,14 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,10 +37,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -45,228 +52,239 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import com.solerunner26.zeusreader.ui.theme.GlassSurface
+import com.solerunner26.zeusreader.ui.theme.ZeusMotion
 import com.solerunner26.zeusreader.ui.theme.ZeusShapes
 import com.solerunner26.zeusreader.ui.theme.ZeusSizes
 import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
 import com.solerunner26.zeusreader.ui.theme.ZeusTheme
-import com.solerunner26.zeusreader.ui.theme.liquidGlass
 import com.solerunner26.zeusreader.ui.theme.neonBorder
-import com.solerunner26.zeusreader.ui.theme.rememberHeadingBrush
-import com.solerunner26.zeusreader.ui.theme.rememberPrimaryGradient
+import com.solerunner26.zeusreader.ui.theme.pressScale
+import com.solerunner26.zeusreader.ui.theme.rememberAccentBrush
+import com.solerunner26.zeusreader.ui.theme.zeusCard
 
-/* ---------------------------------------------------------------------------------------------
+/* ============================================================================================
  * Layout helpers
- * ------------------------------------------------------------------------------------------- */
+ * ========================================================================================== */
 
-/** Bottom space content must leave so nothing hides behind the floating dock + navigation bar. */
+/** Bottom space so content never hides behind the bottom navigation bar (+ system nav bar). */
 @Composable
-fun rememberDockClearance(): Dp =
-    ZeusSpacing.dockBottomClearance + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+fun rememberNavClearance(): Dp =
+    ZeusSpacing.navClearance + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-/** Bottom space for screens without the dock (just the navigation bar + breathing room). */
+/** Bottom space for screens without the bottom navigation (system nav bar + breathing room). */
 @Composable
 fun rememberNavBarClearance(): Dp =
     ZeusSpacing.xxl + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-/**
- * Stormlight top bar: optional glass back button, Unbounded title (+ subtitle), trailing actions.
- * Title takes the remaining width and ellipsizes — actions never overlap it.
- */
+/** Caps font scaling for fixed-size artwork (covers, rings, nav) so glyphs never split or clip. */
+@Composable
+fun CappedFontScale(max: Float, content: @Composable () -> Unit) {
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(max)), content = content)
+}
+
+/** Staggered entrance: rises from 10dp and fades from 35% on first composition (never starts invisible). */
+@Composable
+fun Modifier.staggerIn(index: Int): Modifier {
+    val reduce = ZeusTheme.reduceMotion
+    val anim = remember { Animatable(if (reduce) 1f else 0f) }
+    LaunchedEffect(Unit) {
+        if (!reduce) {
+            kotlinx.coroutines.delay(index.coerceAtMost(8) * ZeusMotion.STAGGER_MS.toLong())
+            anim.animateTo(1f, ZeusMotion.fill(false, 600))
+        }
+    }
+    return this.graphicsLayer {
+        val v = anim.value
+        alpha = 0.35f + 0.65f * v.coerceIn(0f, 1f)
+        translationY = (1f - v) * 10f * density
+    }
+}
+
+/* ============================================================================================
+ * Text
+ * ========================================================================================== */
+
+@Composable
+fun Eyebrow(text: String, modifier: Modifier = Modifier, accent: Boolean = true, color: Color? = null, maxLines: Int = 1) {
+    val c = ZeusTheme.colors
+    Text(
+        text = text.uppercase(),
+        style = ZeusTheme.type.eyebrow,
+        color = color ?: if (accent) c.accentInk else c.muted,
+        maxLines = maxLines,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+    )
+}
+
+/** Large screen title + optional muted subtitle. */
+@Composable
+fun ScreenTitle(title: String, modifier: Modifier = Modifier, subtitle: String? = null) {
+    val c = ZeusTheme.colors
+    Column(modifier = modifier) {
+        Text(title, style = ZeusTheme.type.title, color = c.ink, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() })
+        if (!subtitle.isNullOrBlank()) {
+            Text(subtitle, style = ZeusTheme.type.caption, color = c.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+/** Top bar: round back button, title (takes remaining width, ellipsizes) and actions. */
 @Composable
 fun ZeusTopBar(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
-    large: Boolean = false,
-    animatedTitle: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
-    val colors = ZeusTheme.colors
-    val type = ZeusTheme.type
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = ZeusSpacing.topBarHeight)
-            .padding(horizontal = ZeusSpacing.gutter, vertical = ZeusSpacing.sm),
+            .padding(horizontal = ZeusSpacing.gutter, vertical = ZeusSpacing.xsPlus),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
     ) {
-        if (onBack != null) {
-            GlassIconButton(
-                icon = Icons.AutoMirrored.Rounded.ArrowBack,
-                contentDescription = "Back",
-                onClick = onBack
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            val style = if (large) type.screenTitle else type.headline
-            if (animatedTitle) {
-                Text(
-                    text = title,
-                    style = style.copy(brush = rememberHeadingBrush()),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.semantics { heading() }
-                )
-            } else {
-                Text(
-                    text = title,
-                    style = style,
-                    color = colors.textOnSky,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.semantics { heading() }
-                )
-            }
-            if (!subtitle.isNullOrBlank()) {
-                Text(
-                    text = subtitle,
-                    style = type.caption,
-                    color = colors.textOnSkySecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            content = actions
-        )
+        if (onBack != null) CircleIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Back", onBack)
+        ScreenTitle(title = title, subtitle = subtitle, modifier = Modifier.weight(1f))
+        Row(horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm), verticalAlignment = Alignment.CenterVertically, content = actions)
     }
 }
 
-/**
- * Caps text scaling for fixed-size artwork (covers, rings, dock) so glyphs never split words or clip.
- * Content stays readable via its own semantics / the surrounding UI, which scales normally.
- */
-@Composable
-fun CappedFontScale(max: Float, content: @Composable () -> Unit) {
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    CompositionLocalProvider(
-        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density, density.fontScale.coerceAtMost(max)),
-        content = content
-    )
-}
-
-/* ---------------------------------------------------------------------------------------------
+/* ============================================================================================
  * Buttons
- * ------------------------------------------------------------------------------------------- */
+ * ========================================================================================== */
 
+/** 44–48dp round card button with soft shadow; optional accent badge dot (e.g. unread). */
 @Composable
-fun GlassIconButton(
+fun CircleIconButton(
     icon: ImageVector,
     contentDescription: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    tint: Color = ZeusTheme.colors.textOnSky,
-    size: Dp = ZeusSpacing.touchMin,
-    highlighted: Boolean = false
+    badge: Boolean = false,
+    filled: Boolean = false,
+    tint: Color? = null,
+    size: Dp = ZeusSpacing.touchMin
 ) {
-    val colors = ZeusTheme.colors
-    val base = modifier
-        .size(size)
-        .then(if (highlighted) Modifier.neonBorder(shape = ZeusShapes.circle, animate = false) else Modifier)
-        .liquidGlass(shape = ZeusShapes.circle)
-        .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-    Box(modifier = base, contentAlignment = Alignment.Center) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = if (enabled) tint else colors.textOnSkyMuted,
-            modifier = Modifier.size(ZeusSizes.iconMd)
-        )
-    }
-}
-
-/** Primary action: gradient pill (accent → glow2) with dark sky-base text and a soft glow. */
-@Composable
-fun PrimaryPillButton(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    icon: ImageVector? = null,
-    enabled: Boolean = true,
-    height: Dp = ZeusSpacing.primaryButtonHeight,
-    shimmer: Boolean = true,
-    leadingIcon: Boolean = false
-) {
-    val colors = ZeusTheme.colors
-    val sky = ZeusTheme.sky
-    val type = ZeusTheme.type
-    val brush = rememberPrimaryGradient(animate = shimmer)
-    val alpha = if (enabled) 1f else 0.45f
-    val glow = if (ZeusTheme.paper.isEink || !enabled) ZeusSizes.elevationNone else ZeusSizes.shadowSoft
+    val c = ZeusTheme.colors
+    val source = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
-            .heightIn(min = height)
-            .shadow(glow, ZeusShapes.pill, ambientColor = sky.glow2, spotColor = sky.glow2)
-            .clip(ZeusShapes.pill)
-            .background(brush, alpha = alpha)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .padding(horizontal = ZeusSpacing.xl, vertical = ZeusSpacing.sm),
+            .size(size)
+            .pressScale(source)
+            .then(
+                if (filled) {
+                    Modifier
+                        .shadow(ZeusSizes.shadowCard, ZeusShapes.circle, ambientColor = c.glow, spotColor = c.glow)
+                        .clip(ZeusShapes.circle)
+                        .background(rememberAccentBrush())
+                } else {
+                    Modifier.zeusCard(ZeusShapes.circle)
+                }
+            )
+            .clickable(source, indication = androidx.compose.material3.ripple(), enabled = enabled, role = Role.Button, onClick = onClick)
+            .semantics { if (contentDescription != null) this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)
-        ) {
-            val fg = colors.textOnAccent
-            if (icon != null && leadingIcon) {
-                Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(ZeusSizes.iconMd))
-            }
-            Text(
-                text = label,
-                style = type.button,
-                color = fg,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false)
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint ?: when {
+                !enabled -> c.muted.copy(alpha = 0.5f)
+                filled -> c.onAccent
+                else -> c.ink
+            },
+            modifier = Modifier.size(ZeusSizes.iconMd)
+        )
+        if (badge) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = -ZeusSpacing.smPlus, y = ZeusSpacing.smPlus)
+                    .size(ZeusSpacing.smPlus)
+                    .clip(ZeusShapes.circle)
+                    .background(c.card)
+                    .padding(ZeusSpacing.xxs)
+                    .clip(ZeusShapes.circle)
+                    .background(c.accent)
             )
-            if (icon != null && !leadingIcon) {
-                Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(ZeusSizes.iconMd))
-            }
         }
     }
 }
 
-/** Secondary action: glass pill with sky text. [danger] tints it with the error glow. */
+/** Primary CTA: full-pill accent gradient with a slow shine, glow shadow and spring press. */
 @Composable
-fun GlassPillButton(
+fun PrimaryButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    leadingIcon: Boolean = false,
+    enabled: Boolean = true,
+    height: Dp = ZeusSpacing.primaryButtonHeight,
+    shine: Boolean = true
+) {
+    val c = ZeusTheme.colors
+    val source = remember { MutableInteractionSource() }
+    val brush = rememberAccentBrush(shine = shine)
+    Row(
+        modifier = modifier
+            .heightIn(min = height)
+            .pressScale(source)
+            .then(if (enabled && !c.isEink) Modifier.shadow(ZeusSizes.shadowCard, ZeusShapes.pill, ambientColor = c.glow, spotColor = c.glow) else Modifier)
+            .clip(ZeusShapes.pill)
+            .background(brush, alpha = if (enabled) 1f else 0.45f)
+            .clickable(source, indication = androidx.compose.material3.ripple(), enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = ZeusSpacing.xl, vertical = ZeusSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (icon != null && leadingIcon) Icon(icon, null, tint = c.onAccent, modifier = Modifier.size(ZeusSizes.iconMd))
+        Text(label, style = ZeusTheme.type.button, color = c.onAccent, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+        if (icon != null && !leadingIcon) Icon(icon, null, tint = c.onAccent, modifier = Modifier.size(ZeusSizes.iconMd))
+    }
+}
+
+/** Secondary CTA: white/charcoal card pill. [danger] tints the label rose. */
+@Composable
+fun SecondaryButton(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -275,106 +293,96 @@ fun GlassPillButton(
     danger: Boolean = false,
     height: Dp = ZeusSpacing.secondaryButtonHeight
 ) {
-    val colors = ZeusTheme.colors
-    val type = ZeusTheme.type
+    val c = ZeusTheme.colors
+    val source = remember { MutableInteractionSource() }
     val fg = when {
-        !enabled -> colors.textOnSkyMuted
-        danger -> colors.errorGlow
-        else -> colors.textOnSky
+        !enabled -> c.muted
+        danger -> c.rose
+        else -> c.ink
     }
     Row(
         modifier = modifier
             .heightIn(min = height)
-            .liquidGlass(shape = ZeusShapes.pill)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .padding(horizontal = ZeusSpacing.lg, vertical = ZeusSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm, Alignment.CenterHorizontally)
+            .pressScale(source)
+            .zeusCard(ZeusShapes.pill)
+            .clickable(source, indication = androidx.compose.material3.ripple(), enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = ZeusSpacing.lg, vertical = ZeusSpacing.xsPlus),
+        horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        if (icon != null) {
-            Icon(icon, contentDescription = null, tint = if (danger) fg else colors.accentOnSky, modifier = Modifier.size(ZeusSizes.iconSm))
-        }
-        Text(
-            text = label,
-            style = type.label,
-            color = fg,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        if (icon != null) Icon(icon, null, tint = if (danger) fg else c.accentInk, modifier = Modifier.size(ZeusSizes.iconSm))
+        Text(label, style = ZeusTheme.type.label, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
-/** Quick action tile (icon tile + label) — like a banking app's action row. */
+/** Small white pill used on top of gradient hero cards ("Resume"). */
 @Composable
-fun QuickActionTile(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    accent: Boolean = false
-) {
-    val colors = ZeusTheme.colors
-    val type = ZeusTheme.type
-    Column(
+fun PillButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null) {
+    val c = ZeusTheme.colors
+    val source = remember { MutableInteractionSource() }
+    Row(
         modifier = modifier
-            .clip(ZeusShapes.tile)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = ZeusSpacing.xs),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xsPlus)
+            .heightIn(min = ZeusSpacing.pillButtonHeight)
+            .minimumInteractiveComponentSize()
+            .pressScale(source)
+            .shadow(ZeusSizes.shadowCard, ZeusShapes.pill)
+            .clip(ZeusShapes.pill)
+            .background(c.card)
+            .clickable(source, indication = androidx.compose.material3.ripple(), role = Role.Button, onClick = onClick)
+            .padding(horizontal = ZeusSpacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.xsPlus),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        IconTile(icon = icon, size = ZeusSizes.quickActionTile, filled = accent)
-        val density = androidx.compose.ui.platform.LocalDensity.current
-        CompositionLocalProvider(
-            androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density, density.fontScale.coerceAtMost(1.4f))
-        ) {
-            Text(
-                text = label,
-                style = type.labelSmall,
-                color = colors.textOnSkySecondary,
-                maxLines = 2,
-                textAlign = TextAlign.Center,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
+        Text(label, style = ZeusTheme.type.label, color = c.ink, maxLines = 1)
+        if (icon != null) Icon(icon, null, tint = c.ink, modifier = Modifier.size(ZeusSizes.iconSm))
     }
 }
 
-/** Rounded icon tile used in lists, quick actions and settings rows. */
+/** Plain accent text action ("See all", "Reset"). */
 @Composable
-fun IconTile(
-    icon: ImageVector,
-    modifier: Modifier = Modifier,
-    size: Dp = ZeusSizes.iconTile,
-    filled: Boolean = false,
-    tint: Color? = null
-) {
-    val colors = ZeusTheme.colors
-    val bg = if (filled) {
-        Modifier.background(rememberPrimaryGradient(animate = false), ZeusShapes.tile)
-    } else {
-        Modifier.liquidGlass(shape = ZeusShapes.tile)
+fun TextAction(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Text(
+        text = label,
+        style = ZeusTheme.type.label,
+        color = ZeusTheme.colors.accentInk,
+        maxLines = 1,
+        modifier = modifier
+            .clip(ZeusShapes.pill)
+            .clickable(role = Role.Button, onClick = onClick)
+            .minimumInteractiveComponentSize()
+            .padding(horizontal = ZeusSpacing.xs)
+    )
+}
+
+/* ============================================================================================
+ * Icon boxes, chips, segmented, switches, rows
+ * ========================================================================================== */
+
+enum class Tone { Accent, Info, Ok, Rose, Neutral }
+
+@Composable
+fun IconBox(icon: ImageVector, modifier: Modifier = Modifier, tone: Tone = Tone.Accent, size: Dp = ZeusSizes.iconBox, filled: Boolean = false, circle: Boolean = false) {
+    val c = ZeusTheme.colors
+    val (bg, fg) = when (tone) {
+        Tone.Accent -> c.tint to c.accentInk
+        Tone.Info -> c.infoTint to c.info
+        Tone.Ok -> c.okTint to c.ok
+        Tone.Rose -> c.roseTint to c.rose
+        Tone.Neutral -> c.canvas to c.ink
     }
+    val shape = if (circle) ZeusShapes.circle else ZeusShapes.iconBox
     Box(
         modifier = modifier
             .size(size)
-            .clip(ZeusShapes.tile)
-            .then(bg),
+            .clip(shape)
+            .then(if (filled) Modifier.background(rememberAccentBrush()) else Modifier.background(bg)),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint ?: if (filled) colors.textOnAccent else colors.accentOnSky,
-            modifier = Modifier.size(ZeusSizes.iconLg)
-        )
+        Icon(icon, contentDescription = null, tint = if (filled) c.onAccent else fg, modifier = Modifier.size(ZeusSizes.iconMd))
     }
 }
 
-/* ---------------------------------------------------------------------------------------------
- * Chips, segmented control, stickers
- * ------------------------------------------------------------------------------------------- */
-
+/** Pill chip: tint when idle, accent gradient when selected; [outline] for neutral filter chips. */
 @Composable
 fun ZeusChip(
     label: String,
@@ -383,26 +391,28 @@ fun ZeusChip(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     enabled: Boolean = true,
+    outline: Boolean = false,
     labelStyle: TextStyle = ZeusTheme.type.label
 ) {
-    val colors = ZeusTheme.colors
-    val shape = ZeusShapes.chip
+    val c = ZeusTheme.colors
     val fg = when {
-        !enabled -> colors.textOnSkyMuted
-        selected -> colors.chipSelectedFg
-        else -> colors.textOnSky
+        !enabled -> c.muted
+        selected -> c.onAccent
+        outline -> c.ink
+        else -> c.accentInk
     }
-    val surface = if (selected) {
-        Modifier
-            .clip(shape)
-            .background(colors.chipSelectedBg, shape)
-    } else {
-        Modifier.liquidGlass(shape = shape)
+    val surface = when {
+        selected -> Modifier.background(rememberAccentBrush())
+        outline -> Modifier
+            .background(c.card)
+            .border(ZeusSpacing.borderWidth, c.line, ZeusShapes.pill)
+        else -> Modifier.background(c.tint)
     }
     Row(
         modifier = modifier
             .minimumInteractiveComponentSize()
             .heightIn(min = ZeusSpacing.chipHeight)
+            .clip(ZeusShapes.pill)
             .then(surface)
             .clickable(enabled = enabled, role = Role.Tab, onClick = onClick)
             .semantics { this.selected = selected }
@@ -410,26 +420,13 @@ fun ZeusChip(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.xsPlus)
     ) {
-        if (icon != null) {
-            Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(ZeusSizes.iconSm))
-        }
-        Text(
-            text = label,
-            style = labelStyle,
-            color = fg,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        if (icon != null) Icon(icon, null, tint = fg, modifier = Modifier.size(ZeusSizes.iconSm))
+        Text(label, style = labelStyle, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
-/** Horizontally scrolling chip row that bleeds to the screen edges but pads its content. */
 @Composable
-fun ZeusChipRow(
-    modifier: Modifier = Modifier,
-    contentPadding: Dp = ZeusSpacing.gutter,
-    content: @Composable RowScope.() -> Unit
-) {
+fun ZeusChipRow(modifier: Modifier = Modifier, contentPadding: Dp = ZeusSpacing.gutter, content: @Composable RowScope.() -> Unit) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -441,227 +438,87 @@ fun ZeusChipRow(
     )
 }
 
-/** Pill segmented control — selected segment is a solid starlight/ink capsule. */
+/** Segmented control with a sliding gradient knob (Day/Night style). */
 @Composable
 fun ZeusSegmented(
     options: List<String>,
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    icons: List<ImageVector?>? = null
 ) {
-    val colors = ZeusTheme.colors
-    val type = ZeusTheme.type
-    Row(
+    val c = ZeusTheme.colors
+    val count = options.size.coerceAtLeast(1)
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .liquidGlass(shape = ZeusShapes.pill)
-            .padding(ZeusSpacing.xs),
-        horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)
+            .heightIn(min = ZeusSpacing.touchMin + ZeusSpacing.xxs)
+            .clip(ZeusShapes.pill)
+            .background(c.canvas)
+            .border(ZeusSpacing.borderWidth, c.line, ZeusShapes.pill)
+            .padding(ZeusSpacing.xs)
     ) {
-        options.forEachIndexed { index, option ->
-            val selected = index == selectedIndex
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.matchParentSize()) {
+            val segment = maxWidth / count
+            val x by animateDpAsState(segment * selectedIndex.coerceIn(0, count - 1), ZeusMotion.bouncy(ZeusTheme.reduceMotion), label = "seg_knob")
             Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = ZeusSpacing.touchMin - ZeusSpacing.xs)
+                    .offset(x = x)
+                    .width(segment)
+                    .fillMaxHeight()
+                    .shadow(ZeusSizes.shadowCard, ZeusShapes.pill, ambientColor = c.glow, spotColor = c.glow)
                     .clip(ZeusShapes.pill)
-                    .then(if (selected) Modifier.background(colors.chipSelectedBg) else Modifier)
-                    .clickable(role = Role.Tab) { onSelect(index) }
-                    .semantics { this.selected = selected }
-                    .padding(horizontal = ZeusSpacing.sm),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = option,
-                    style = type.label,
-                    color = if (selected) colors.chipSelectedFg else colors.textOnSkySecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
-    }
-}
-
-/** Tilted sticker chip (DESIGN.md §3): light fill, near-black text, offset glow shadow. */
-@Composable
-fun StickerChip(
-    text: String,
-    modifier: Modifier = Modifier,
-    icon: ImageVector? = null,
-    rotation: Float = 3f,
-    cream: Boolean = false,
-    accentFill: Boolean = false,
-    onClick: (() -> Unit)? = null
-) {
-    val colors = ZeusTheme.colors
-    val sky = ZeusTheme.sky
-    val type = ZeusTheme.type
-    val bg = when {
-        accentFill -> sky.accent
-        cream -> colors.stickerCreamBg
-        else -> colors.stickerLightBg
-    }
-    val angle = if (ZeusTheme.paper.isEink) 0f else rotation
-    val touch = if (onClick != null) {
-        Modifier
-            .minimumInteractiveComponentSize()
-            .clickable(role = Role.Button, onClick = onClick)
-    } else {
-        Modifier
-    }
-    Box(modifier = modifier.then(touch), contentAlignment = Alignment.Center) {
-    Box(modifier = Modifier.rotate(angle)) {
-        if (!ZeusTheme.paper.isEink) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .padding(start = ZeusSizes.stickerOffset, top = ZeusSizes.stickerOffset)
-                    .background(colors.neonA, ZeusShapes.sticker)
+                    .background(rememberAccentBrush())
             )
         }
-        Row(
-            modifier = Modifier
-                .padding(end = ZeusSizes.stickerOffset, bottom = ZeusSizes.stickerOffset)
-                .heightIn(min = ZeusSpacing.huge - ZeusSpacing.xs)
-                .clip(ZeusShapes.sticker)
-                .background(bg)
-                .then(if (ZeusTheme.paper.isEink) Modifier.border(ZeusSpacing.hairline, colors.textOnSky, ZeusShapes.sticker) else Modifier)
-                .padding(horizontal = ZeusSpacing.md, vertical = ZeusSpacing.xsPlus),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.xsPlus)
-        ) {
-            if (icon != null) {
-                Icon(icon, contentDescription = null, tint = colors.stickerInk, modifier = Modifier.size(ZeusSizes.iconSm))
-            }
-            Text(text = text, style = type.sticker, color = colors.stickerInk, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    }
-    }
-}
-
-/* ---------------------------------------------------------------------------------------------
- * Section header, rows, toggles
- * ------------------------------------------------------------------------------------------- */
-
-@Composable
-fun ZeusSectionHeader(
-    title: String,
-    modifier: Modifier = Modifier,
-    actionLabel: String? = null,
-    onAction: (() -> Unit)? = null
-) {
-    val colors = ZeusTheme.colors
-    val type = ZeusTheme.type
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = ZeusSpacing.touchMin - ZeusSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)
-    ) {
-        Text(
-            text = title,
-            style = type.title,
-            color = colors.textOnSky,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .weight(1f)
-                .semantics { heading() }
-        )
-        if (actionLabel != null && onAction != null) {
-            Text(
-                text = actionLabel,
-                style = type.label,
-                color = colors.accentOnSky,
-                maxLines = 1,
-                modifier = Modifier
-                    .clip(ZeusShapes.pill)
-                    .clickable(role = Role.Button, onClick = onAction)
-                    .minimumInteractiveComponentSize()
-                    .padding(horizontal = ZeusSpacing.sm)
-            )
-        }
-    }
-}
-
-/** Small mono eyebrow label (CH 4 · WATER IN SOIL). */
-@Composable
-fun MetaLabel(text: String, modifier: Modifier = Modifier, accent: Boolean = false, maxLines: Int = 1) {
-    val colors = ZeusTheme.colors
-    Text(
-        text = text.uppercase(),
-        style = ZeusTheme.type.meta,
-        color = if (accent) colors.accentOnSky else colors.textOnSkySecondary,
-        maxLines = maxLines,
-        overflow = TextOverflow.Ellipsis,
-        modifier = modifier
-    )
-}
-
-/** List row: icon tile + title/subtitle (weighted, never overlaps) + trailing slot. */
-@Composable
-fun ZeusListRow(
-    title: String,
-    modifier: Modifier = Modifier,
-    subtitle: String? = null,
-    icon: ImageVector? = null,
-    iconFilled: Boolean = false,
-    leading: (@Composable () -> Unit)? = null,
-    onClick: (() -> Unit)? = null,
-    titleMaxLines: Int = 2,
-    trailing: @Composable RowScope.() -> Unit = {}
-) {
-    val colors = ZeusTheme.colors
-    val type = ZeusTheme.type
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = ZeusSpacing.touchMin + ZeusSpacing.sm)
-            .then(if (onClick != null) Modifier.clip(ZeusShapes.tile).clickable(onClick = onClick) else Modifier)
-            .padding(vertical = ZeusSpacing.xsPlus),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
-    ) {
-        when {
-            leading != null -> leading()
-            icon != null -> IconTile(icon = icon, filled = iconFilled)
-        }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xxs)) {
-            Text(text = title, style = type.label.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = colors.textOnSky, maxLines = titleMaxLines, overflow = TextOverflow.Ellipsis)
-            if (!subtitle.isNullOrBlank()) {
-                Text(text = subtitle, style = type.caption, color = colors.textOnSkySecondary, maxLines = 3, overflow = TextOverflow.Ellipsis)
+        Row(Modifier.fillMaxWidth()) {
+            options.forEachIndexed { i, option ->
+                val sel = i == selectedIndex
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = ZeusSpacing.touchMin - ZeusSpacing.xsPlus)
+                        .clip(ZeusShapes.pill)
+                        .clickable(role = Role.Tab) { onSelect(i) }
+                        .semantics { this.selected = sel }
+                        .padding(horizontal = ZeusSpacing.xs),
+                    horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.xsPlus, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    icons?.getOrNull(i)?.let { Icon(it, null, tint = if (sel) c.onAccent else c.muted, modifier = Modifier.size(ZeusSizes.iconSm)) }
+                    Text(option, style = ZeusTheme.type.label, color = if (sel) c.onAccent else c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                }
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically, content = trailing)
+    }
+}
+
+/** Animated pill toggle: gradient track when on, springing white knob. */
+@Composable
+fun ZeusSwitch(checked: Boolean, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    val c = ZeusTheme.colors
+    val knobX by animateDpAsState(if (checked) ZeusSpacing.xl + ZeusSpacing.xxs + ZeusSpacing.hairline else ZeusSpacing.none, ZeusMotion.bouncy(ZeusTheme.reduceMotion), label = "switch_knob")
+    Box(
+        modifier = modifier
+            .size(width = ZeusSizes.iconXl + ZeusSpacing.lg + ZeusSpacing.xxs, height = ZeusSpacing.xxxl - ZeusSpacing.xxs)
+            .clip(ZeusShapes.pill)
+            .then(if (checked) Modifier.background(rememberAccentBrush()) else Modifier.background(c.line))
+            .graphicsLayer { alpha = if (enabled) 1f else 0.45f }
+            .padding(ZeusSpacing.xxs + ZeusSpacing.hairline)
+    ) {
+        Box(
+            modifier = Modifier
+                .offset(x = knobX)
+                .size(ZeusSizes.iconLg)
+                .shadow(ZeusSpacing.xxs, ZeusShapes.circle)
+                .clip(ZeusShapes.circle)
+                .background(if (c.isEink && checked) c.canvas else com.solerunner26.zeusreader.ui.theme.ZeusPalette.white)
+        )
     }
 }
 
 @Composable
-fun ZeusSwitch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modifier: Modifier = Modifier, enabled: Boolean = true) {
-    val colors = ZeusTheme.colors
-    val sky = ZeusTheme.sky
-    Switch(
-        checked = checked,
-        onCheckedChange = onCheckedChange,
-        enabled = enabled,
-        modifier = modifier,
-        colors = SwitchDefaults.colors(
-            checkedThumbColor = if (colors.isLight) sky.lightA else sky.baseA,
-            checkedTrackColor = if (colors.isLight) sky.accentInk else sky.accent,
-            checkedBorderColor = Color.Transparent,
-            uncheckedThumbColor = colors.textOnSkySecondary,
-            uncheckedTrackColor = colors.trackInactive,
-            uncheckedBorderColor = colors.glassBorder
-        )
-    )
-}
-
-
-@Composable
-fun ZeusSwitchRow(
+fun SwitchRow(
     title: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
@@ -670,89 +527,269 @@ fun ZeusSwitchRow(
     icon: ImageVector? = null,
     enabled: Boolean = true
 ) {
-    val colors = ZeusTheme.colors
-    val type = ZeusTheme.type
+    val c = ZeusTheme.colors
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = ZeusSpacing.touchMin + ZeusSpacing.xs)
+            .heightIn(min = ZeusSpacing.giant + ZeusSpacing.xxs)
             .clip(ZeusShapes.tile)
             .clickable(enabled = enabled, role = Role.Switch) { onCheckedChange(!checked) }
+            .semantics { stateDescription = if (checked) "On" else "Off" }
             .padding(vertical = ZeusSpacing.xsPlus),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
     ) {
-        if (icon != null) {
-            Icon(icon, contentDescription = null, tint = colors.accentOnSky, modifier = Modifier.size(ZeusSizes.iconMd))
+        if (icon != null) IconBox(icon, size = ZeusSizes.iconBoxSmall)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xxs)) {
+            Text(title, style = ZeusTheme.type.label, color = c.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (!subtitle.isNullOrBlank()) Text(subtitle, style = ZeusTheme.type.caption, color = c.muted, maxLines = 3, overflow = TextOverflow.Ellipsis)
         }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xxs)) {
-            Text(text = title, style = type.label.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = colors.textOnSky, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            if (!subtitle.isNullOrBlank()) {
-                Text(text = subtitle, style = type.caption, color = colors.textOnSkySecondary, maxLines = 3, overflow = TextOverflow.Ellipsis)
-            }
+        ZeusSwitch(checked = checked, enabled = enabled)
+    }
+}
+
+/** Menu / list row: icon box · title + subtitle (weighted, never overlaps) · trailing. */
+@Composable
+fun MenuRow(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    icon: ImageVector? = null,
+    tone: Tone = Tone.Accent,
+    value: String? = null,
+    chevron: Boolean = false,
+    leading: (@Composable () -> Unit)? = null,
+    onClick: (() -> Unit)? = null,
+    titleMaxLines: Int = 2,
+    titleStyle: TextStyle = ZeusTheme.type.label,
+    trailing: @Composable RowScope.() -> Unit = {}
+) {
+    val c = ZeusTheme.colors
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = ZeusSpacing.giant)
+            .then(if (onClick != null) Modifier.clip(ZeusShapes.tile).clickable(role = Role.Button, onClick = onClick) else Modifier)
+            .padding(vertical = ZeusSpacing.xsPlus),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
+    ) {
+        when {
+            leading != null -> leading()
+            icon != null -> IconBox(icon, tone = tone)
         }
-        ZeusSwitch(checked = checked, onCheckedChange = null, enabled = enabled)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xxs)) {
+            Text(title, style = titleStyle, color = c.ink, maxLines = titleMaxLines, overflow = TextOverflow.Ellipsis)
+            if (!subtitle.isNullOrBlank()) Text(subtitle, style = ZeusTheme.type.caption, color = c.muted, maxLines = 3, overflow = TextOverflow.Ellipsis)
+        }
+        if (value != null) Text(value, style = ZeusTheme.type.label, color = c.muted, maxLines = 1)
+        Row(verticalAlignment = Alignment.CenterVertically, content = trailing)
+        if (chevron) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = c.muted, modifier = Modifier.size(ZeusSizes.iconMd))
     }
 }
 
 @Composable
 fun ZeusDivider(modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
+        modifier
             .fillMaxWidth()
             .height(ZeusSpacing.hairline)
-            .background(ZeusTheme.colors.divider)
+            .background(ZeusTheme.colors.line)
     )
 }
 
-/** Glass card section with consistent padding and an optional title. */
 @Composable
-fun GlassSection(
+fun SectionHeader(title: String, modifier: Modifier = Modifier, actionLabel: String? = null, onAction: (() -> Unit)? = null) {
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(title, style = ZeusTheme.type.headline, color = ZeusTheme.colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).semantics { heading() })
+        if (actionLabel != null && onAction != null) TextAction(actionLabel, onAction)
+    }
+}
+
+/** Elevated content card (20dp radius, soft shadow). */
+@Composable
+fun ZeusCard(
     modifier: Modifier = Modifier,
-    title: String? = null,
-    neon: Boolean = false,
-    contentPadding: PaddingValues = PaddingValues(horizontal = ZeusSpacing.cardPadding, vertical = ZeusSpacing.lg),
+    selected: Boolean = false,
+    onClick: (() -> Unit)? = null,
+    padding: PaddingValues = PaddingValues(ZeusSpacing.cardPadding),
+    animateSize: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    GlassSurface(modifier = modifier.fillMaxWidth(), shape = ZeusShapes.card, neon = neon) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(contentPadding),
-            verticalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)
-        ) {
-            if (title != null) {
-                MetaLabel(text = title, accent = true)
-            }
-            content()
+    val source = remember { MutableInteractionSource() }
+    val c = ZeusTheme.colors
+    Column(
+        modifier = modifier
+            .then(if (onClick != null) Modifier.pressScale(source) else Modifier)
+            .neonBorder(selected, ZeusShapes.card)
+            .zeusCard(ZeusShapes.card)
+            .then(if (onClick != null) Modifier.clickable(source, indication = androidx.compose.material3.ripple(), role = Role.Button, onClick = onClick) else Modifier)
+            .then(if (animateSize && !ZeusTheme.reduceMotion) Modifier.animateContentSize() else Modifier)
+            .padding(padding),
+        verticalArrangement = Arrangement.spacedBy(ZeusSpacing.smPlus)
+    ) {
+        CompositionLocalProvider(LocalContentColor provides c.ink) { content() }
+    }
+}
+
+/** Gradient hero card (the one big accent surface per screen). */
+@Composable
+fun GradientCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    padding: PaddingValues = PaddingValues(ZeusSpacing.gutter),
+    starburst: Boolean = true,
+    content: @Composable BoxScope.() -> Unit
+) {
+    val c = ZeusTheme.colors
+    val source = remember { MutableInteractionSource() }
+    Box(
+        modifier = modifier
+            .then(if (onClick != null) Modifier.pressScale(source) else Modifier)
+            .then(if (!c.isEink) Modifier.shadow(ZeusSizes.shadowLift, ZeusShapes.cardLarge, ambientColor = c.glow, spotColor = c.glow) else Modifier)
+            .clip(ZeusShapes.cardLarge)
+            .background(rememberAccentBrush(shine = true))
+            .then(if (c.isEink) Modifier.border(ZeusSpacing.borderWidth, c.ink, ZeusShapes.cardLarge) else Modifier)
+            .then(if (onClick != null) Modifier.clickable(source, indication = androidx.compose.material3.ripple(), role = Role.Button, onClick = onClick) else Modifier)
+    ) {
+        if (starburst) {
+            Starburst(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = ZeusSizes.heroMascot / 2, y = -ZeusSizes.iconXl)
+                    .size(ZeusSizes.stage)
+            )
+        }
+        CompositionLocalProvider(LocalContentColor provides c.onAccent) {
+            Box(Modifier.padding(padding), content = content)
         }
     }
 }
 
-/* ---------------------------------------------------------------------------------------------
+/** Icon box + big number + label metric tile. */
+@Composable
+fun MetricCard(value: String, label: String, icon: ImageVector, modifier: Modifier = Modifier, tone: Tone = Tone.Accent, onClick: (() -> Unit)? = null, art: (@Composable () -> Unit)? = null) {
+    ZeusCard(modifier = modifier, onClick = onClick) {
+        if (art != null) art() else IconBox(icon, tone = tone)
+        Text(value, style = ZeusTheme.type.number, color = ZeusTheme.colors.ink, maxLines = 1)
+        Text(label, style = ZeusTheme.type.caption, color = ZeusTheme.colors.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/* ============================================================================================
+ * Progress
+ * ========================================================================================== */
+
+/** Rounded progress bar that fills on load with the accent gradient. */
+@Composable
+fun ProgressBar(progress: Float, modifier: Modifier = Modifier, height: Dp = ZeusSizes.progressTrack, onAccent: Boolean = false) {
+    val c = ZeusTheme.colors
+    val anim = remember { Animatable(0f) }
+    val reduce = ZeusTheme.reduceMotion
+    LaunchedEffect(progress) {
+        if (reduce) anim.snapTo(progress.coerceIn(0f, 1f)) else anim.animateTo(progress.coerceIn(0f, 1f), ZeusMotion.fill(false))
+    }
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(ZeusShapes.bar)
+            .background(if (onAccent) c.onAccent.copy(alpha = 0.22f) else c.tint)
+            .semantics { stateDescription = "${(progress * 100).toInt()} percent" }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(anim.value.coerceIn(0f, 1f))
+                .fillMaxHeight()
+                .clip(ZeusShapes.bar)
+                .then(if (onAccent) Modifier.background(c.card) else Modifier.background(rememberAccentBrush()))
+        )
+    }
+}
+
+/** Thick circular progress ring that fills on load; content is centred. */
+@Composable
+fun ProgressRing(
+    progress: Float,
+    modifier: Modifier = Modifier,
+    size: Dp = ZeusSizes.ring,
+    stroke: Dp = ZeusSizes.ringStroke,
+    content: @Composable BoxScope.() -> Unit = {}
+) {
+    val c = ZeusTheme.colors
+    val reduce = ZeusTheme.reduceMotion
+    val anim = remember { Animatable(0f) }
+    LaunchedEffect(progress) {
+        if (reduce) anim.snapTo(progress.coerceIn(0f, 1f)) else anim.animateTo(progress.coerceIn(0f, 1f), ZeusMotion.fill(false, 1600))
+    }
+    Box(modifier.size(size).semantics { stateDescription = "${(progress * 100).toInt()} percent" }, contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val s = stroke.toPx()
+            val tl = Offset(s / 2f, s / 2f)
+            val sz = Size(this.size.width - s, this.size.height - s)
+            drawArc(c.tint, -90f, 360f, false, tl, sz, style = Stroke(s))
+            drawArc(
+                brush = if (c.gradientEnabled) Brush.sweepGradient(listOf(c.accent, c.accent2, c.accent)) else Brush.linearGradient(listOf(c.accent, c.accent)),
+                startAngle = -90f, sweepAngle = 360f * anim.value, useCenter = false, topLeft = tl, size = sz,
+                style = Stroke(s, cap = StrokeCap.Round)
+            )
+        }
+        CappedFontScale(1.2f) { Box(contentAlignment = Alignment.Center, content = content) }
+    }
+}
+
+/** Carousel pagination dots that morph into a pill for the current page. */
+@Composable
+fun PagerDots(count: Int, current: Int, modifier: Modifier = Modifier, onSelect: ((Int) -> Unit)? = null) {
+    val c = ZeusTheme.colors
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(if (onSelect != null) ZeusSpacing.none else ZeusSpacing.xsPlus), verticalAlignment = Alignment.CenterVertically) {
+        repeat(count) { i ->
+            val on = i == current
+            val w by animateDpAsState(if (on) ZeusSpacing.xxl + ZeusSpacing.xxs else ZeusSpacing.sm, ZeusMotion.bouncy(ZeusTheme.reduceMotion), label = "dot_w")
+            Box(
+                modifier = Modifier
+                    .then(
+                        if (onSelect != null) {
+                            Modifier
+                                .clip(ZeusShapes.pill)
+                                .clickable(role = Role.Tab) { onSelect(i) }
+                                .semantics { contentDescription = "Page ${i + 1} of $count" }
+                                .heightIn(min = ZeusSpacing.huge)
+                                .widthIn(min = ZeusSpacing.huge)
+                        } else {
+                            Modifier
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    Modifier
+                        .height(ZeusSpacing.sm)
+                        .width(w)
+                        .clip(ZeusShapes.pill)
+                        .then(if (on) Modifier.background(rememberAccentBrush()) else Modifier.background(c.line))
+                )
+            }
+        }
+    }
+}
+
+/* ============================================================================================
  * Inputs
- * ------------------------------------------------------------------------------------------- */
+ * ========================================================================================== */
 
 @Composable
 fun zeusTextFieldColors() = run {
-    val colors = ZeusTheme.colors
+    val c = ZeusTheme.colors
     OutlinedTextFieldDefaults.colors(
-        focusedTextColor = colors.textOnSky,
-        unfocusedTextColor = colors.textOnSky,
-        disabledTextColor = colors.textOnSkyMuted,
-        cursorColor = colors.accentOnSky,
-        focusedBorderColor = colors.accentOnSky,
-        unfocusedBorderColor = colors.glassBorder,
-        focusedLabelColor = colors.accentOnSky,
-        unfocusedLabelColor = colors.textOnSkySecondary,
-        focusedPlaceholderColor = colors.textOnSkyMuted,
-        unfocusedPlaceholderColor = colors.textOnSkyMuted,
-        focusedLeadingIconColor = colors.textOnSkySecondary,
-        unfocusedLeadingIconColor = colors.textOnSkySecondary,
-        focusedTrailingIconColor = colors.textOnSkySecondary,
-        unfocusedTrailingIconColor = colors.textOnSkySecondary,
-        focusedContainerColor = colors.glassFillSubtle,
-        unfocusedContainerColor = colors.glassFillSubtle
+        focusedTextColor = c.ink, unfocusedTextColor = c.ink, disabledTextColor = c.muted,
+        cursorColor = c.accentInk,
+        focusedBorderColor = c.accent, unfocusedBorderColor = c.line,
+        focusedLabelColor = c.accentInk, unfocusedLabelColor = c.muted,
+        focusedPlaceholderColor = c.muted, unfocusedPlaceholderColor = c.muted,
+        focusedLeadingIconColor = c.muted, unfocusedLeadingIconColor = c.muted,
+        focusedTrailingIconColor = c.muted, unfocusedTrailingIconColor = c.muted,
+        focusedContainerColor = c.card, unfocusedContainerColor = c.card
     )
 }
 
@@ -773,16 +810,15 @@ fun ZeusTextField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     enabled: Boolean = true
 ) {
-    val type = ZeusTheme.type
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,
         enabled = enabled,
-        textStyle = type.body,
+        textStyle = ZeusTheme.type.body,
         label = label?.let { { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
         placeholder = placeholder?.let { { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
-        leadingIcon = leadingIcon?.let { { Icon(it, contentDescription = null, modifier = Modifier.size(ZeusSizes.iconMd)) } },
+        leadingIcon = leadingIcon?.let { { Icon(it, null, modifier = Modifier.size(ZeusSizes.iconMd)) } },
         trailingIcon = trailing,
         singleLine = singleLine,
         minLines = minLines,
@@ -790,20 +826,14 @@ fun ZeusTextField(
         visualTransformation = visualTransformation,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
-        shape = ZeusShapes.field,
+        shape = ZeusShapes.input,
         colors = zeusTextFieldColors()
     )
 }
 
 @Composable
-fun ZeusSlider(
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    modifier: Modifier = Modifier,
-    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
-    steps: Int = 0
-) {
-    val colors = ZeusTheme.colors
+fun ZeusSlider(value: Float, onValueChange: (Float) -> Unit, modifier: Modifier = Modifier, valueRange: ClosedFloatingPointRange<Float> = 0f..1f, steps: Int = 0) {
+    val c = ZeusTheme.colors
     Slider(
         value = value.coerceIn(valueRange.start, valueRange.endInclusive),
         onValueChange = onValueChange,
@@ -811,106 +841,28 @@ fun ZeusSlider(
         steps = steps,
         modifier = modifier,
         colors = SliderDefaults.colors(
-            thumbColor = colors.accentOnSky,
-            activeTrackColor = colors.accentOnSky,
-            inactiveTrackColor = colors.trackInactive,
-            activeTickColor = colors.textOnAccent,
-            inactiveTickColor = colors.textOnSkyMuted
+            thumbColor = c.accent, activeTrackColor = c.accent, inactiveTrackColor = c.tint,
+            activeTickColor = c.onAccent, inactiveTickColor = c.muted
         )
     )
 }
 
-/** Labelled slider row: title on the left, value on the right, slider below. */
 @Composable
-fun ZeusSliderRow(
-    title: String,
-    valueLabel: String,
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    modifier: Modifier = Modifier,
-    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
-    steps: Int = 0
-) {
-    val colors = ZeusTheme.colors
-    val type = ZeusTheme.type
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(title, style = type.label.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = colors.textOnSky, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(valueLabel, style = type.meta, color = colors.accentOnSky, maxLines = 1)
+fun SliderRow(title: String, valueLabel: String, value: Float, onValueChange: (Float) -> Unit, modifier: Modifier = Modifier, valueRange: ClosedFloatingPointRange<Float> = 0f..1f, steps: Int = 0) {
+    val c = ZeusTheme.colors
+    Column(modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(title, style = ZeusTheme.type.label, color = c.ink, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(valueLabel, style = ZeusTheme.type.label, color = c.accentInk, maxLines = 1)
         }
-        ZeusSlider(value = value, onValueChange = onValueChange, valueRange = valueRange, steps = steps)
+        ZeusSlider(value, onValueChange, valueRange = valueRange, steps = steps)
     }
 }
 
-@Composable
-fun ZeusLinearProgress(progress: Float? = null, modifier: Modifier = Modifier) {
-    val colors = ZeusTheme.colors
-    if (progress == null) {
-        LinearProgressIndicator(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(ZeusSizes.progressTrack)
-                .clip(ZeusShapes.pill),
-            color = colors.accentOnSky,
-            trackColor = colors.trackInactive
-        )
-    } else {
-        LinearProgressIndicator(
-            progress = { progress.coerceIn(0f, 1f) },
-            modifier = modifier
-                .fillMaxWidth()
-                .height(ZeusSizes.progressTrack)
-                .clip(ZeusShapes.pill),
-            color = colors.accentOnSky,
-            trackColor = colors.trackInactive,
-            drawStopIndicator = {}
-        )
-    }
-}
-
-/** Circular progress ring (charge ring / donut) with centred content. */
-@Composable
-fun ProgressRing(
-    progress: Float,
-    modifier: Modifier = Modifier,
-    size: Dp = ZeusSizes.progressRing,
-    stroke: Dp = ZeusSizes.progressRingStroke,
-    animate: Boolean = true,
-    content: @Composable BoxScope.() -> Unit = {}
-) {
-    val colors = ZeusTheme.colors
-    val sky = ZeusTheme.sky
-    val animated by animateFloatAsState(
-        targetValue = progress.coerceIn(0f, 1f),
-        animationSpec = com.solerunner26.zeusreader.ui.theme.ZeusMotion.settleTween(ZeusTheme.reduceMotion || !animate, 700),
-        label = "progress_ring"
-    )
-    val arcBrush = if (ZeusTheme.paper.isEink) {
-        Brush.linearGradient(listOf(colors.textOnSky, colors.textOnSky))
-    } else {
-        Brush.sweepGradient(listOf(sky.accent, sky.glow2, sky.accent))
-    }
-    Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val s = stroke.toPx()
-            val inset = s / 2f
-            val arcSize = androidx.compose.ui.geometry.Size(this.size.width - s, this.size.height - s)
-            val topLeft = androidx.compose.ui.geometry.Offset(inset, inset)
-            drawArc(color = colors.trackInactive, startAngle = -90f, sweepAngle = 360f, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(s, cap = StrokeCap.Round))
-            drawArc(brush = arcBrush, startAngle = -90f, sweepAngle = 360f * animated, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(s, cap = StrokeCap.Round))
-        }
-        CappedFontScale(1.15f) { Box(contentAlignment = Alignment.Center) { content() } }
-    }
-}
-
-/* ---------------------------------------------------------------------------------------------
+/* ============================================================================================
  * Sheets, dialogs, empty states, snackbars
- * ------------------------------------------------------------------------------------------- */
+ * ========================================================================================== */
 
-/**
- * Stormlight bottom sheet: 34dp top corners, sky-base fill, glass handle, scrollable body,
- * navigation-bar safe. [title] renders as an Unbounded headline.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ZeusBottomSheet(
@@ -918,49 +870,44 @@ fun ZeusBottomSheet(
     modifier: Modifier = Modifier,
     title: String? = null,
     subtitle: String? = null,
-    skipPartiallyExpanded: Boolean = true,
     scrollable: Boolean = true,
     headerAction: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val colors = ZeusTheme.colors
-    val type = ZeusTheme.type
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = skipPartiallyExpanded)
+    val c = ZeusTheme.colors
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        sheetState = sheetState,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         shape = ZeusShapes.sheet,
-        containerColor = colors.sheetBackground,
-        contentColor = colors.textOnSky,
-        scrimColor = colors.scrim,
+        containerColor = c.card,
+        contentColor = c.ink,
+        scrimColor = c.scrim,
         dragHandle = {
             Box(
-                modifier = Modifier
-                    .padding(top = ZeusSpacing.md, bottom = ZeusSpacing.xs)
-                    .size(width = ZeusSizes.sheetHandleWidth, height = ZeusSizes.sheetHandleHeight)
+                Modifier
+                    .padding(top = ZeusSpacing.smPlus, bottom = ZeusSpacing.xs)
+                    .size(ZeusSizes.sheetHandleWidth, ZeusSizes.sheetHandleHeight)
                     .clip(ZeusShapes.pill)
-                    .background(colors.textOnSkyMuted)
+                    .background(c.line)
             )
         },
         modifier = modifier
     ) {
-        CompositionLocalProvider(LocalContentColor provides colors.textOnSky) {
+        CompositionLocalProvider(LocalContentColor provides c.ink) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
-                    .padding(horizontal = ZeusSpacing.gutter)
+                    .padding(horizontal = ZeusSpacing.xl)
                     .padding(bottom = ZeusSpacing.xxl)
                     .navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
             ) {
                 if (title != null) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(title, style = type.headline, color = colors.textOnSky, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() })
-                            if (!subtitle.isNullOrBlank()) {
-                                Text(subtitle, style = type.caption, color = colors.textOnSkySecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            }
+                        Column(Modifier.weight(1f)) {
+                            Text(title, style = ZeusTheme.type.headline.copy(fontSize = ZeusTheme.type.title.fontSize.times(0.82f)), color = c.ink, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() })
+                            if (!subtitle.isNullOrBlank()) Text(subtitle, style = ZeusTheme.type.caption, color = c.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         }
                         headerAction?.invoke(this)
                     }
@@ -971,7 +918,6 @@ fun ZeusBottomSheet(
     }
 }
 
-/** Themed alert dialog with gradient confirm and glass dismiss. */
 @Composable
 fun ZeusDialog(
     onDismissRequest: () -> Unit,
@@ -985,143 +931,126 @@ fun ZeusDialog(
     dangerConfirm: Boolean = false,
     body: @Composable ColumnScope.() -> Unit = {}
 ) {
-    val colors = ZeusTheme.colors
-    val type = ZeusTheme.type
+    val c = ZeusTheme.colors
     AlertDialog(
         onDismissRequest = onDismissRequest,
         modifier = modifier,
         shape = ZeusShapes.dialog,
-        containerColor = colors.sheetBackground,
-        titleContentColor = colors.textOnSky,
-        textContentColor = colors.textOnSky,
-        title = { Text(title, style = type.headline, maxLines = 3, overflow = TextOverflow.Ellipsis) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(ZeusSpacing.sm), content = body)
-        },
+        containerColor = c.card,
+        titleContentColor = c.ink,
+        textContentColor = c.ink,
+        title = { Text(title, style = ZeusTheme.type.headline, maxLines = 3, overflow = TextOverflow.Ellipsis) },
+        text = { Column(verticalArrangement = Arrangement.spacedBy(ZeusSpacing.sm), content = body) },
         confirmButton = {
-            if (dangerConfirm) {
-                GlassPillButton(label = confirmLabel, onClick = onConfirm, enabled = confirmEnabled, danger = true)
-            } else {
-                PrimaryPillButton(label = confirmLabel, onClick = onConfirm, enabled = confirmEnabled, height = ZeusSpacing.secondaryButtonHeight, shimmer = false)
-            }
+            if (dangerConfirm) SecondaryButton(confirmLabel, onConfirm, enabled = confirmEnabled, danger = true)
+            else PrimaryButton(confirmLabel, onConfirm, enabled = confirmEnabled, height = ZeusSpacing.secondaryButtonHeight, shine = false)
         },
-        dismissButton = dismissLabel?.let {
-            { GlassPillButton(label = it, onClick = onDismiss) }
-        }
+        dismissButton = dismissLabel?.let { { SecondaryButton(it, onDismiss) } }
     )
 }
 
+/** Empty state with Bolt, a title, message and actions. */
 @Composable
 fun EmptyState(
-    icon: ImageVector,
     title: String,
     message: String,
     modifier: Modifier = Modifier,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
+    actionIcon: ImageVector? = null,
     secondaryLabel: String? = null,
     onSecondary: (() -> Unit)? = null,
-    actionIcon: ImageVector? = null
+    art: @Composable () -> Unit = { BoltMascot(ZeusSizes.mascotMedium + ZeusSpacing.lg) }
 ) {
-    val colors = ZeusTheme.colors
-    val type = ZeusTheme.type
-    GlassSurface(modifier = modifier.widthIn(max = ZeusSizes.contentMaxWidth).fillMaxWidth(), neon = true) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(ZeusSpacing.xxl),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(ZeusSizes.emptyStateIcon)
-                    .clip(ZeusShapes.circle)
-                    .background(rememberPrimaryGradient(animate = false)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, contentDescription = null, tint = colors.textOnAccent, modifier = Modifier.size(ZeusSizes.iconXl))
-            }
-            Text(title, style = type.headline, color = colors.textOnSky, textAlign = TextAlign.Center)
-            Text(message, style = type.body, color = colors.textOnSkySecondary, textAlign = TextAlign.Center)
+    val c = ZeusTheme.colors
+    ZeusCard(modifier = modifier.widthIn(max = ZeusSizes.contentMaxWidth).fillMaxWidth(), padding = PaddingValues(ZeusSpacing.xxl)) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(ZeusSpacing.md)) {
+            Box(Modifier.radialGlow(c.glow), contentAlignment = Alignment.Center) { art() }
+            Text(title, style = ZeusTheme.type.headline, color = c.ink, textAlign = TextAlign.Center)
+            Text(message, style = ZeusTheme.type.body, color = c.muted, textAlign = TextAlign.Center)
             if (actionLabel != null && onAction != null) {
                 Spacer(Modifier.height(ZeusSpacing.xs))
-                PrimaryPillButton(label = actionLabel, onClick = onAction, icon = actionIcon, leadingIcon = true, modifier = Modifier.fillMaxWidth())
+                PrimaryButton(actionLabel, onAction, icon = actionIcon, leadingIcon = true, modifier = Modifier.fillMaxWidth())
             }
-            if (secondaryLabel != null && onSecondary != null) {
-                GlassPillButton(label = secondaryLabel, onClick = onSecondary, modifier = Modifier.fillMaxWidth())
-            }
+            if (secondaryLabel != null && onSecondary != null) SecondaryButton(secondaryLabel, onSecondary, modifier = Modifier.fillMaxWidth())
         }
     }
 }
 
 @Composable
 fun ZeusSnackbarHost(hostState: SnackbarHostState, modifier: Modifier = Modifier) {
-    val colors = ZeusTheme.colors
-    SnackbarHost(hostState = hostState, modifier = modifier) { data ->
-        Snackbar(
-            snackbarData = data,
-            shape = ZeusShapes.cardSmall,
-            containerColor = colors.chipSelectedBg,
-            contentColor = colors.chipSelectedFg,
-            actionColor = if (colors.isLight) ZeusTheme.sky.accent else ZeusTheme.sky.accentInk
+    val c = ZeusTheme.colors
+    SnackbarHost(hostState, modifier) { data ->
+        Snackbar(snackbarData = data, shape = ZeusShapes.card, containerColor = c.ink, contentColor = c.canvas, actionColor = c.accent2)
+    }
+}
+
+/** Gradient-ring avatar with an initial. */
+@Composable
+fun Avatar(initial: String, modifier: Modifier = Modifier, size: Dp = ZeusSizes.avatar, onClick: (() -> Unit)? = null, contentDescription: String? = null) {
+    val c = ZeusTheme.colors
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(ZeusShapes.circle)
+            .background(rememberAccentBrush())
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
+            .semantics { if (contentDescription != null) this.contentDescription = contentDescription },
+        contentAlignment = Alignment.Center
+    ) {
+        CappedFontScale(1.2f) { Text(initial.take(1).uppercase(), style = ZeusTheme.type.headline, color = c.onAccent) }
+    }
+}
+
+/** Thin progress bar; indeterminate when [progress] is null. */
+@Composable
+fun ZeusLinearProgress(progress: Float? = null, modifier: Modifier = Modifier) {
+    val c = ZeusTheme.colors
+    if (progress != null) {
+        ProgressBar(progress, modifier, height = ZeusSizes.progressThin)
+    } else {
+        androidx.compose.material3.LinearProgressIndicator(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(ZeusSizes.progressThin)
+                .clip(ZeusShapes.bar),
+            color = c.accent,
+            trackColor = c.tint
         )
     }
 }
 
-/** Gradient-animated heading text (two-tone shimmer). */
+/** Card with an optional eyebrow title, used to group settings and sheet sections. */
 @Composable
-fun GradientHeading(text: String, modifier: Modifier = Modifier, style: TextStyle = ZeusTheme.type.screenTitle, maxLines: Int = 1) {
-    Text(
-        text = text,
-        style = style.copy(brush = rememberHeadingBrush()),
-        maxLines = maxLines,
-        overflow = TextOverflow.Ellipsis,
-        modifier = modifier.semantics { heading() }
-    )
-}
-
-/** Value + label stat tile. */
-@Composable
-fun StatTile(
-    value: String,
-    label: String,
+fun SectionCard(
     modifier: Modifier = Modifier,
-    icon: ImageVector? = null,
-    caption: String? = null,
-    onClick: (() -> Unit)? = null
+    title: String? = null,
+    selected: Boolean = false,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
 ) {
-    val colors = ZeusTheme.colors
-    val type = ZeusTheme.type
-    GlassSurface(modifier = modifier, shape = ZeusShapes.cardCompact) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-                .padding(ZeusSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)
-        ) {
-            if (icon != null) {
-                Icon(icon, contentDescription = null, tint = colors.accentOnSky, modifier = Modifier.size(ZeusSizes.iconLg))
-            }
-            Text(value, style = type.displayNumber, color = colors.textOnSky, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(label, style = type.label, color = colors.textOnSky, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            if (!caption.isNullOrBlank()) {
-                Text(caption, style = type.caption, color = colors.textOnSkySecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            }
-        }
+    ZeusCard(modifier = modifier.fillMaxWidth(), selected = selected, onClick = onClick) {
+        if (title != null) Eyebrow(title)
+        content()
     }
 }
 
-/** A thin gradient accent bar (used under headings / active states). */
+/** Small accent-gradient badge pill ("Zap", "Chapter complete", "3 due"). */
 @Composable
-fun AccentBar(modifier: Modifier = Modifier, width: Dp = ZeusSpacing.xxxl) {
-    Box(
+fun AccentBadge(text: String, modifier: Modifier = Modifier, icon: ImageVector? = null, onClick: (() -> Unit)? = null) {
+    val c = ZeusTheme.colors
+    Row(
         modifier = modifier
-            .width(width)
-            .height(ZeusSpacing.xs)
+            .then(if (onClick != null) Modifier.minimumInteractiveComponentSize() else Modifier)
+            .heightIn(min = ZeusSizes.iconXl)
             .clip(ZeusShapes.pill)
-            .background(rememberPrimaryGradient(animate = false))
-    )
+            .background(rememberAccentBrush())
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
+            .padding(horizontal = ZeusSpacing.md, vertical = ZeusSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)
+    ) {
+        if (icon != null) Icon(icon, null, tint = c.onAccent, modifier = Modifier.size(ZeusSizes.iconSm))
+        Text(text, style = ZeusTheme.type.label, color = c.onAccent, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
 }
-

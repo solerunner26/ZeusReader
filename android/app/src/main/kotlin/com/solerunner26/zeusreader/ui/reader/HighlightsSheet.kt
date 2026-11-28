@@ -20,11 +20,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import com.solerunner26.zeusreader.data.local.HighlightEntity
 import com.solerunner26.zeusreader.reader.highlights.MarkdownExporter
-import com.solerunner26.zeusreader.ui.components.GlassIconButton
-import com.solerunner26.zeusreader.ui.components.GlassPillButton
-import com.solerunner26.zeusreader.ui.components.GlassSection
-import com.solerunner26.zeusreader.ui.components.MetaLabel
-import com.solerunner26.zeusreader.ui.components.PrimaryPillButton
+import com.solerunner26.zeusreader.ui.components.CircleIconButton
+import com.solerunner26.zeusreader.ui.components.SecondaryButton
+import com.solerunner26.zeusreader.ui.components.SectionCard
+import com.solerunner26.zeusreader.ui.components.Eyebrow
+import com.solerunner26.zeusreader.ui.components.PrimaryButton
 import com.solerunner26.zeusreader.ui.components.ZeusBottomSheet
 import com.solerunner26.zeusreader.ui.components.ZeusDialog
 import com.solerunner26.zeusreader.ui.components.ZeusTextField
@@ -67,7 +67,7 @@ fun HighlightsBottomSheet(
         var note by remember { mutableStateOf("") }
         ZeusDialog(
             onDismissRequest = { showAddDialog = false },
-            title = "Glow a passage",
+            title = "Highlight a passage",
             confirmLabel = "Save",
             confirmEnabled = snippet.isNotBlank(),
             onConfirm = {
@@ -98,29 +98,29 @@ internal fun HighlightsSheetContent(
             .testTag("highlights_sheet_root"),
         verticalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
     ) {
-        Text("Glow · highlights & notes", style = type.headline, color = colors.textOnSky)
+        Text("Highlights & notes", style = type.headline, color = colors.ink)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
-            PrimaryPillButton("Add glow", onOpenAddDialog, icon = Icons.Rounded.Add, leadingIcon = true, height = ZeusSpacing.secondaryButtonHeight, shimmer = false, modifier = Modifier.weight(1f))
-            GlassPillButton("Export .md", onExportMarkdown, icon = Icons.Rounded.IosShare, enabled = highlights.isNotEmpty(), modifier = Modifier.weight(1f))
+            PrimaryButton("Add highlight", onOpenAddDialog, icon = Icons.Rounded.Add, leadingIcon = true, height = ZeusSpacing.secondaryButtonHeight, shine = false, modifier = Modifier.weight(1f))
+            SecondaryButton("Export .md", onExportMarkdown, icon = Icons.Rounded.IosShare, enabled = highlights.isNotEmpty(), modifier = Modifier.weight(1f))
         }
         if (highlights.isEmpty()) {
-            Text("No highlights yet for $bookTitle.", style = type.body, color = colors.textOnSkySecondary)
+            Text("No highlights yet for $bookTitle.", style = type.body, color = colors.muted)
         } else {
             highlights.forEach { item ->
-                GlassSection {
+                SectionCard {
                     Row(horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)) {
                             val loc = buildList {
                                 if (item.chapterTitle.isNotBlank()) add(item.chapterTitle)
                                 if (item.pageNumber != null) add("Page ${item.pageNumber}")
                             }.joinToString(" · ")
-                            if (loc.isNotBlank()) MetaLabel(text = loc, accent = true)
-                            Text(item.selectedText, style = type.quoteSmall, color = colors.textOnSky)
+                            if (loc.isNotBlank()) Eyebrow(text = loc, accent = true)
+                            Text(item.selectedText, style = type.quote, color = colors.ink)
                             if (item.note.isNotBlank()) {
-                                Text("Note: ${item.note}", style = type.caption, color = colors.textOnSkySecondary)
+                                Text("Note: ${item.note}", style = type.caption, color = colors.muted)
                             }
                         }
-                        GlassIconButton(Icons.Rounded.DeleteOutline, "Delete highlight", { onDeleteHighlight(item.id) })
+                        CircleIconButton(Icons.Rounded.DeleteOutline, "Delete highlight", { onDeleteHighlight(item.id) })
                     }
                 }
             }

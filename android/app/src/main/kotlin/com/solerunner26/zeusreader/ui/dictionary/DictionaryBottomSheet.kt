@@ -32,11 +32,11 @@ import androidx.compose.ui.text.input.ImeAction
 import com.solerunner26.zeusreader.dictionary.BilingualGloss
 import com.solerunner26.zeusreader.dictionary.DictionaryLookupResult
 import com.solerunner26.zeusreader.ml.StudyTargetLanguage
-import com.solerunner26.zeusreader.ui.components.GlassIconButton
-import com.solerunner26.zeusreader.ui.components.GlassSection
-import com.solerunner26.zeusreader.ui.components.MetaLabel
-import com.solerunner26.zeusreader.ui.components.PrimaryPillButton
-import com.solerunner26.zeusreader.ui.components.StickerChip
+import com.solerunner26.zeusreader.ui.components.CircleIconButton
+import com.solerunner26.zeusreader.ui.components.SectionCard
+import com.solerunner26.zeusreader.ui.components.Eyebrow
+import com.solerunner26.zeusreader.ui.components.PrimaryButton
+import com.solerunner26.zeusreader.ui.components.AccentBadge
 import com.solerunner26.zeusreader.ui.components.ZeusBottomSheet
 import com.solerunner26.zeusreader.ui.components.ZeusLinearProgress
 import com.solerunner26.zeusreader.ui.components.ZeusSegmented
@@ -134,7 +134,7 @@ internal fun DictionarySheetContent(
         verticalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
-            StickerChip(text = "Zap", icon = Icons.Rounded.Bolt, accentFill = true, rotation = -3f)
+            AccentBadge(text = "Dictionary", icon = Icons.Rounded.Bolt)
             ZeusSegmented(
                 options = listOf("Word", "Whole sentence"),
                 selectedIndex = mode,
@@ -153,41 +153,41 @@ internal fun DictionarySheetContent(
                     keyboardActions = KeyboardActions(onSearch = { if (wordInput.isNotBlank()) onLookupWord(wordInput.trim()) }),
                     modifier = Modifier.weight(1f)
                 )
-                GlassIconButton(Icons.Rounded.Search, "Look up word", { if (wordInput.isNotBlank()) onLookupWord(wordInput.trim()) })
-                GlassIconButton(Icons.AutoMirrored.Rounded.VolumeUp, "Pronounce word", { onSpeak(result?.queryWord ?: wordInput) })
+                CircleIconButton(Icons.Rounded.Search, "Look up word", { if (wordInput.isNotBlank()) onLookupWord(wordInput.trim()) })
+                CircleIconButton(Icons.AutoMirrored.Rounded.VolumeUp, "Pronounce word", { onSpeak(result?.queryWord ?: wordInput) })
             }
 
             when {
                 wordInput.isBlank() -> Text(
                     "Select a word on the page, or type one above, to zap its meaning in English, हिन्दी and ગુજરાતી.",
                     style = type.body,
-                    color = colors.textOnSkySecondary
+                    color = colors.muted
                 )
                 result == null -> {
                     ZeusLinearProgress()
-                    Text("Zapping “$wordInput”…", style = type.caption, color = colors.textOnSkySecondary)
+                    Text("Looking up “$wordInput”…", style = type.caption, color = colors.muted)
                 }
                 else -> {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
-                        Text(result.matchedLemma.ifBlank { result.queryWord }, style = type.screenTitle, color = colors.textOnSky, modifier = Modifier.weight(1f), maxLines = 2)
-                        if (result.usedMlKitFallback) MetaLabel(text = "ML Kit", accent = true)
+                        Text(result.matchedLemma.ifBlank { result.queryWord }, style = type.title, color = colors.ink, modifier = Modifier.weight(1f), maxLines = 2)
+                        if (result.usedMlKitFallback) Eyebrow(text = "ML Kit", accent = true)
                     }
                     result.englishSenses.firstOrNull()?.let { first ->
-                        Text("(${first.pos}) ${first.definition}", style = type.body, color = colors.textOnSky)
+                        Text("(${first.pos}) ${first.definition}", style = type.body, color = colors.ink)
                     }
                     GlossBlock("हिन्दी", result.hindiGlosses, StudyTargetLanguage.HINDI, selectedTargetLang == StudyTargetLanguage.HINDI, onSelectTargetLang)
                     GlossBlock("ગુજરાતી", result.gujaratiGlosses, StudyTargetLanguage.GUJARATI, selectedTargetLang == StudyTargetLanguage.GUJARATI, onSelectTargetLang)
                     if (result.englishSenses.size > 1) {
-                        GlassSection(title = "More senses (WordNet)") {
+                        SectionCard(title = "More senses (WordNet)") {
                             result.englishSenses.drop(1).take(4).forEachIndexed { idx, sense ->
-                                Text("${idx + 2}. (${sense.pos}) ${sense.definition}", style = type.caption, color = colors.textOnSky)
-                                if (sense.example.isNotBlank()) Text("“${sense.example}”", style = type.quoteSmall, color = colors.textOnSkySecondary)
+                                Text("${idx + 2}. (${sense.pos}) ${sense.definition}", style = type.caption, color = colors.ink)
+                                if (sense.example.isNotBlank()) Text("“${sense.example}”", style = type.quote, color = colors.muted)
                             }
                         }
                     } else if (result.englishSenses.isEmpty()) {
-                        Text("Not in the bundled English WordNet — showing translation fallback if installed.", style = type.caption, color = colors.textOnSkySecondary)
+                        Text("Not in the bundled English WordNet — showing translation fallback if installed.", style = type.caption, color = colors.muted)
                     }
-                    PrimaryPillButton(
+                    PrimaryButton(
                         label = if (saved) "Saved to Words" else "Save to Words",
                         icon = Icons.Rounded.BookmarkAdd,
                         leadingIcon = true,
@@ -198,7 +198,7 @@ internal fun DictionarySheetContent(
                         },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    MetaLabel(text = "${result.attribution} · ${result.buildDate}".trim(' ', '·'), maxLines = 2)
+                    Eyebrow(text = "${result.attribution} · ${result.buildDate}".trim(' ', '·'), maxLines = 2)
                 }
             }
         } else {
@@ -208,19 +208,19 @@ internal fun DictionarySheetContent(
                 onSelect = { onSelectTargetLang(StudyTargetLanguage.entries[it]) }
             )
             if (sentenceContext.isBlank()) {
-                Text("Select a sentence on the page to translate it.", style = type.body, color = colors.textOnSkySecondary)
+                Text("Select a sentence on the page to translate it.", style = type.body, color = colors.muted)
             } else {
-                GlassSection(title = "Original") {
-                    Text(sentenceContext, style = type.quote, color = colors.textOnSky)
+                SectionCard(title = "Original") {
+                    Text(sentenceContext, style = type.quote, color = colors.ink)
                 }
-                GlassSection(title = selectedTargetLang.displayName, neon = true) {
+                SectionCard(title = selectedTargetLang.displayName, selected = true) {
                     if (sentenceTranslation.isNullOrBlank()) {
                         ZeusLinearProgress()
                     } else {
-                        Text(sentenceTranslation, style = ZeusType.readingFor(selectedTargetLang.code, type.body.copy(fontSize = type.title.fontSize)), color = colors.textOnSky)
+                        Text(sentenceTranslation, style = ZeusType.readingFor(selectedTargetLang.code, type.body.copy(fontSize = type.title.fontSize)), color = colors.ink)
                     }
                 }
-                GlassIconButton(Icons.AutoMirrored.Rounded.VolumeUp, "Read the sentence aloud", { onSpeak(sentenceContext) })
+                CircleIconButton(Icons.AutoMirrored.Rounded.VolumeUp, "Read the sentence aloud", { onSpeak(sentenceContext) })
             }
         }
     }
@@ -236,30 +236,30 @@ private fun GlossBlock(
 ) {
     val colors = ZeusTheme.colors
     val type = ZeusTheme.type
-    GlassSection(neon = selected) {
+    SectionCard(selected = selected) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            MetaLabel(text = label, accent = true, modifier = Modifier.weight(1f))
+            Eyebrow(text = label, accent = true, modifier = Modifier.weight(1f))
             if (!selected) {
                 Text(
                     "Save in $label",
-                    style = type.labelSmall,
-                    color = colors.textOnSkySecondary,
+                    style = type.tiny,
+                    color = colors.muted,
                     modifier = Modifier
                         .minimumInteractiveComponentSize()
                         .clickable(role = Role.Button) { onSelect(lang) }
                 )
             } else {
-                MetaLabel(text = "Saving in this language")
+                Eyebrow(text = "Saving in this language")
             }
         }
         if (glosses.isEmpty()) {
-            Text("No offline meaning yet — download the ${lang.code} pack in Offline packs.", style = type.caption, color = colors.textOnSkySecondary)
+            Text("No offline meaning yet — download the ${lang.code} pack in Offline packs.", style = type.caption, color = colors.muted)
         } else {
             glosses.forEach { g ->
                 val prefix = if (g.pos.isNotBlank()) "(${g.pos}) " else ""
-                Text("$prefix${g.gloss}", style = ZeusType.readingFor(lang.code, type.title), color = colors.textOnSky)
+                Text("$prefix${g.gloss}", style = ZeusType.readingFor(lang.code, type.title), color = colors.ink)
                 if (g.transliteration.isNotBlank()) {
-                    Text(g.transliteration, style = type.caption, color = colors.textOnSkySecondary)
+                    Text(g.transliteration, style = type.caption, color = colors.muted)
                 }
             }
         }

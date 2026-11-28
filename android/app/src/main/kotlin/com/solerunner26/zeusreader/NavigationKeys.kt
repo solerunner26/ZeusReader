@@ -45,3 +45,18 @@ data object StatsRoute : NavKey
 
 @Serializable
 data object OnlineRoute : NavKey
+
+@Serializable
+data object OnboardingRoute : NavKey
+
+@Serializable
+data object ProfileRoute : NavKey
+
+@Serializable
+data object StreakRoute : NavKey
+
+@Serializable
+data object ActivityRoute : NavKey
+
+@Serializable
+data object HelpRoute : NavKey

@@ -2,7 +2,7 @@ package com.solerunner26.zeusreader.ui.theme
 
 import androidx.compose.ui.unit.dp
 
-/** Stormlight spacing scale (4dp grid) + layout constants. Screens never use raw `.dp`. */
+/** Sunset spacing (4dp grid) + layout constants. Screens never use raw `.dp`. */
 object ZeusSpacing {
     val none = 0.dp
     val hairline = 1.dp
@@ -14,81 +14,80 @@ object ZeusSpacing {
     val md = 12.dp
     val mdPlus = 14.dp
     val lg = 16.dp
-    val lgPlus = 18.dp
+    val gutter = 18.dp
     val xl = 20.dp
     val xxl = 24.dp
     val xxxl = 32.dp
     val huge = 40.dp
     val giant = 56.dp
-
-    /** Horizontal screen gutter used by every root screen. */
-    val gutter = 20.dp
-    /** Vertical rhythm between major sections. */
-    val section = 20.dp
-    val cardPadding = 18.dp
-
-    val pageInset = 8.dp
-    val dockHeight = 68.dp
-    val dockInset = 16.dp
-    /** dockHeight + 2×dockInset. Add the navigation-bar inset on top (see `rememberDockClearance`). */
-    val dockBottomClearance = 100.dp
-    val orbSize = 68.dp
+    val section = 16.dp
+    val cardPadding = 16.dp
+    val navHeight = 74.dp
+    val navInset = 14.dp
+    /** navHeight + inset + breathing room. Add the navigation-bar inset on top (see `rememberNavClearance`). */
+    val navClearance = 100.dp
     val touchMin = 48.dp
-    val primaryButtonHeight = 58.dp
+    val primaryButtonHeight = 54.dp
     val secondaryButtonHeight = 48.dp
-    val chipHeight = 40.dp
+    val pillButtonHeight = 38.dp
+    val chipHeight = 36.dp
+    val inputHeight = 52.dp
     val topBarHeight = 56.dp
-    val glassBlur = 20.dp
-    val glassBorderWidth = 1.dp
+    val borderWidth = 1.dp
     val neonBorderWidth = 1.5.dp
     val selectedBorderWidth = 2.dp
 }
 
-/** Fixed component sizes (icons, covers, rings, orb, …). */
+/** Fixed component sizes (icons, covers, rings, artifacts…). */
 object ZeusSizes {
     val iconXs = 14.dp
     val iconSm = 16.dp
     val iconMd = 20.dp
     val iconLg = 24.dp
     val iconXl = 32.dp
-    val iconHero = 48.dp
     val avatar = 44.dp
-    val iconTile = 44.dp
-    val iconTileLarge = 56.dp
-    val swatch = 52.dp
-    val switchWidth = 52.dp
-    val switchHeight = 32.dp
-    val switchThumb = 24.dp
-
-    val coverThumbWidth = 56.dp
-    val coverThumbHeight = 84.dp
-    val coverHeroWidth = 150.dp
-    val coverHeroHeight = 222.dp
-    val coverFlowSideWidth = 104.dp
-    val coverFlowSideHeight = 156.dp
-    val heroStageHeight = 250.dp
-    val coverFlowHeight = 236.dp
+    val avatarXl = 92.dp
+    val iconBox = 42.dp
+    val iconBoxSmall = 34.dp
+    val quickTile = 54.dp
+    val navPillWidth = 52.dp
+    val navPillHeight = 30.dp
+    val dayDot = 38.dp
+    val optionBadge = 32.dp
+    val radio = 22.dp
+    val swatch = 46.dp
+    val coverSmallWidth = 62.dp
+    val coverSmallHeight = 90.dp
+    val coverShelfWidth = 92.dp
     val gridCoverMin = 148.dp
-
-    val chargeRing = 84.dp
-    val chargeRingStroke = 7.dp
-    val progressRing = 64.dp
-    val progressRingStroke = 6.dp
-    val progressTrack = 6.dp
-    val glowBlob = 220.dp
-
-    val bannerHeight = 36.dp
-    val sheetHandleWidth = 40.dp
-    val sheetHandleHeight = 4.dp
-    val bentoMinHeight = 112.dp
-    val quickActionTile = 56.dp
-
-    val orbIcon = 28.dp
-    val constellationItem = 56.dp
-    val constellationRadius = 132.dp
-    val flyRailWidth = 52.dp
-    val flyPlanet = 28.dp
-    val flyPlanetActive = 56.dp
+    val heroMinHeight = 178.dp
+    val heroMascot = 132.dp
+    val mascotLarge = 176.dp
+    val mascotMedium = 104.dp
+    val trophy = 150.dp
+    val stage = 250.dp
+    val ring = 150.dp
+    val ringStroke = 14.dp
+    val ringSmall = 62.dp
+    val ringSmallStroke = 7.dp
+    val progressTrack = 8.dp
+    val progressThin = 6.dp
+    val artifactSmall = 34.dp
+    val artifactMedium = 44.dp
+    val flameHero = 96.dp
+    val sheetHandleWidth = 42.dp
+    val sheetHandleHeight = 5.dp
+    val sheetMaxList = 420.dp
+    val contentMaxWidth = 600.dp
+    val readerMaxWidth = 720.dp
+    val emptyIcon = 72.dp
+    val waveformHeight = 64.dp
+    val waveformBar = 4.dp
+    val playButton = 76.dp
+    val skipButton = 56.dp
+    val wordCardMinHeight = 300.dp
+    val edgeZoneWidth = 64.dp
+    val brightnessZoneWidth = 28.dp
     val ribbonWidth = 24.dp
     val ribbonHeightIdle = 40.dp
     val ribbonHeightActive = 64.dp
@@ -98,25 +97,10 @@ object ZeusSizes {
     val marginMarkHeight = 36.dp
     val focusBandHeight = 84.dp
     val vignetteHeight = 96.dp
-    val edgeZoneWidth = 64.dp
-    val brightnessZoneWidth = 28.dp
-    val waveformHeight = 64.dp
-    val waveformBar = 4.dp
-    val listenOrb = 88.dp
-    val skipButton = 60.dp
-    val wordCardMinHeight = 300.dp
-    val starMapHeight = 180.dp
-    val star = 4.dp
-    val starBright = 8.dp
-    val sheetMaxListHeight = 420.dp
-    val sheetMaxShortList = 300.dp
-    val readerMaxWidth = 720.dp
-    val contentMaxWidth = 560.dp
-    val emptyStateIcon = 72.dp
-
+    val confettiPiece = 8.dp
     val elevationNone = 0.dp
-    val shadowSoft = 12.dp
-    val shadowCover = 22.dp
-    val shadowGlow = 28.dp
-    val stickerOffset = 3.dp
+    val shadowCard = 14.dp
+    val shadowLift = 22.dp
+    val shadowGlow = 26.dp
+    val shadowSoft = shadowCard
 }

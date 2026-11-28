@@ -73,7 +73,7 @@ class AppUiConfigViewModel @Inject constructor(
     fun setGlassUi(enabled: Boolean) = update { it.copy(glassUi = enabled) }
     fun setAestheticElements(enabled: Boolean) = update { it.copy(aestheticElements = enabled) }
     fun setMasterAnimations(enabled: Boolean) = update { it.copy(masterAnimations = enabled) }
-    fun setThemePack(sky: ZeusSky) = update { it.copy(themeHue = sky.hue, hueFromCover = false) }
+    fun setThemePack(pack: ZeusPack) = update { it.copy(themeHue = pack.hue, hueFromCover = false) }
     fun setAnimatedGlare(enabled: Boolean) = update { it.copy(animatedGlare = enabled) }
     fun setAnimatedBorders(enabled: Boolean) = update { it.copy(animatedBorders = enabled) }
     fun setAppLanguage(language: AppLanguage) = update { it.copy(appLanguage = language) }

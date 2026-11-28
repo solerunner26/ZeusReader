@@ -32,15 +32,15 @@ import com.solerunner26.zeusreader.reader.prefs.PdfFitMode
 import com.solerunner26.zeusreader.reader.prefs.ReaderFontChoice
 import com.solerunner26.zeusreader.reader.prefs.ReaderSettings
 import com.solerunner26.zeusreader.reader.prefs.ReaderThemeMode
-import com.solerunner26.zeusreader.ui.components.GlassIconButton
-import com.solerunner26.zeusreader.ui.components.GlassSection
-import com.solerunner26.zeusreader.ui.components.MetaLabel
+import com.solerunner26.zeusreader.ui.components.CircleIconButton
+import com.solerunner26.zeusreader.ui.components.SectionCard
+import com.solerunner26.zeusreader.ui.components.Eyebrow
 import com.solerunner26.zeusreader.ui.components.ZeusBottomSheet
 import com.solerunner26.zeusreader.ui.components.ZeusChip
 import com.solerunner26.zeusreader.ui.components.ZeusDivider
 import com.solerunner26.zeusreader.ui.components.ZeusSegmented
-import com.solerunner26.zeusreader.ui.components.ZeusSliderRow
-import com.solerunner26.zeusreader.ui.components.ZeusSwitchRow
+import com.solerunner26.zeusreader.ui.components.SliderRow
+import com.solerunner26.zeusreader.ui.components.SwitchRow
 import com.solerunner26.zeusreader.ui.theme.ReaderSurface
 import com.solerunner26.zeusreader.ui.theme.ZeusShapes
 import com.solerunner26.zeusreader.ui.theme.ZeusSizes
@@ -59,7 +59,7 @@ fun TypographyBottomSheet(
     onSettingsChange: ((ReaderSettings) -> ReaderSettings) -> Unit,
     onDismiss: () -> Unit
 ) {
-    ZeusBottomSheet(onDismissRequest = onDismiss, title = "Vibe check", subtitle = "Paper, type and comfort") {
+    ZeusBottomSheet(onDismissRequest = onDismiss, title = "Appearance", subtitle = "Page colour, font, size and comfort") {
         TypographyPanelContent(
             settings = settings,
             isPdfMode = isPdfMode,
@@ -95,7 +95,7 @@ internal fun TypographyPanelContent(
                 .fillMaxWidth()
                 .clip(ZeusShapes.cardCompact)
                 .background(settings.theme.backgroundColor)
-                .border(ZeusSpacing.hairline, colors.glassBorder, ZeusShapes.cardCompact)
+                .border(ZeusSpacing.hairline, colors.line, ZeusShapes.cardCompact)
                 .testTag("typography_live_preview")
         ) {
             Text(
@@ -109,7 +109,7 @@ internal fun TypographyPanelContent(
             WarmLightOverlay(settings.warmLightStrength)
         }
 
-        MetaLabel(text = "Paper", accent = true)
+        Eyebrow(text = "Paper", accent = true)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             ReaderThemeMode.entries.forEach { mode ->
                 val selected = settings.theme == mode
@@ -120,7 +120,7 @@ internal fun TypographyPanelContent(
                             .size(ZeusSizes.swatch)
                             .clip(ZeusShapes.circle)
                             .background(mode.backgroundColor)
-                            .border(if (selected) ZeusSpacing.selectedBorderWidth else ZeusSpacing.hairline, if (selected) colors.accentOnSky else colors.glassBorder, ZeusShapes.circle)
+                            .border(if (selected) ZeusSpacing.selectedBorderWidth else ZeusSpacing.hairline, if (selected) colors.accentInk else colors.line, ZeusShapes.circle)
                             .clickable(role = Role.RadioButton) { onSettingsChange { it.copy(theme = mode) } }
                             .semantics {
                                 this.selected = selected
@@ -134,12 +134,12 @@ internal fun TypographyPanelContent(
                             Text("Aa", style = type.label, color = mode.textColor)
                         }
                     }
-                    Text(label, style = type.labelSmall, color = colors.textOnSkySecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(label, style = type.tiny, color = colors.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
 
-        MetaLabel(text = "Font", accent = true)
+        Eyebrow(text = "Font", accent = true)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)) {
             ReaderFontChoice.entries.forEach { font ->
                 ZeusChip(
@@ -151,12 +151,12 @@ internal fun TypographyPanelContent(
             }
         }
 
-        GlassSection {
+        SectionCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
-                GlassIconButton(Icons.Rounded.TextDecrease, "Smaller text", {
+                CircleIconButton(Icons.Rounded.TextDecrease, "Smaller text", {
                     onSettingsChange { it.copy(fontSizePercent = (it.fontSizePercent - 10).coerceAtLeast(80)) }
                 })
-                ZeusSliderRow(
+                SliderRow(
                     title = "Size",
                     valueLabel = "${settings.fontSizePercent}%",
                     value = settings.fontSizePercent.toFloat(),
@@ -164,18 +164,18 @@ internal fun TypographyPanelContent(
                     valueRange = 80f..220f,
                     modifier = Modifier.weight(1f)
                 )
-                GlassIconButton(Icons.Rounded.TextIncrease, "Bigger text", {
+                CircleIconButton(Icons.Rounded.TextIncrease, "Bigger text", {
                     onSettingsChange { it.copy(fontSizePercent = (it.fontSizePercent + 10).coerceAtMost(220)) }
                 })
             }
-            ZeusSliderRow(
+            SliderRow(
                 title = "Line height",
                 valueLabel = "${String.format(java.util.Locale.US, "%.2f", settings.lineHeightMultiplier)}×",
                 value = settings.lineHeightMultiplier,
                 onValueChange = { v -> onSettingsChange { it.copy(lineHeightMultiplier = v) } },
                 valueRange = 1.1f..2.0f
             )
-            ZeusSliderRow(
+            SliderRow(
                 title = "Warm light",
                 valueLabel = "${(settings.warmLightStrength * 100).roundToInt()}%",
                 value = settings.warmLightStrength,
@@ -184,28 +184,28 @@ internal fun TypographyPanelContent(
             )
         }
 
-        GlassSection(title = "One-handed") {
-            ZeusSwitchRow("Focus ribbon", focusRibbon, onToggleFocusRibbon, subtitle = "Three bright lines, the rest dimmed")
+        SectionCard(title = "One-handed") {
+            SwitchRow("Focus ribbon", focusRibbon, onToggleFocusRibbon, subtitle = "Three bright lines, the rest dimmed")
             ZeusDivider()
-            ZeusSwitchRow("Lock rotation", settings.rotationLocked, { c -> onSettingsChange { it.copy(rotationLocked = c) } })
+            SwitchRow("Lock rotation", settings.rotationLocked, { c -> onSettingsChange { it.copy(rotationLocked = c) } })
             ZeusDivider()
-            ZeusSwitchRow("Volume keys turn pages", settings.volumeKeyPageTurn, { c -> onSettingsChange { it.copy(volumeKeyPageTurn = c) } })
+            SwitchRow("Volume keys turn pages", settings.volumeKeyPageTurn, { c -> onSettingsChange { it.copy(volumeKeyPageTurn = c) } })
             ZeusDivider()
-            ZeusSwitchRow("Left-edge brightness swipe", settings.edgeBrightnessSwipe, { c -> onSettingsChange { it.copy(edgeBrightnessSwipe = c) } })
+            SwitchRow("Left-edge brightness swipe", settings.edgeBrightnessSwipe, { c -> onSettingsChange { it.copy(edgeBrightnessSwipe = c) } })
         }
 
         if (isPdfMode) {
-            GlassSection(title = "PDF layout") {
+            SectionCard(title = "PDF layout") {
                 ZeusSegmented(
                     options = PdfFitMode.entries.map { it.label },
                     selectedIndex = PdfFitMode.entries.indexOf(settings.pdfFitMode),
                     onSelect = { idx -> onSettingsChange { it.copy(pdfFitMode = PdfFitMode.entries[idx]) } }
                 )
-                ZeusSwitchRow("Auto-crop white margins", settings.pdfAutoCropMargins, { c -> onSettingsChange { it.copy(pdfAutoCropMargins = c) } })
+                SwitchRow("Auto-crop white margins", settings.pdfAutoCropMargins, { c -> onSettingsChange { it.copy(pdfAutoCropMargins = c) } })
                 ZeusDivider()
-                ZeusSwitchRow("Keep zoom across pages", settings.pdfRetainZoomAcrossPages, { c -> onSettingsChange { it.copy(pdfRetainZoomAcrossPages = c) } })
+                SwitchRow("Keep zoom across pages", settings.pdfRetainZoomAcrossPages, { c -> onSettingsChange { it.copy(pdfRetainZoomAcrossPages = c) } })
                 ZeusDivider()
-                ZeusSwitchRow("Text reflow", settings.pdfReflowMode, { c -> onSettingsChange { it.copy(pdfReflowMode = c) } }, subtitle = "Re-flow the page into readable text")
+                SwitchRow("Text reflow", settings.pdfReflowMode, { c -> onSettingsChange { it.copy(pdfReflowMode = c) } }, subtitle = "Re-flow the page into readable text")
             }
         }
     }

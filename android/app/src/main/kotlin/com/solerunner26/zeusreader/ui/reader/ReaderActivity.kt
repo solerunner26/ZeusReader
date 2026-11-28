@@ -144,6 +144,22 @@ class ReaderActivity : FragmentActivity() {
         }
     }
 
+    private var resumedAtMs: Long = 0L
+
+    override fun onResume() {
+        super.onResume()
+        resumedAtMs = android.os.SystemClock.elapsedRealtime()
+    }
+
+    override fun onPause() {
+        val elapsed = (android.os.SystemClock.elapsedRealtime() - resumedAtMs) / 1000L
+        if (resumedAtMs > 0L && elapsed in 5L..(6 * 3600L)) {
+            com.solerunner26.zeusreader.ui.stats.ReadingTimeStore.addSeconds(applicationContext, elapsed)
+        }
+        resumedAtMs = 0L
+        super.onPause()
+    }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (volumeTurnEnabled) {
             when (keyCode) {

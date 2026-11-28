@@ -1,5 +1,5 @@
 #!/bin/sh
-# Stormlight pre-commit: run the UI gate when files under ui/ (or Navigation.kt) change.
+# Sunset pre-commit: run the UI gate when files under ui/ (or Navigation.kt) change.
 # Enable once per clone:  git config core.hooksPath .githooks   (works in Git Bash on Windows too)
 changed=$(git diff --cached --name-only | grep -E 'zeusreader/(ui/|Navigation\.kt)' || true)
 [ -z "$changed" ] && exit 0

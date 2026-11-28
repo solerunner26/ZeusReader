@@ -22,10 +22,10 @@ Neutrals (shared by every pack)
 Theme packs (accent g1 → g2 at 135°; tint = soft icon/chip fill; onAccent = text on the gradient; accentInk = accent text on canvas)
 | Pack | g1 | g2 | tint (day) | tint (night) | onAccent | accentInk day / night |
 |---|---|---|---|---|---|---|
-| **Sunset** (default) | `#FF7A00` | `#FFB800` | `#FFF0E5` | g1 @ 12% | `#1A1D24` | `#B85400` / `#FF9A3D` |
+| **Sunset** (default) | `#FF7A00` | `#FFB800` | `#FFF0E5` | g1 @ 12% | `#1A1D24` | `#A84C00` / `#FF9A3D` |
 | Emerald | `#10B981` | `#A3E635` | `#E3F8EE` | g1 @ 12% | `#0B2A1D` | `#047857` / `#34D399` |
 | Ocean | `#0EA5E9` | `#67E8F9` | `#E3F4FD` | g1 @ 12% | `#062A3A` | `#0369A1` / `#38BDF8` |
-| Iris | `#6D28D9` | `#A855F7` | `#F1EAFE` | g2 @ 14% | `#FFFFFF` | `#6D28D9` / `#C4A1FF` |
+| Iris | `#6D28D9` | `#9333EA` | `#F1EAFE` | g2 @ 14% | `#FFFFFF` | `#6D28D9` / `#C4A1FF` |
 | Rose | `#F43F5E` | `#FDBA74` | `#FFE9EC` | g1 @ 13% | `#2A0A12` | `#BE123C` / `#FB7185` |
 Semantic: ok `#14A35A`/`#3DD68C`, info `#3B6FE0`/`#7DA2FF`, rose `#E0436A`/`#FF7A99` (each with a 12% tint).
 E-ink: pure black on white, no gradients, no shadows, no motion.

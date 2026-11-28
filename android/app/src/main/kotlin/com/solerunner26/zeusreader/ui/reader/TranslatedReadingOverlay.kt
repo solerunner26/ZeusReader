@@ -52,12 +52,12 @@ import com.solerunner26.zeusreader.reader.prefs.ReaderSettings
 import com.solerunner26.zeusreader.translation.TranslatedDisplayMode
 import com.solerunner26.zeusreader.translation.TranslatedPassageResult
 import com.solerunner26.zeusreader.translation.TranslationEnginePreference
-import com.solerunner26.zeusreader.ui.components.GlassIconButton
-import com.solerunner26.zeusreader.ui.components.GlassPillButton
-import com.solerunner26.zeusreader.ui.components.MetaLabel
+import com.solerunner26.zeusreader.ui.components.CircleIconButton
+import com.solerunner26.zeusreader.ui.components.SecondaryButton
+import com.solerunner26.zeusreader.ui.components.Eyebrow
 import com.solerunner26.zeusreader.ui.components.ZeusBottomSheet
 import com.solerunner26.zeusreader.ui.components.ZeusLinearProgress
-import com.solerunner26.zeusreader.ui.components.ZeusListRow
+import com.solerunner26.zeusreader.ui.components.MenuRow
 import com.solerunner26.zeusreader.ui.components.ZeusTextField
 import com.solerunner26.zeusreader.ui.theme.ZeusShapes
 import com.solerunner26.zeusreader.ui.theme.ZeusSizes
@@ -102,7 +102,7 @@ fun TranslatedReadingOverlay(
     val type = ZeusTheme.type
     val ink = settings.theme.textColor
     val paper = settings.theme.backgroundColor
-    val lensColor = colors.neonA
+    val lensColor = colors.accent
     var showGlossarySheet by remember { mutableStateOf(false) }
     val revealedEnglish = remember(passageResult?.passageHash) { mutableStateMapOf<Int, Boolean>() }
     var lensIndex by remember(passageResult?.passageHash) { mutableStateOf(0) }
@@ -123,7 +123,7 @@ fun TranslatedReadingOverlay(
     }
 
     val readingFamily = settings.fontChoice.toComposeFontFamily()
-    val indicStyle = ZeusType.readingFor(targetLanguage.code, type.bodyReading.copy(fontSize = ZeusType.readingSize(settings.fontSizePercent)))
+    val indicStyle = ZeusType.readingFor(targetLanguage.code, type.reading.copy(fontSize = ZeusType.readingSize(settings.fontSizePercent)))
     val baseSp = ZeusType.readingSize(settings.fontSizePercent)
     val isWide = LocalWindowInfo.current.containerSize.width >= 1500
 
@@ -142,14 +142,14 @@ fun TranslatedReadingOverlay(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Translate Lens", style = type.label.copy(fontFamily = type.Unbounded), color = ink, maxLines = 1)
+                    Text("Translate", style = type.label, color = ink, maxLines = 1)
                     val engineSummary = buildString {
                         append(sectionLabel)
                         append(" · ")
                         append(passageResult?.engineIdVersion ?: enginePreference.engineIdVersion)
                         if (passageResult?.fromCache == true) append(" · cached")
                     }
-                    Text(engineSummary, style = type.metaSmall, color = ink.copy(alpha = 0.7f), maxLines = 1)
+                    Text(engineSummary, style = type.tiny, color = ink.copy(alpha = 0.7f), maxLines = 1)
                 }
                 PaperIconButton(Icons.Rounded.Refresh, "Retranslate this passage", ink, onRetranslatePassage, Modifier.testTag("retranslate_passage_button"))
                 PaperIconButton(Icons.Rounded.Book, "Don't-translate glossary", ink, { showGlossarySheet = true }, Modifier.testTag("open_glossary_button"))
@@ -249,9 +249,9 @@ fun TranslatedReadingOverlay(
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
-                                if (pair.keptUntranslated) Text("Kept in English", style = type.metaSmall, color = ink.copy(alpha = 0.7f))
+                                if (pair.keptUntranslated) Text("Kept in English", style = type.tiny, color = ink.copy(alpha = 0.7f))
                                 if (displayMode == TranslatedDisplayMode.TRANSLATION_ONLY && !revealOriginal) {
-                                    Text("Tap to peek at English", style = type.metaSmall, color = ink.copy(alpha = 0.7f))
+                                    Text("Tap to peek at English", style = type.tiny, color = ink.copy(alpha = 0.7f))
                                 }
                             }
                             if (!pair.keptUntranslated) {
@@ -278,21 +278,21 @@ fun TranslatedReadingOverlay(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
                 ZeusTextField(value = newTerm, onValueChange = { newTerm = it }, placeholder = "e.g. Euler, xylem", modifier = Modifier.weight(1f))
-                GlassPillButton(label = "Add", icon = Icons.Rounded.Add, enabled = newTerm.isNotBlank(), onClick = {
+                SecondaryButton(label = "Add", icon = Icons.Rounded.Add, enabled = newTerm.isNotBlank(), onClick = {
                     onAddGlossaryTerm(newTerm)
                     newTerm = ""
                 })
             }
             if (glossaryTerms.isEmpty()) {
-                Text("No protected terms for this book yet.", style = type.body, color = colors.textOnSkySecondary)
+                Text("No protected terms for this book yet.", style = type.body, color = colors.muted)
             } else {
                 glossaryTerms.forEach { entry ->
-                    ZeusListRow(title = entry.term) {
-                        GlassIconButton(Icons.Rounded.Delete, "Remove ${entry.term}", { onRemoveGlossaryTerm(entry.id) })
+                    MenuRow(title = entry.term) {
+                        CircleIconButton(Icons.Rounded.Delete, "Remove ${entry.term}", { onRemoveGlossaryTerm(entry.id) })
                     }
                 }
             }
-            MetaLabel(text = "${glossaryTerms.size} protected terms")
+            Eyebrow(text = "${glossaryTerms.size} protected terms")
         }
     }
 }

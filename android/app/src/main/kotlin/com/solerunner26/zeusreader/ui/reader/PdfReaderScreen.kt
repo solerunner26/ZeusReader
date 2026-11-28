@@ -28,6 +28,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bolt
@@ -35,7 +36,7 @@ import androidx.compose.material.icons.rounded.BorderColor
 import androidx.compose.material.icons.rounded.DocumentScanner
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Translate
-import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -66,12 +67,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.solerunner26.zeusreader.reader.prefs.PdfFitMode
 import com.solerunner26.zeusreader.reader.prefs.ReaderThemeMode
-import com.solerunner26.zeusreader.ui.components.GlassIconButton
-import com.solerunner26.zeusreader.ui.components.GlassPillButton
-import com.solerunner26.zeusreader.ui.components.MetaLabel
+import com.solerunner26.zeusreader.ui.components.CircleIconButton
+import com.solerunner26.zeusreader.ui.components.SecondaryButton
+import com.solerunner26.zeusreader.ui.components.Eyebrow
 import com.solerunner26.zeusreader.ui.components.ZeusBottomSheet
 import com.solerunner26.zeusreader.ui.components.ZeusLinearProgress
-import com.solerunner26.zeusreader.ui.components.ZeusListRow
+import com.solerunner26.zeusreader.ui.components.MenuRow
 import com.solerunner26.zeusreader.ui.components.ZeusTextField
 import com.solerunner26.zeusreader.ui.dictionary.DictionaryBottomSheet
 import com.solerunner26.zeusreader.ui.passages.SavePassageBottomSheet
@@ -172,40 +173,39 @@ fun PdfReaderScreen(
     val pageText = ready?.reflowedText.orEmpty()
 
     val tools = listOf(
-        OrbTool("Lens", Icons.Rounded.Translate, enabled = ready != null, active = translatedModeEnabled) {
+        ReaderTool("Outline", Icons.AutoMirrored.Rounded.FormatListBulleted, enabled = ready != null) { showTocSheet = true },
+        ReaderTool("Translate", Icons.Rounded.Translate, enabled = ready != null, active = translatedModeEnabled) {
             viewModel.toggleTranslatedReadingMode(!translatedModeEnabled)
         },
-        OrbTool("Zap a word", Icons.Rounded.Bolt, enabled = ready != null) {
+        ReaderTool("Dictionary", Icons.AutoMirrored.Rounded.MenuBook, enabled = ready != null) {
             // Without a chosen word, switch to tappable text so the reader can pick one.
             if (zapWord.isBlank()) textSelectionMode = true
             if (zapWord.isNotBlank()) viewModel.lookupWord(zapWord, selectedTextBuffer)
             showDictionarySheet = true
         },
-        OrbTool("Vibe & type", Icons.Rounded.Tune) { showTypographySheet = true },
-        OrbTool("Listen", Icons.AutoMirrored.Rounded.VolumeUp, enabled = ready != null) {
+        ReaderTool("Listen", Icons.AutoMirrored.Rounded.VolumeUp, enabled = ready != null) {
             listenText = selectedTextBuffer.ifBlank { pageText }
         },
-        OrbTool("Spark it", Icons.Rounded.AutoAwesome, enabled = ready != null) {
+        ReaderTool("Save highlight", Icons.Rounded.AutoAwesome, enabled = ready != null) {
             if (selectedTextBuffer.isBlank()) textSelectionMode = true
             showSavePassageSheet = true
         },
-        OrbTool("Glow", Icons.Rounded.BorderColor) { showHighlightsSheet = true },
-        OrbTool(if (textSelectionMode) "Page view" else "Text & OCR", Icons.Rounded.DocumentScanner, enabled = ready != null, active = textSelectionMode) {
+        ReaderTool("Highlights", Icons.Rounded.BorderColor) { showHighlightsSheet = true },
+        ReaderTool(if (textSelectionMode) "Page view" else "Text view", Icons.Rounded.DocumentScanner, enabled = ready != null, active = textSelectionMode) {
             textSelectionMode = !textSelectionMode
-        },
-        OrbTool("Outline", Icons.AutoMirrored.Rounded.FormatListBulleted, enabled = ready != null) { showTocSheet = true }
+        }
     )
     val fly = ready?.takeIf { it.pageCount > 1 }?.let { r ->
-        FlyModel(
+        JumpModel(
             count = r.pageCount,
             current = r.currentPage,
             unitLabel = "pages",
             labelFor = { i -> r.outline.lastOrNull { it.pageIndex <= i }?.title ?: "Page ${i + 1}" },
-            onFly = { i -> viewModel.goToPage(i) }
+            onJump = { i -> viewModel.goToPage(i) }
         )
     }
 
-    StormlightReaderFrame(
+    ReaderFrame(
         title = title,
         meta = ready?.let { r -> r.outline.lastOrNull { it.pageIndex <= r.currentPage }?.title ?: "Page ${r.currentPage + 1}" }.orEmpty(),
         paperColor = settings.theme.backgroundColor,
@@ -213,14 +213,15 @@ fun PdfReaderScreen(
         progressFraction = ready?.let { if (it.pageCount > 1) it.currentPage.toFloat() / (it.pageCount - 1) else 1f },
         progressLabel = ready?.let { "p.${it.currentPage + 1} / ${it.pageCount}" } ?: "Opening…",
         tools = tools,
-        fly = fly,
+        jump = fly,
         onPrevious = viewModel::previousPage,
         onNext = viewModel::nextPage,
         canGoPrevious = (ready?.currentPage ?: 0) > 0,
         canGoNext = ready != null && ready.currentPage + 1 < ready.pageCount,
         modifier = modifier,
         actions = {
-            GlassIconButton(Icons.Rounded.Search, "Search PDF", { showSearchSheet = true }, enabled = ready != null)
+            CircleIconButton(Icons.Rounded.TextFields, "Appearance", { showTypographySheet = true })
+            CircleIconButton(Icons.Rounded.Search, "Search PDF", { showSearchSheet = true }, enabled = ready != null)
         }
     ) {
         val ink = settings.theme.textColor
@@ -286,7 +287,7 @@ fun PdfReaderScreen(
                                 )
                             }
                         } else {
-                            Text("Tap any word to Zap it, or Spark / Glow a sentence.", style = ZeusTheme.type.metaSmall, color = ink.copy(alpha = 0.7f))
+                            Text("Tap any word for its meaning, or save / highlight a sentence.", style = ZeusTheme.type.tiny, color = ink.copy(alpha = 0.7f))
                             sentences.take(60).forEach { sentence ->
                                 val words = remember(sentence) { sentence.split(Regex("\\s+")).filter { it.isNotBlank() } }
                                 val picked = selectedTextBuffer == sentence
@@ -294,7 +295,7 @@ fun PdfReaderScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(ZeusShapes.tile)
-                                        .background(if (picked) ZeusTheme.colors.neonA.copy(alpha = 0.14f) else Color.Transparent)
+                                        .background(if (picked) ZeusTheme.colors.accent.copy(alpha = 0.14f) else Color.Transparent)
                                         .padding(ZeusSpacing.sm),
                                     verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)
                                 ) {
@@ -319,11 +320,11 @@ fun PdfReaderScreen(
                                         }
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
-                                        PaperPill("Spark it", false, ink, settings.theme.backgroundColor, {
+                                        PaperPill("Save", false, ink, settings.theme.backgroundColor, {
                                             selectedTextBuffer = sentence
                                             showSavePassageSheet = true
                                         })
-                                        PaperPill("Glow", false, ink, settings.theme.backgroundColor, {
+                                        PaperPill("Highlight", false, ink, settings.theme.backgroundColor, {
                                             selectedTextBuffer = sentence
                                             viewModel.addHighlight(sentence, "")
                                         })
@@ -483,10 +484,10 @@ fun PdfReaderScreen(
     if (showTocSheet && ready != null) {
         ZeusBottomSheet(onDismissRequest = { showTocSheet = false }, title = "Outline", subtitle = "${ready.pageCount} pages") {
             if (ready.outline.isEmpty()) {
-                Text("No embedded outline in this PDF — drag the orb to fly through pages.", style = ZeusTheme.type.body, color = ZeusTheme.colors.textOnSkySecondary)
+                Text("No outline in this PDF — tap the progress bar to jump to any page.", style = ZeusTheme.type.body, color = ZeusTheme.colors.muted)
             } else {
                 ready.outline.forEach { entry ->
-                    ZeusListRow(
+                    MenuRow(
                         title = entry.title,
                         modifier = Modifier.padding(start = ZeusSpacing.md * entry.depth.coerceAtMost(3)),
                         onClick = {
@@ -494,7 +495,7 @@ fun PdfReaderScreen(
                             showTocSheet = false
                         }
                     ) {
-                        MetaLabel(text = "p.${entry.pageIndex + 1}", accent = entry.pageIndex <= ready.currentPage)
+                        Eyebrow(text = "p.${entry.pageIndex + 1}", accent = entry.pageIndex <= ready.currentPage)
                     }
                 }
             }
@@ -517,14 +518,14 @@ fun PdfReaderScreen(
                     }),
                     modifier = Modifier.weight(1f)
                 )
-                GlassPillButton(label = "Find", enabled = query.isNotBlank(), onClick = {
+                SecondaryButton(label = "Find", enabled = query.isNotBlank(), onClick = {
                     activeSearchQuery = query.trim()
                     viewModel.search(query)
                 })
             }
             if (isSearching) ZeusLinearProgress()
             searchHits.forEach { hit ->
-                ZeusListRow(
+                MenuRow(
                     title = "Page ${hit.pageIndex + 1}",
                     onClick = {
                         activeSearchQuery = query.trim()
@@ -532,7 +533,7 @@ fun PdfReaderScreen(
                         showSearchSheet = false
                     }
                 ) {
-                    MetaLabel(text = "${hit.matchCount} match${if (hit.matchCount == 1) "" else "es"}", accent = true)
+                    Eyebrow(text = "${hit.matchCount} match${if (hit.matchCount == 1) "" else "es"}", accent = true)
                 }
             }
         }
@@ -590,7 +591,7 @@ fun PdfReaderScreen(
     if (showSavePassageSheet) {
         val quote = selectedTextBuffer
         SavePassageBottomSheet(
-            quotePreview = quote.ifBlank { "Pick a sentence on the page (Text & OCR view), then Spark it." },
+            quotePreview = quote.ifBlank { "Pick a sentence in Text view, then Save highlight." },
             folders = passageFolders,
             onCreateFolder = viewModel::createPassageFolder,
             onSave = { folderId, note, _ ->

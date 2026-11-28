@@ -21,7 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import coil.compose.AsyncImage
 import com.solerunner26.zeusreader.ui.theme.ZeusPalette
 import com.solerunner26.zeusreader.ui.theme.ZeusShapes
-import com.solerunner26.zeusreader.ui.theme.ZeusSky
+import com.solerunner26.zeusreader.ui.theme.ZeusPack
 import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
 import com.solerunner26.zeusreader.ui.theme.ZeusTheme
 import java.io.File
@@ -47,7 +47,7 @@ fun BookCover(
     Box(
         modifier = modifier
             .clip(shape)
-            .border(ZeusSpacing.hairline, colors.glassBorder, shape),
+            .border(ZeusSpacing.hairline, colors.line, shape),
         contentAlignment = Alignment.BottomStart
     ) {
         if (hasCover) {
@@ -60,8 +60,8 @@ fun BookCover(
             )
         } else {
             CappedFontScale(1f) {
-            val sky = remember(title) { ZeusSky.entries[abs(title.hashCode()) % ZeusSky.entries.size] }
-            val eink = ZeusTheme.paper.isEink
+            val sky = remember(title) { coverPalettes[abs(title.hashCode()) % coverPalettes.size] }
+            val eink = ZeusTheme.colors.isEink
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -69,7 +69,7 @@ fun BookCover(
                         if (eink) {
                             Brush.linearGradient(listOf(ZeusPalette.einkHighlight, ZeusPalette.einkHighlight))
                         } else {
-                            Brush.linearGradient(listOf(sky.glow1, sky.baseB, sky.baseA))
+                            Brush.linearGradient(listOf(sky.first, sky.second))
                         }
                     )
             ) {
@@ -77,7 +77,7 @@ fun BookCover(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Brush.radialGradient(listOf(sky.glow2.copy(alpha = 0.45f), Color.Transparent)))
+                            .background(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.18f), Color.Transparent)))
                     )
                 }
                 Column(
@@ -89,15 +89,15 @@ fun BookCover(
                     if (format.isNotBlank()) {
                         Text(
                             text = format.uppercase(),
-                            style = type.metaSmall,
-                            color = if (eink) ZeusPaper_ink() else sky.accent,
+                            style = type.tiny,
+                            color = if (eink) ZeusPaper_ink() else ZeusPalette.white.copy(alpha = 0.85f),
                             maxLines = 1
                         )
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xxs)) {
                         Text(
                             text = title,
-                            style = if (compact) type.labelSmall else type.title.copy(fontFamily = type.Unbounded),
+                            style = if (compact) type.tiny else type.headline,
                             color = if (eink) ZeusPaper_ink() else ZeusPalette.starlight,
                             maxLines = if (compact) 3 else 4,
                             overflow = TextOverflow.Ellipsis
@@ -105,7 +105,7 @@ fun BookCover(
                         if (authors.isNotBlank() && !compact) {
                             Text(
                                 text = authors.uppercase(),
-                                style = type.metaSmall,
+                                style = type.tiny,
                                 color = if (eink) ZeusPaper_ink() else ZeusPalette.starlight.copy(alpha = 0.82f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -120,4 +120,14 @@ fun BookCover(
 }
 
 @Suppress("FunctionName")
-private fun ZeusPaper_ink(): Color = com.solerunner26.zeusreader.ui.theme.ZeusPaper.EINK.ink
+private fun ZeusPaper_ink(): Color = ZeusPalette.black
+
+/** Rich two-tone cover palettes for books without artwork (deep, readable with white type). */
+private val coverPalettes = listOf(
+    ZeusPalette.coverMoss to ZeusPalette.coverMossDeep,
+    ZeusPalette.coverBrick to ZeusPalette.coverBrickDeep,
+    ZeusPalette.coverNavy to ZeusPalette.coverNavyDeep,
+    ZeusPalette.coverOchre to ZeusPalette.coverOchreDeep,
+    ZeusPalette.coverPlum to ZeusPalette.coverPlumDeep,
+    ZeusPalette.coverTeal to ZeusPalette.coverTealDeep
+)
