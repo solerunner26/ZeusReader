@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Zap card — word meaning and translation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Literata:opsz,wght@7..72,400&family=JetBrains+Mono:wght@400;600&family=Baloo+2:wght@600;800&family=Baloo+Bhai+2:wght@600;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@keyframes zap{0%{transform:translateY(16px) rotate(-1.5deg) scale(.92);opacity:0}100%{transform:translateY(0) rotate(-1.5deg) scale(1);opacity:1}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 2px #FFE14D,0 0 16px #FFE14D}50%{box-shadow:0 0 0 2px #FFE14D,0 0 28px #FF4FD8}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;background:linear-gradient(165deg,#120B2E,#3A1C8C);font-family:'Bricolage Grotesque',sans-serif">
+<div style="position:absolute;left:8px;right:8px;top:30px;bottom:8px;border-radius:30px;background:#F6F4FF;color:#17142B;overflow:hidden">
+<div style="position:absolute;left:26px;right:26px;top:60px;display:flex;flex-direction:column;gap:16px">
+<p style="margin:0;font-family:'Literata',serif;font-size:18px;line-height:1.7;opacity:0.4">Soil is not a solid block but a maze of particles and the spaces between them.</p>
+<p style="margin:0;font-family:'Literata',serif;font-size:18px;line-height:1.7"><span style="border-radius:6px;padding:0 4px;background:#FFF6C2;animation:glow 2.4s ease-in-out infinite">Capillary</span> action draws water upward through narrow soil pores against gravity, supplying plant roots during dry intervals.</p>
+</div>
+<div aria-hidden="true" style="position:absolute;inset:0;top:330px;background:linear-gradient(180deg,rgba(246,244,255,0),rgba(18,11,46,0.35))"></div>
+</div>
+
+<section aria-label="Zap card for capillary" style="position:absolute;left:18px;right:18px;top:372px;border-radius:32px;padding:3px;background:linear-gradient(135deg,#FFE14D,#FF4FD8,#7C5CFF);animation:zap .45s cubic-bezier(.2,1.3,.4,1) both;transform:rotate(-1.5deg);box-shadow:0 30px 60px rgba(18,11,46,0.55)">
+<div style="border-radius:29px;background:#120B2E;color:#F4F1FF;padding:20px 20px 18px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:center;gap:12px">
+<div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:32px;line-height:1">capillary</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;opacity:0.75">/kəˈpɪl.ər.i/ · adjective</span></div>
+<button aria-label="Hear it" style="width:52px;height:52px;border-radius:26px;border:0;background:radial-gradient(circle at 35% 30%,#FFFFFF,#FFE14D 40%,#FF9A3D);color:#120B2E;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"></path><path d="M16 8.5a4.5 4.5 0 010 7" fill="none" stroke="currentColor" stroke-width="2"></path></svg></button>
+</div>
+<div role="tablist" style="display:flex;gap:6px;padding:4px;border-radius:999px;background:rgba(255,255,255,0.08)">
+<button role="tab" aria-selected="{{wSel}}" onClick="{{toW}}" style="flex:1;height:40px;border:0;border-radius:20px;background:{{wBg}};color:{{wFg}};font:inherit;font-weight:800;font-size:14px">Word</button>
+<button role="tab" aria-selected="{{sSel}}" onClick="{{toS}}" style="flex:1;height:40px;border:0;border-radius:20px;background:{{sBg}};color:{{sFg}};font:inherit;font-weight:800;font-size:14px">Whole sentence</button>
+</div>
+<sc-if value="{{isW}}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<p style="margin:0;font-size:16px;line-height:1.5">About <b>super-thin tubes or gaps</b> that liquid climbs up by itself — like water creeping up a paper towel.</p>
+<div style="display:flex;gap:10px">
+<div style="flex:1;border-radius:20px;padding:10px 14px;background:#FFE14D;color:#120B2E;transform:rotate(-2deg)"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600">हिन्दी</span><div lang="hi" style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:26px;line-height:1.3">केशिका</div></div>
+<div style="flex:1;border-radius:20px;padding:10px 14px;background:#FF4FD8;color:#120B2E;transform:rotate(2deg)"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600">ગુજરાતી</span><div lang="gu" style="font-family:'Baloo Bhai 2',sans-serif;font-weight:800;font-size:26px;line-height:1.3">કેશિકા</div></div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{isS}}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:10px">
+<p lang="hi" style="margin:0;font-family:'Baloo 2',sans-serif;font-weight:600;font-size:18px;line-height:1.6">केशिका क्रिया गुरुत्वाकर्षण के विरुद्ध मिट्टी के संकीर्ण छिद्रों से पानी को ऊपर की ओर खींचती है।</p>
+<p lang="gu" style="margin:0;font-family:'Baloo Bhai 2',sans-serif;font-weight:600;font-size:18px;line-height:1.6;opacity:0.85">કેશિકા ક્રિયા ગુરુત્વાકર્ષણની વિરુદ્ધ માટીના સાંકડા છિદ્રોમાંથી પાણીને ઉપર ખેંચે છે.</p>
+</div>
+</sc-if>
+<div style="display:flex;gap:8px">
+<button style="flex:1;height:54px;border-radius:27px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#F4F1FF;font:inherit;font-weight:800;font-size:14px">Explain like I’m 12</button>
+<button style="flex:1;height:54px;border-radius:27px;border:0;background:linear-gradient(135deg,#FFE14D,#FF4FD8);color:#120B2E;font:inherit;font-weight:800;font-size:15px">+ Save word</button>
+</div>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(p){ super(p); this.state = { t:'w' }; }
+renderVals() {
+const w = this.state.t === 'w';
+return { isW:w, isS:!w, wSel: w?'true':'false', sSel: w?'false':'true', wBg: w?'#F4F1FF':'transparent', wFg: w?'#120B2E':'#F4F1FF', sBg: w?'transparent':'#F4F1FF', sFg: w?'#F4F1FF':'#120B2E',
+toW: () => this.setState({ t:'w' }), toS: () => this.setState({ t:'s' }) };
+}
+}
+</script>
+</body>
+</html>

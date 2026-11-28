@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vibe and type</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Literata:opsz,wght@7..72,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;background:linear-gradient(165deg,{{a}},{{b}});font-family:'Bricolage Grotesque',sans-serif;color:#F4F1FF">
+<div aria-hidden="true" style="position:absolute;width:320px;height:320px;left:-120px;top:-100px;border-radius:50%;background:{{g1}};filter:blur(80px);opacity:0.65"></div>
+<div aria-hidden="true" style="position:absolute;width:280px;height:280px;right:-120px;top:140px;border-radius:50%;background:{{g2}};filter:blur(80px);opacity:0.55"></div>
+<div style="position:absolute;left:8px;right:8px;top:30px;height:300px;border-radius:30px;background:{{paper}};color:{{ink}};padding:28px 24px;box-sizing:border-box;overflow:hidden">
+<p style="margin:0;font-family:{{face}};font-size:{{size}};line-height:1.7">Capillary action draws water upward through narrow soil pores against gravity, supplying plant roots during dry intervals.</p>
+</div>
+
+<section aria-label="Vibe and type" style="position:absolute;left:0;right:0;bottom:0;height:504px;border-radius:34px 34px 0 0;background:rgba(14,10,34,0.82);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,0.2);padding:14px 20px 22px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+<div style="align-self:center;width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,0.35)"></div>
+<div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:24px">Vibe check</span><span style="font-size:13px;opacity:0.75">sky follows the cover · on</span></div>
+<div role="radiogroup" aria-label="Sky" style="display:flex;gap:10px">
+<sc-for list="{{skies}}" as="s" hint-placeholder-count="5"><button role="radio" aria-checked="{{s.on}}" aria-label="{{s.n}}" onClick="{{s.pick}}" style="flex:1;height:84px;border-radius:22px;border:{{s.ring}};padding:0;background:linear-gradient(160deg,{{s.g1}},{{s.g2}});display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;color:#120B2E;font:inherit;font-weight:800;font-size:11px;transform:{{s.tf}}">{{s.n}}</button></sc-for>
+</div>
+<div role="radiogroup" aria-label="Paper" style="display:flex;gap:8px">
+<sc-for list="{{papers}}" as="p" hint-placeholder-count="4"><button role="radio" aria-checked="{{p.on}}" onClick="{{p.pick}}" style="flex:1;height:48px;border-radius:24px;border:{{p.ring}};background:{{p.bg}};color:{{p.fg}};font:inherit;font-weight:800;font-size:13px">{{p.n}}</button></sc-for>
+</div>
+<div style="display:flex;align-items:center;gap:14px">
+<button onClick="{{smaller}}" aria-label="Smaller text" style="width:52px;height:52px;border-radius:26px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#F4F1FF;font-family:'Unbounded',sans-serif;font-weight:800;font-size:14px">A</button>
+<div style="flex:1;height:10px;border-radius:5px;background:rgba(255,255,255,0.15);position:relative"><div style="width:{{pct}};height:10px;border-radius:5px;background:linear-gradient(90deg,{{g1}},{{g2}})"></div><span style="position:absolute;top:-9px;left:{{pct}};margin-left:-14px;width:28px;height:28px;border-radius:14px;background:{{acc}};box-shadow:0 0 16px {{acc}}"></span></div>
+<button onClick="{{bigger}}" aria-label="Larger text" style="width:52px;height:52px;border-radius:26px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#F4F1FF;font-family:'Unbounded',sans-serif;font-weight:800;font-size:22px">A</button>
+</div>
+<div style="display:flex;gap:8px">
+<button onClick="{{cycleFace}}" style="flex:1;min-height:60px;border-radius:20px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.06);color:#F4F1FF;text-align:left;padding:8px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">FONT</span><span style="font-family:{{face}};font-size:17px">{{faceName}}</span></button>
+<button style="flex:1;min-height:60px;border-radius:20px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.06);color:#F4F1FF;text-align:left;padding:8px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">ORB HAND</span><span style="font-size:16px;font-weight:800">Right</span></button>
+<button style="flex:1;min-height:60px;border-radius:20px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.06);color:#F4F1FF;text-align:left;padding:8px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">PAGES</span><span style="font-size:16px;font-weight:800">Swipe</span></button>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(p){ super(p); this.state = { sky:'Storm', paper:'Cloud', size:18, face:0 }; }
+renderVals() {
+const SKY = {Storm:{a:'#120B2E',b:'#3A1C8C',g1:'#7C5CFF',g2:'#FF4FD8',acc:'#FFE14D'},Aurora:{a:'#04161A',b:'#0C4A4A',g1:'#3DF5D0',g2:'#A6FF4D',acc:'#A6FF4D'},Sunset:{a:'#1E0A16',b:'#5B1240',g1:'#FF4FD8',g2:'#FF9A3D',acc:'#FFB23D'},Monsoon:{a:'#06101F',b:'#10306B',g1:'#3D8BFF',g2:'#3DF5F5',acc:'#6FE7FF'},Ember:{a:'#180806',b:'#5A1A0C',g1:'#FF5A36',g2:'#FFC24D',acc:'#FFC24D'}};
+const PA = {Cloud:['#F6F4FF','#17142B'],Night:['#141125','#ECE8FA'],OLED:['#000000','#D6D2E6'],'E-ink':['#FFFFFF','#000000']};
+const s = SKY[this.state.sky], p = PA[this.state.paper];
+const F = [["'Literata',serif",'Literata'],["'Bricolage Grotesque',sans-serif",'Bricolage'],["'Unbounded',sans-serif",'Unbounded']];
+const z = this.state.size;
+return { ...s, paper:p[0], ink:p[1], size: z + 'px', pct: Math.round((z - 14) / 16 * 100) + '%',
+face: F[this.state.face][0], faceName: F[this.state.face][1], cycleFace: () => this.setState({ face:(this.state.face + 1) % 3 }),
+smaller: () => this.setState({ size: Math.max(14, z - 2) }), bigger: () => this.setState({ size: Math.min(30, z + 2) }),
+skies: Object.entries(SKY).map(([n,v],i) => ({ n, ...v, on: n === this.state.sky ? 'true':'false', ring: n === this.state.sky ? '3px solid #F4F1FF' : '0', tf: n === this.state.sky ? 'translateY(-6px)' : 'none', pick: () => this.setState({ sky:n }) })),
+papers: Object.entries(PA).map(([n,v]) => ({ n, bg:v[0], fg:v[1], on: n === this.state.paper ? 'true':'false', ring: n === this.state.paper ? `3px solid ${s.acc}` : '1px solid rgba(255,255,255,0.25)', pick: () => this.setState({ paper:n }) })) };
+}
+}
+</script>
+</body>
+</html>

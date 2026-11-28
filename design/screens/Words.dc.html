@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Words — swipe to review</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Literata:ital,opsz,wght@1,7..72,400&family=JetBrains+Mono:wght@400;600&family=Baloo+2:wght@800&family=Baloo+Bhai+2:wght@800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;background:linear-gradient(165deg,#1E0A16,#5B1240);color:#F4F1FF;font-family:'Bricolage Grotesque',sans-serif">
+<div aria-hidden="true" style="position:absolute;width:340px;height:340px;left:-100px;top:180px;border-radius:50%;background:#FF9A3D;filter:blur(100px);opacity:0.45"></div>
+<div style="position:relative;padding:20px 18px 0;display:flex;align-items:center;gap:10px">
+<h1 style="margin:0;flex:1;font-family:'Unbounded',sans-serif;font-weight:900;font-size:34px">Words</h1>
+<span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:16px">{{n}}<span style="opacity:0.6">/6</span></span>
+</div>
+<div role="img" aria-label="Review progress" style="position:relative;margin:12px 18px 0;height:8px;border-radius:4px;background:rgba(255,255,255,0.15)"><div style="width:{{pct}};height:8px;border-radius:4px;background:linear-gradient(90deg,#FFB23D,#FF4FD8)"></div></div>
+
+<div style="position:absolute;left:30px;right:30px;top:120px;height:440px">
+<div aria-hidden="true" style="position:absolute;inset:0;border-radius:34px;background:#FF4FD8;transform:rotate(6deg) translateY(14px)"></div>
+<div aria-hidden="true" style="position:absolute;inset:0;border-radius:34px;background:#FFB23D;transform:rotate(-4deg) translateY(6px)"></div>
+<button onClick="{{flip}}" aria-label="Flip card" style="position:absolute;inset:0;border:0;border-radius:34px;background:#FFF4D6;color:#1E0A16;padding:28px 24px;display:flex;flex-direction:column;gap:14px;text-align:left;cursor:pointer;box-shadow:0 30px 60px rgba(0,0,0,0.45)">
+<span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;opacity:0.7">{{w.src}}</span>
+<span style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:40px;line-height:1">{{w.word}}</span>
+<span style="font-family:'Literata',serif;font-style:italic;font-size:17px;line-height:1.5">“{{w.ctx}}”</span>
+<sc-if value="{{back}}" hint-placeholder-val="{{ false }}">
+<span style="font-size:16px;line-height:1.5;font-weight:600">{{w.mean}}</span>
+<span style="display:flex;gap:10px;flex-wrap:wrap"><span lang="hi" style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:28px;padding:2px 12px;border-radius:14px;background:#FFB23D">{{w.hi}}</span><span lang="gu" style="font-family:'Baloo Bhai 2',sans-serif;font-weight:800;font-size:28px;padding:2px 12px;border-radius:14px;background:#FF4FD8">{{w.gu}}</span></span>
+</sc-if>
+<sc-if value="{{front}}" hint-placeholder-val="{{ true }}"><span style="margin-top:auto;font-weight:800;font-size:15px;opacity:0.7">tap to flip · swipe right if you know it</span></sc-if>
+</button>
+</div>
+
+<div style="position:absolute;left:0;right:0;top:600px;display:flex;justify-content:center;gap:28px">
+<button onClick="{{next}}" aria-label="Again tomorrow" style="width:76px;height:76px;border-radius:38px;border:2px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.08);color:#F4F1FF;font:inherit;font-weight:800;font-size:13px">Again</button>
+<button onClick="{{next}}" aria-label="Got it" style="width:76px;height:76px;border-radius:38px;border:0;background:radial-gradient(circle at 35% 30%,#FFFFFF,#FFB23D 35%,#FF4FD8);color:#1E0A16;font:inherit;font-weight:800;font-size:13px;box-shadow:0 0 30px rgba(255,79,216,0.6)">Got it</button>
+<button onClick="{{next}}" aria-label="Easy, show in two weeks" style="width:76px;height:76px;border-radius:38px;border:2px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.08);color:#F4F1FF;font:inherit;font-weight:800;font-size:13px">Easy</button>
+</div>
+
+<nav aria-label="Main" style="position:absolute;left:16px;right:16px;bottom:16px;height:68px;border-radius:34px;background:rgba(30,10,22,0.6);border:1px solid rgba(255,255,255,0.18);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:0 6px">
+<a href="Home.dc.html" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 8h-3v9h-5v-6h-2v6H6v-9H3z"></path></svg>Home</a>
+<a href="Olympus.dc.html" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h4v16H4zM10 4h4v16h-4zM15.5 5l3.8-1 2.7 15-3.8 1z"></path></svg>Olympus</a>
+<a href="SparksHome.dc.html" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"></path></svg>Sparks</a>
+<a href="Words.dc.html" aria-current="page" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:800;color:#FFB23D"><span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:17px;line-height:22px">अ</span>Words</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(p){ super(p); this.state = { i:0, back:false }; }
+renderVals() {
+const W = [
+{word:'capillary',ctx:'Capillary action draws water upward through narrow soil pores…',src:'SOIL SCIENCE · p.84',mean:'About super-thin tubes or gaps that liquid climbs by itself.',hi:'केशिका',gu:'કેશિકા'},
+{word:'interval',ctx:'…supplying plant roots during dry intervals.',src:'SOIL SCIENCE · p.84',mean:'A gap of time between two things.',hi:'अंतराल',gu:'સમયગાળો'},
+{word:'porous',ctx:'Sandy soil is highly porous and drains fast.',src:'SOIL SCIENCE · p.86',mean:'Full of tiny holes that let water or air through.',hi:'छिद्रयुक्त',gu:'છિદ્રાળુ'}
+];
+const i = this.state.i;
+return { w: W[i % 3], back: this.state.back, front: !this.state.back, n: Math.min(i + 1, 6), pct: Math.round(Math.min(i + 1, 6) / 6 * 100) + '%',
+flip: () => this.setState({ back: !this.state.back }), next: () => this.setState({ i: Math.min(i + 1, 5), back:false }) };
+}
+}
+</script>
+</body>
+</html>

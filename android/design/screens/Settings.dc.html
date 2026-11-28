@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&family=Baloo+2:wght@700&family=Baloo+Bhai+2:wght@700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width:390px;height:1620px;position:relative;overflow:hidden;background:linear-gradient(170deg,#120B2E,#3A1C8C 60%,#120B2E);color:#F4F1FF;font-family:'Bricolage Grotesque',sans-serif">
+<div aria-hidden="true" style="position:absolute;width:360px;height:360px;left:-140px;top:-80px;border-radius:50%;background:#7C5CFF;filter:blur(90px);opacity:0.6"></div>
+<div style="position:relative;padding:20px 16px 40px;display:flex;flex-direction:column;gap:16px">
+<h1 style="margin:0;font-family:'Unbounded',sans-serif;font-weight:900;font-size:32px">Settings</h1>
+<div style="border-radius:30px;padding:18px;background:linear-gradient(135deg,#FFE14D,#FF4FD8);color:#120B2E;display:flex;align-items:center;gap:14px">
+<span style="width:60px;height:60px;border-radius:30px;background:#120B2E;color:#FFE14D;display:flex;align-items:center;justify-content:center;font-family:'Unbounded',sans-serif;font-weight:900;font-size:24px">J</span>
+<div style="flex:1;display:flex;flex-direction:column"><span style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:20px">Jaldip</span><span style="font-weight:800;font-size:13px">13-day streak · 41 books finished · 312 sparks</span></div>
+</div>
+<div role="radiogroup" aria-label="App language" style="display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2)">
+<sc-for list="{{langs}}" as="l" hint-placeholder-count="3"><button role="radio" aria-checked="{{l.on}}" onClick="{{l.pick}}" style="flex:1;height:48px;border-radius:24px;border:0;background:{{l.bg}};color:{{l.fg}};font-family:{{l.f}};font-weight:800;font-size:15px">{{l.n}}</button></sc-for>
+</div>
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="5">
+<section style="border-radius:28px;padding:6px 16px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16)">
+<h2 style="margin:10px 0 4px;font-family:'Unbounded',sans-serif;font-weight:800;font-size:15px;color:{{g.c}}">{{g.h}}</h2>
+<sc-for list="{{g.rows}}" as="r" hint-placeholder-count="3">
+<div style="min-height:60px;display:flex;align-items:center;gap:12px;border-top:1px solid rgba(255,255,255,0.1)">
+<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;padding:8px 0"><span style="font-weight:800;font-size:15px">{{r.t}}</span><span style="font-size:12px;opacity:0.75">{{r.d}}</span></span>
+<sc-if value="{{r.isSw}}" hint-placeholder-val="{{ false }}"><button role="switch" aria-checked="{{r.on}}" aria-label="{{r.t}}" onClick="{{r.flip}}" style="width:58px;height:34px;border-radius:17px;border:0;padding:3px;box-sizing:border-box;display:flex;justify-content:{{r.j}};background:{{r.track}}"><span style="width:28px;height:28px;border-radius:14px;background:{{r.knob}};box-shadow:{{r.glow}}"></span></button></sc-if>
+<sc-if value="{{r.isVal}}" hint-placeholder-val="{{ true }}"><span style="height:34px;padding:0 12px;border-radius:17px;background:rgba(255,255,255,0.12);font-weight:800;font-size:13px;line-height:34px;white-space:nowrap">{{r.v}}</span></sc-if>
+</div>
+</sc-for>
+</section>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1620}}'>
+class Component extends DCLogic {
+constructor(p){ super(p); this.state = { lang:'en', cover:true, motion:true, strike:true, vol:false, ai:true, auto:true }; }
+renderVals() {
+const sw = (k,t,d) => { const on = !!this.state[k]; return { t, d, isSw:true, isVal:false, on: on?'true':'false', j: on?'flex-end':'flex-start', track: on ? 'linear-gradient(90deg,#7C5CFF,#FF4FD8)' : 'rgba(255,255,255,0.2)', knob: on ? '#FFE14D' : '#F4F1FF', glow: on ? '0 0 12px #FFE14D' : 'none', flip: () => this.setState({ [k]: !on }) }; };
+const val = (t,d,v) => ({ t, d, v, isSw:false, isVal:true });
+const L = [['en','English',"'Bricolage Grotesque',sans-serif"],['hi','हिन्दी',"'Baloo 2',sans-serif"],['gu','ગુજરાતી',"'Baloo Bhai 2',sans-serif"]];
+return { langs: L.map(([k,n,f]) => ({ n, f, on: this.state.lang === k ? 'true':'false', bg: this.state.lang === k ? '#F4F1FF':'transparent', fg: this.state.lang === k ? '#120B2E':'#F4F1FF', pick: () => this.setState({ lang:k }) })),
+groups: [
+{h:'Vibe', c:'#FFE14D', rows:[ sw('cover','Sky follows the cover','Each book paints the app'), val('Default sky','When a cover has no clear colour','Storm'), sw('motion','Glow & motion','Aurora drift, orb pulse · off with Reduce Motion'), sw('strike','Chapter strikes','Lightning when you finish a chapter') ]},
+{h:'Reading', c:'#FF4FD8', rows:[ val('Orb hand','Where your thumb rests','Right'), sw('vol','Volume keys turn pages','Great in bed'), val('Daily charge','Minutes to fill the ring','25 min'), val('Page paper','Cloud · Night · OLED · E-ink','Cloud') ]},
+{h:'Languages', c:'#3DF5D0', rows:[ val('Hindi pack','Dictionary + translation, offline','31 MB ✓'), val('Gujarati pack','Dictionary + translation, offline','29 MB ✓') ]},
+{h:'Listening', c:'#6FE7FF', rows:[ val('Voice','English · हिन्दी · ગુજરાતી','Natural'), val('Speed','','1.25×') ]},
+{h:'Your server', c:'#A6FF4D', rows:[ val('Status','Sync · backup · conversion · AI','Online'), sw('ai','Ask Zeus & pro translation','Runs on your own server only'), sw('auto','Auto backup','Books, sparks, words, progress'), val('Export everything','One file you can keep','Export') ]}
+] };
+}
+}
+</script>
+</body>
+</html>

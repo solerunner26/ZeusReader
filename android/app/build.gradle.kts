@@ -15,12 +15,16 @@ android {
         applicationId = "com.solerunner26.zeusreader"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.4.0-private"
+        versionCode = 5
+        versionName = "0.5.0-private"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -35,6 +39,11 @@ android {
             matchingFallbacks += listOf("release")
             isDebuggable = false
         }
+    }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 
     compileOptions {

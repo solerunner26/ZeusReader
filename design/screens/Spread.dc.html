@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Landscape bilingual spread</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800&family=Literata:opsz,wght@7..72,400&family=JetBrains+Mono:wght@400&family=Noto+Serif+Devanagari:wght@400&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width:932px;height:430px;position:relative;overflow:hidden;background:linear-gradient(120deg,#120B2E,#3A1C8C);display:flex;gap:6px;padding:12px;box-sizing:border-box">
+<div aria-hidden="true" style="position:absolute;width:360px;height:360px;left:290px;top:30px;border-radius:50%;background:#FF4FD8;filter:blur(100px);opacity:0.45"></div>
+<div style="flex:1;position:relative;border-radius:24px 8px 8px 24px;background:#F6F4FF;color:#17142B;padding:26px 30px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:#5B5675"><span>ENGLISH</span><span>p.84</span></div>
+<span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:22px">How water moves upward</span>
+<p style="margin:0;font-family:'Literata',serif;font-size:16px;line-height:1.65">Soil is not a solid block but a maze of particles and the spaces between them. <span style="background:#7C5CFF2E;border-radius:6px;box-shadow:inset 0 -3px 0 #7C5CFF">Capillary action draws water upward through narrow soil pores against gravity, supplying plant roots during dry intervals.</span> The finer the pores, the higher the water climbs.</p>
+</div>
+<div aria-hidden="true" style="position:absolute;left:50%;top:150px;width:46px;height:4px;margin-left:-23px;border-radius:2px;background:linear-gradient(90deg,#7C5CFF,#FF4FD8);box-shadow:0 0 16px #FF4FD8"></div>
+<div style="flex:1;position:relative;border-radius:8px 24px 24px 8px;background:#F6F4FF;color:#17142B;padding:26px 30px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:#5B5675"><span>हिन्दी</span><span>p.84</span></div>
+<span lang="hi" style="font-family:'Noto Serif Devanagari',serif;font-size:22px;line-height:1.4">पानी ऊपर कैसे चढ़ता है</span>
+<p lang="hi" style="margin:0;font-family:'Noto Serif Devanagari',serif;font-size:16px;line-height:1.85">मिट्टी कोई ठोस खंड नहीं, बल्कि कणों और उनके बीच की जगहों का जाल है। <span style="background:#FF4FD82E;border-radius:6px;box-shadow:inset 0 -3px 0 #FF4FD8">केशिका क्रिया गुरुत्वाकर्षण के विरुद्ध मिट्टी के संकीर्ण छिद्रों से पानी को ऊपर की ओर खींचती है, जिससे शुष्क अंतराल के दौरान पौधों की जड़ों को पानी मिलता है।</span></p>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":932,"height":430}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

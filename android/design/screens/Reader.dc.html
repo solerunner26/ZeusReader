@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reader with the Orb</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--g),0 10px 30px rgba(0,0,0,.4)}50%{box-shadow:0 0 34px 6px var(--g),0 10px 30px rgba(0,0,0,.4)}}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;background:linear-gradient(165deg,{{a}},{{b}});font-family:'Bricolage Grotesque',sans-serif">
+<div aria-hidden="true" style="position:absolute;width:300px;height:300px;right:-120px;bottom:-80px;border-radius:50%;background:{{g2}};filter:blur(80px);opacity:0.6"></div>
+
+<div style="position:absolute;left:8px;right:8px;top:30px;bottom:8px;border-radius:30px;background:{{paper}};color:{{ink}};overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.45)">
+<div aria-label="Chapter progress 37 percent" role="img" style="position:absolute;left:22px;right:22px;top:16px;height:4px;border-radius:2px;background:{{track}}"><div style="width:37%;height:4px;border-radius:2px;background:linear-gradient(90deg,{{g1}},{{g2}});box-shadow:0 0 12px {{g2}}"></div></div>
+<div style="position:absolute;left:22px;right:22px;top:30px;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:{{soft}}"><span>CH 4 · WATER IN SOIL</span><span>12 MIN LEFT</span></div>
+
+<div style="position:absolute;left:26px;right:26px;top:66px;display:flex;flex-direction:column;gap:16px">
+<h1 style="margin:0;font-family:'Unbounded',sans-serif;font-weight:800;font-size:28px;line-height:1.1;letter-spacing:-0.01em">How water moves <span style="background:linear-gradient(90deg,{{g1}},{{g2}});-webkit-background-clip:text;background-clip:text;color:transparent">upward</span></h1>
+<p style="margin:0;font-family:'Literata',serif;font-size:18px;line-height:1.7;opacity:{{dim}}">Soil is not a solid block but a maze of particles and the spaces between them.</p>
+<p style="margin:0;font-family:'Literata',serif;font-size:18px;line-height:1.7;position:relative"><span style="background:{{hl}};border-radius:6px;box-decoration-break:clone;-webkit-box-decoration-break:clone;padding:1px 2px">Capillary action draws water upward through narrow soil pores against gravity, supplying plant roots during dry intervals.</span><span aria-label="Spark saved here" style="position:absolute;left:-18px;top:6px;width:10px;height:10px;border-radius:5px;background:{{g2}};box-shadow:0 0 10px {{g2}}"></span></p>
+<p style="margin:0;font-family:'Literata',serif;font-size:18px;line-height:1.7;opacity:{{dim}}">The finer the pores, the higher the water climbs. In sandy soil the pores are wide, so water drains away quickly and rises only a little.</p>
+</div>
+<div style="position:absolute;left:26px;bottom:26px;font-family:'JetBrains Mono',monospace;font-size:11px;color:{{soft}}">p. 84 / 312</div>
+</div>
+
+<sc-if value="{{open}}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;background:radial-gradient(120% 70% at 85% 95%,rgba(10,6,30,0.75),rgba(10,6,30,0.35))"></div>
+<nav aria-label="Tools" style="position:absolute;inset:0;pointer-events:none">
+<sc-for list="{{tools}}" as="t" hint-placeholder-count="7">
+<a href="{{t.href}}" style="position:absolute;right:{{t.r}};bottom:{{t.b}};display:flex;align-items:center;gap:10px;flex-direction:row-reverse;pointer-events:auto;animation:pop .35s cubic-bezier(.2,1.4,.4,1) both;animation-delay:{{t.d}}">
+<span style="width:52px;height:52px;border-radius:26px;background:{{t.bg}};color:{{t.fg}};display:flex;align-items:center;justify-content:center;font-family:'Unbounded',sans-serif;font-weight:800;font-size:15px;box-shadow:0 0 22px {{t.glow}};border:1px solid rgba(255,255,255,0.3)">{{t.k}}</span>
+<span style="height:32px;padding:0 12px;border-radius:16px;background:rgba(255,255,255,0.92);color:#120B2E;font-weight:800;font-size:13px;line-height:32px;white-space:nowrap">{{t.l}}</span>
+</a>
+</sc-for>
+</nav>
+</sc-if>
+
+<button onClick="{{toggle}}" aria-label="{{orbLabel}}" style="--g:{{g1}};position:absolute;right:26px;bottom:34px;width:68px;height:68px;border-radius:34px;border:0;padding:0;background:radial-gradient(circle at 35% 30%,#FFFFFF,{{acc}} 34%,{{g1}} 100%);display:flex;align-items:center;justify-content:center;animation:pulse 3.2s ease-in-out infinite;cursor:pointer">
+<sc-if value="{{closed}}" hint-placeholder-val="{{ true }}"><svg width="26" height="30" viewBox="0 0 24 28" aria-hidden="true"><path d="M15 1L3 16h8l-2 11L21 11h-8z" fill="#120B2E"></path></svg></sc-if>
+<sc-if value="{{open}}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#120B2E" stroke-width="3" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></sc-if>
+</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"sky":{"editor":"enum","options":["Storm","Aurora","Sunset","Monsoon","Ember"],"default":"Storm"},"paper":{"editor":"enum","options":["Cloud","Night","OLED","E-ink"],"default":"Cloud"},"focus":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(p){ super(p); this.state = { open:false }; }
+renderVals() {
+const SKY = {Storm:{a:'#120B2E',b:'#3A1C8C',g1:'#7C5CFF',g2:'#FF4FD8',acc:'#FFE14D'},Aurora:{a:'#04161A',b:'#0C4A4A',g1:'#3DF5D0',g2:'#A6FF4D',acc:'#A6FF4D'},Sunset:{a:'#1E0A16',b:'#5B1240',g1:'#FF4FD8',g2:'#FF9A3D',acc:'#FFB23D'},Monsoon:{a:'#06101F',b:'#10306B',g1:'#3D8BFF',g2:'#3DF5F5',acc:'#6FE7FF'},Ember:{a:'#180806',b:'#5A1A0C',g1:'#FF5A36',g2:'#FFC24D',acc:'#FFC24D'}};
+const s = SKY[this.props.sky ?? 'Storm'] || SKY.Storm;
+const P = {Cloud:{paper:'#F6F4FF',ink:'#17142B',soft:'#5B5675',track:'#E4E0F5'},Night:{paper:'#141125',ink:'#ECE8FA',soft:'#A9A3C4',track:'#2A2645'},OLED:{paper:'#000000',ink:'#D6D2E6',soft:'#8E89A6',track:'#1C1A26'},'E-ink':{paper:'#FFFFFF',ink:'#000000',soft:'#333333',track:'#CCCCCC'}}[this.props.paper ?? 'Cloud'];
+const dark = this.props.paper === 'Night' || this.props.paper === 'OLED';
+const T = [['Lens','अ↔ગ','Translate.dc.html'],['Zap a word','Aa','Zap.dc.html'],['Vibe & type','◐','Vibe.dc.html'],['Listen','▷','Listen.dc.html'],['Spark it','✦','Capture.dc.html'],['Ask Zeus','?','Ask.dc.html'],['Fly through','↕','Fly.dc.html']];
+const tools = T.map(([l,k,href],i) => { const ang = (100 - i * 15) * Math.PI / 180; const R = 200; return { l, k, href, r: Math.round(26 + 8 + Math.cos(ang) * R * 0.18 + (i % 2) * 6) + 'px', b: Math.round(116 + i * 72) + 'px', d: (i * 0.04) + 's', bg: i % 2 ? s.g2 : s.acc, fg:'#120B2E', glow: i % 2 ? s.g2 : s.acc }; });
+return { ...s, ...P, hl: this.props.paper === 'E-ink' ? '#E5E5E5' : (dark ? s.g1 + '55' : s.g1 + '2E'), dim: (this.props.focus ?? false) ? 0.3 : 1,
+open: this.state.open, closed: !this.state.open, orbLabel: this.state.open ? 'Close tools' : 'Open tools. Drag to fly through the book',
+toggle: () => this.setState({ open: !this.state.open }), tools };
+}
+}
+</script>
+</body>
+</html>

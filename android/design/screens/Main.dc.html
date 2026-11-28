@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stormlight design language</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Literata:ital,opsz,wght@0,7..72,400;1,7..72,400&family=JetBrains+Mono:wght@400;600&family=Baloo+2:wght@600;800&family=Baloo+Bhai+2:wght@600;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@keyframes fa{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(60px,50px) scale(1.15)}}
+@keyframes fb{0%,100%{transform:translate(0,0) scale(1.1)}50%{transform:translate(-70px,-40px) scale(.95)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--g)}50%{box-shadow:0 0 40px 8px var(--g)}}
+@keyframes flash{0%,90%,100%{opacity:0}92%{opacity:.85}94%{opacity:.15}96%{opacity:.6}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:1280px;position:relative;overflow:hidden;background:linear-gradient(160deg,{{a}},{{b}});color:#F4F1FF;font-family:'Bricolage Grotesque',sans-serif">
+<div aria-hidden="true" style="position:absolute;width:700px;height:700px;left:-200px;top:-200px;border-radius:50%;background:{{g1}};filter:blur(120px);opacity:0.55;animation:fa 18s ease-in-out infinite"></div>
+<div aria-hidden="true" style="position:absolute;width:640px;height:640px;right:-220px;top:420px;border-radius:50%;background:{{g2}};filter:blur(130px);opacity:0.45;animation:fb 22s ease-in-out infinite"></div>
+<div aria-hidden="true" style="position:absolute;inset:0;background:radial-gradient(60% 40% at 70% 10%,rgba(255,255,255,0.35),transparent 60%);animation:flash 9s linear infinite;pointer-events:none"></div>
+
+<div style="position:relative;padding:80px 80px 96px;display:flex;flex-direction:column;gap:72px">
+<header style="display:flex;flex-direction:column;gap:20px">
+<span style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.2em;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.06)">ZEUSREADER · STORMLIGHT</span>
+<h1 style="margin:0;font-family:'Unbounded',sans-serif;font-weight:900;font-size:184px;line-height:0.86;letter-spacing:-0.04em;display:flex;align-items:center;gap:18px">ZEUS<svg width="150" height="170" viewBox="0 0 24 28" aria-hidden="true" style="filter:drop-shadow(0 0 30px {{acc}})"><path d="M15 1L3 16h8l-2 11L21 11h-8z" fill="{{acc}}"></path></svg></h1>
+<p style="margin:0;font-family:'Unbounded',sans-serif;font-weight:400;font-size:40px;line-height:1.15;max-width:960px">Read like the sky is listening. <span style="color:{{acc}}">Every book gets its own weather.</span></p>
+</header>
+
+<section style="display:flex;flex-direction:column;gap:20px">
+<h2 style="margin:0;font-family:'Unbounded',sans-serif;font-weight:600;font-size:30px">Skies <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:400;opacity:0.7">· the whole app’s mood · auto-picked from each cover</span></h2>
+<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px">
+<sc-for list="{{skies}}" as="s" hint-placeholder-count="5">
+<div style="height:300px;border-radius:32px;position:relative;overflow:hidden;background:linear-gradient(160deg,{{s.a}},{{s.b}});border:1px solid rgba(255,255,255,0.18)">
+<div aria-hidden="true" style="position:absolute;width:220px;height:220px;left:-60px;top:-40px;border-radius:50%;background:{{s.g1}};filter:blur(50px);opacity:0.8;animation:fa 14s ease-in-out infinite"></div>
+<div aria-hidden="true" style="position:absolute;width:200px;height:200px;right:-70px;bottom:-40px;border-radius:50%;background:{{s.g2}};filter:blur(50px);opacity:0.7;animation:fb 16s ease-in-out infinite"></div>
+<div style="position:absolute;left:20px;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px">
+<span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:26px">{{s.n}}</span>
+<span style="font-size:14px;opacity:0.85">{{s.d}}</span>
+<span style="align-self:flex-start;height:30px;padding:0 12px;border-radius:15px;background:{{s.acc}};color:#120B2E;font-weight:800;font-size:13px;line-height:30px">accent</span>
+</div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px">
+<div style="border-radius:36px;padding:36px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.16);backdrop-filter:blur(20px);display:flex;flex-direction:column;gap:18px">
+<h2 style="margin:0;font-family:'Unbounded',sans-serif;font-weight:600;font-size:26px">Type with a pulse</h2>
+<div style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:52px;line-height:1">Unbounded</div>
+<div style="font-size:15px;opacity:0.8">Headlines, numbers, big moments.</div>
+<div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:30px">Bricolage Grotesque — the voice of every button and label</div>
+<div style="font-family:'Literata',serif;font-size:20px;line-height:1.6;padding:16px 18px;border-radius:20px;background:#F6F4FF;color:#17142B">Literata keeps the page itself calm: capillary action draws water upward through narrow soil pores.</div>
+<div style="display:flex;gap:18px;flex-wrap:wrap"><span lang="hi" style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:34px">केशिका</span><span lang="gu" style="font-family:'Baloo Bhai 2',sans-serif;font-weight:800;font-size:34px">કેશિકા</span><span style="font-family:'JetBrains Mono',monospace;font-size:16px;align-self:center;opacity:0.8">p.84 · 37% · 12min</span></div>
+</div>
+<div style="border-radius:36px;padding:36px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.16);backdrop-filter:blur(20px);display:flex;flex-direction:column;gap:22px">
+<h2 style="margin:0;font-family:'Unbounded',sans-serif;font-weight:600;font-size:26px">The kit</h2>
+<div style="display:flex;align-items:center;gap:28px">
+<div style="--g:{{g1}};width:84px;height:84px;border-radius:42px;background:radial-gradient(circle at 35% 30%,#FFFFFF,{{acc}} 35%,{{g1}} 100%);display:flex;align-items:center;justify-content:center;animation:pulse 3s ease-in-out infinite"><svg width="34" height="38" viewBox="0 0 24 28" aria-hidden="true"><path d="M15 1L3 16h8l-2 11L21 11h-8z" fill="#120B2E"></path></svg></div>
+<div style="font-size:15px;line-height:1.5"><b style="font-family:'Unbounded',sans-serif;font-size:18px">The Orb</b><br>Your one control. Tap for the tool constellation, drag it along the edge to fly through the book.</div>
+</div>
+<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+<span style="height:56px;padding:0 26px;border-radius:28px;background:linear-gradient(135deg,{{acc}},{{g2}});color:#120B2E;font-weight:800;font-size:17px;display:flex;align-items:center;gap:8px;box-shadow:0 10px 30px -8px {{g2}},inset 0 1px 0 rgba(255,255,255,0.6)">Spark it</span>
+<span style="height:44px;padding:0 18px;border-radius:22px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);font-weight:600;font-size:15px;display:flex;align-items:center">Glass pill</span>
+<span style="height:40px;padding:0 16px;border-radius:12px;background:#F4F1FF;color:#120B2E;font-weight:800;font-size:14px;display:flex;align-items:center;transform:rotate(-4deg);box-shadow:4px 4px 0 {{g1}}">STICKER CHIP</span>
+<span style="height:40px;padding:0 16px;border-radius:12px;background:{{g2}};color:#120B2E;font-weight:800;font-size:14px;display:flex;align-items:center;transform:rotate(3deg)">+12 SPARKS</span>
+</div>
+<div style="display:flex;align-items:center;gap:22px">
+<div role="img" aria-label="Charge ring 72 percent" style="width:96px;height:96px;border-radius:48px;background:conic-gradient({{acc}} 0 72%,rgba(255,255,255,0.14) 72% 100%);display:flex;align-items:center;justify-content:center"><div style="width:76px;height:76px;border-radius:38px;background:{{a}};display:flex;align-items:center;justify-content:center;font-family:'Unbounded',sans-serif;font-weight:800;font-size:20px">72%</div></div>
+<div style="font-size:15px;line-height:1.5"><b style="font-family:'Unbounded',sans-serif;font-size:18px">Charge</b><br>Your daily reading fills the ring. Finish a chapter and it <i>strikes</i> — a flash, a rumble, a streak.</div>
+</div>
+</div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:20px">
+<h2 style="margin:0;font-family:'Unbounded',sans-serif;font-weight:600;font-size:30px">Signature moves</h2>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px">
+<sc-for list="{{moves}}" as="m" hint-placeholder-count="8">
+<div style="border-radius:28px;padding:24px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.16);display:flex;flex-direction:column;gap:10px;min-height:200px;box-sizing:border-box">
+<span style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:40px;line-height:1;color:{{m.c}}">{{m.n}}</span>
+<span style="font-family:'Unbounded',sans-serif;font-weight:600;font-size:19px">{{m.t}}</span>
+<span style="font-size:14px;line-height:1.5;opacity:0.82">{{m.d}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="border-radius:36px;padding:32px 36px;background:#F6F4FF;color:#17142B;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px">
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:22px">Loud outside, calm inside</span><span style="font-size:15px;line-height:1.5">Skies, glow and motion live around the book. The page itself is always quiet paper — Cloud, Night, OLED or E-ink — at full contrast.</span></div>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:22px">One thumb</span><span style="font-size:15px;line-height:1.5">The Orb sits where your thumb rests, left or right. Every action is one tap or one drag away. Targets never smaller than 48dp.</span></div>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:22px">Motion with manners</span><span style="font-size:15px;line-height:1.5">Aurora drifts slowly; strikes flash once. Reduce Motion, battery saver and E-ink turn it all into still, beautiful frames.</span></div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"sky":{"editor":"enum","options":["Storm","Aurora","Sunset","Monsoon","Ember"],"default":"Storm"},"$preview":{"width":1280,"height":2260}}'>
+class Component extends DCLogic {
+renderVals() {
+const SKY = {Storm:{a:'#120B2E',b:'#3A1C8C',g1:'#7C5CFF',g2:'#FF4FD8',acc:'#FFE14D',d:'violet thunder, gold bolts'},Aurora:{a:'#04161A',b:'#0C4A4A',g1:'#3DF5D0',g2:'#A6FF4D',acc:'#A6FF4D',d:'northern lights over ice'},Sunset:{a:'#1E0A16',b:'#5B1240',g1:'#FF4FD8',g2:'#FF9A3D',acc:'#FFB23D',d:'pink haze, orange glow'},Monsoon:{a:'#06101F',b:'#10306B',g1:'#3D8BFF',g2:'#3DF5F5',acc:'#6FE7FF',d:'deep rain, electric blue'},Ember:{a:'#180806',b:'#5A1A0C',g1:'#FF5A36',g2:'#FFC24D',acc:'#FFC24D',d:'campfire red and amber'}};
+const s = SKY[this.props.sky ?? 'Storm'] || SKY.Storm;
+return { ...s,
+skies: Object.entries(SKY).map(([n,v]) => ({ n, ...v })),
+moves: [
+{n:'01',t:'The Orb',d:'One glowing control for everything. Tap: tools bloom around it. Drag: fly through chapters.',c:s.acc},
+{n:'02',t:'Constellation menu',d:'Tools appear as stars in an arc above your thumb — no menus, no toolbars over text.',c:s.g2},
+{n:'03',t:'Translate Lens',d:'Slide a glowing lens over any line and it turns into Hindi or Gujarati, right in place.',c:s.acc},
+{n:'04',t:'Zap card',d:'Tap a word: a card zaps in beside it with meaning, हिन्दी, ગુજરાતી and sound.',c:s.g2},
+{n:'05',t:'Sparks',d:'Save a passage and it becomes a star. Collections are constellations you can see.',c:s.acc},
+{n:'06',t:'Spark cards',d:'Share any spark as a story-ready card with the blurred cover, title and author.',c:s.g2},
+{n:'07',t:'Karaoke listen',d:'Read-aloud lights up each word as it is spoken, over a living waveform.',c:s.acc},
+{n:'08',t:'Chapter strike',d:'Finish a chapter: lightning, your stats, sparks saved, and the next chapter waiting.',c:s.g2}
+]
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spark card studio</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Literata:ital,opsz,wght@1,7..72,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;background:#0B0820;color:#F4F1FF;font-family:'Bricolage Grotesque',sans-serif;display:flex;flex-direction:column">
+<div style="height:60px;flex:none;display:flex;align-items:center;gap:8px;padding:0 14px">
+<button aria-label="Close" style="width:48px;height:48px;border-radius:24px;border:0;background:rgba(255,255,255,0.08);color:#F4F1FF;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+<span style="flex:1;font-family:'Unbounded',sans-serif;font-weight:900;font-size:20px">Spark card</span>
+<span style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:0.75">{{px}}</span>
+</div>
+
+<div style="height:410px;flex:none;display:flex;align-items:center;justify-content:center">
+<div role="img" aria-label="Spark card preview" style="width:{{cw}};height:{{ch}};border-radius:{{rad}};position:relative;overflow:hidden;background:{{bg}};box-shadow:0 30px 60px rgba(0,0,0,0.55)">
+<sc-if value="{{isCover}}" hint-placeholder-val="{{ true }}">
+<div aria-hidden="true" style="position:absolute;inset:-40px;background:linear-gradient(160deg,#6F936B,#2F4A33);filter:blur(22px)"><div style="position:absolute;left:28%;top:22%;width:48%;height:30%;border-radius:50%;background:#E9C57A"></div></div>
+<div aria-hidden="true" style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,6,20,0.55),rgba(8,6,20,0.72))"></div>
+</sc-if>
+<sc-if value="{{isAurora}}" hint-placeholder-val="{{ false }}">
+<div aria-hidden="true" style="position:absolute;width:70%;height:60%;left:-20%;top:-10%;border-radius:50%;background:#7C5CFF;filter:blur(40px);opacity:0.9"></div>
+<div aria-hidden="true" style="position:absolute;width:70%;height:60%;right:-25%;bottom:-10%;border-radius:50%;background:#FF4FD8;filter:blur(40px);opacity:0.8"></div>
+<div aria-hidden="true" style="position:absolute;inset:0;background:rgba(18,11,46,0.38)"></div>
+</sc-if>
+<div style="position:absolute;inset:0;padding:{{pad}};box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;color:{{fg}}">
+<span style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:{{ms}};font-weight:600;padding:{{chipPad}};border-radius:999px;background:{{chipBg}};color:{{chipFg}};transform:{{chipTf}}">SPARK FROM MY READING</span>
+<p style="margin:0;font-family:{{qFont}};font-style:{{qStyle}};font-weight:{{qW}};font-size:{{fs}};line-height:{{lh}}">Capillary action draws water upward through narrow soil pores against gravity.</p>
+<div style="display:flex;align-items:center;gap:10px">
+<span aria-hidden="true" style="width:{{tw}};height:{{th}};flex:none;border-radius:4px;background:linear-gradient(160deg,#6F936B,#2F4A33);box-shadow:0 0 0 2px {{thumbRing}}"></span>
+<span style="display:flex;flex-direction:column"><span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:{{ts}}">Soil Science for Beginners</span><span style="font-size:{{ss}};opacity:0.85">R. Mehta</span></span>
+</div>
+</div>
+</div>
+</div>
+
+<div style="flex:1;padding:4px 18px 18px;display:flex;flex-direction:column;gap:12px">
+<div role="radiogroup" aria-label="Style" style="display:flex;gap:8px"><sc-for list="{{styles}}" as="s" hint-placeholder-count="3"><button role="radio" aria-checked="{{s.on}}" onClick="{{s.pick}}" style="flex:1;height:56px;border-radius:20px;border:{{s.ring}};background:{{s.prev}};color:{{s.pf}};font:inherit;font-weight:800;font-size:13px">{{s.l}}</button></sc-for></div>
+<div role="radiogroup" aria-label="Size" style="display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(255,255,255,0.08)"><sc-for list="{{sizes}}" as="s" hint-placeholder-count="3"><button role="radio" aria-checked="{{s.on}}" onClick="{{s.pick}}" style="flex:1;height:44px;border-radius:22px;border:0;background:{{s.bg}};color:{{s.fg}};font:inherit;font-weight:800;font-size:13px">{{s.l}}</button></sc-for></div>
+<div style="display:flex;align-items:center;gap:8px;font-size:12px;opacity:0.85"><span style="flex:1">Always readable · title &amp; author always on it</span><button onClick="{{flip}}" style="height:40px;padding:0 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#F4F1FF;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600">{{fmt}}</button></div>
+<div style="margin-top:auto;display:flex;gap:8px">
+<button style="flex:1;height:58px;border-radius:29px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#F4F1FF;font:inherit;font-weight:800;font-size:15px">Save</button>
+<button style="flex:1.4;height:58px;border-radius:29px;border:0;background:linear-gradient(135deg,#FFE14D,#FF4FD8);color:#120B2E;font:inherit;font-weight:800;font-size:16px;box-shadow:0 12px 30px -10px #FF4FD8">Share to story</button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(p){ super(p); this.state = { st:'cover', sz:'post', fmt:'PNG' }; }
+renderVals() {
+const Z = { square:{w:300,h:300,px:'1080 × 1080'}, post:{w:296,h:370,px:'1080 × 1350'}, story:{w:216,h:384,px:'1080 × 1920'} }[this.state.sz];
+const k = Z.w / 300, r = (n) => Math.round(n * k) + 'px', st = this.state.st;
+const sticker = st === 'sticker';
+const seg = (on) => ({ on: on ? 'true':'false', bg: on ? '#F4F1FF':'transparent', fg: on ? '#120B2E':'#F4F1FF' });
+return { px: Z.px + ' · ' + this.state.fmt, cw: Z.w + 'px', ch: Z.h + 'px', rad: r(22), pad: r(24), fs: sticker ? r(24) : r(22), ms: r(9), ts: r(12), ss: r(11), tw: r(24), th: r(34),
+chipPad: r(5) + ' ' + r(10), lh: sticker ? 1.15 : 1.35,
+isCover: st === 'cover', isAurora: st === 'aurora',
+bg: sticker ? '#FFF4D6' : st === 'aurora' ? '#120B2E' : '#000',
+fg: sticker ? '#120B2E' : '#FFFFFF',
+qFont: sticker ? "'Unbounded',sans-serif" : "'Literata',serif", qStyle: sticker ? 'normal' : 'italic', qW: sticker ? 800 : 400,
+chipBg: sticker ? '#FF4FD8' : 'rgba(255,255,255,0.16)', chipFg: sticker ? '#120B2E' : '#FFFFFF', chipTf: sticker ? 'rotate(-4deg)' : 'none',
+thumbRing: sticker ? '#120B2E' : 'rgba(255,255,255,0.4)', fmt: this.state.fmt,
+flip: () => this.setState({ fmt: this.state.fmt === 'PNG' ? 'JPG' : 'PNG' }),
+styles: [['cover','Cover blur','linear-gradient(160deg,#4E6B4B,#1F3123)','#FFFFFF'],['aurora','Aurora','linear-gradient(135deg,#7C5CFF,#FF4FD8)','#FFFFFF'],['sticker','Sticker','#FFF4D6','#120B2E']].map(([v,l,prev,pf]) => ({ l, prev, pf, on: st === v ? 'true':'false', ring: st === v ? '3px solid #FFE14D' : '1px solid rgba(255,255,255,0.2)', pick: () => this.setState({ st:v }) })),
+sizes: [['square','Square'],['post','Post 4:5'],['story','Story 9:16']].map(([v,l]) => ({ l, ...seg(this.state.sz === v), pick: () => this.setState({ sz:v }) })) };
+}
+}
+</script>
+</body>
+</html>

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -27,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.solerunner26.zeusreader.reader.prefs.AppUiConfig
 
 /**
- * Determines whether HueAura and its drift animation are enabled.
+ * Determines whether Stormlight aurora drift animation is enabled.
  * Strictly disabled under Reduce Motion, Battery Saver, E-ink surface, or Master animations = off.
  */
 fun shouldEnableHueAura(
@@ -60,7 +59,7 @@ fun isSystemBatterySaverEnabled(context: Context): Boolean {
 }
 
 /**
- * Soft drifting radial Hue Aura layer behind Library, Passages, Home, Vocab, and Settings.
+ * Stormlight v4 living sky gradient + drifting aurora glow blobs (DESIGN.md §3 & §5).
  * Never rendered behind reading text.
  */
 @Composable
@@ -74,61 +73,86 @@ fun HueAuraBackground(
     val reduceMotion = isSystemReduceMotionEnabled(context)
     val batterySaver = isSystemBatterySaverEnabled(context)
     val auraEnabled = shouldEnableHueAura(config, reduceMotion, batterySaver)
+    val sky = ZeusTheme.sky
+    val paper = ZeusTheme.paper
 
-    val driftDegrees = if (auraEnabled) {
-        val transition = rememberInfiniteTransition(label = "hue_aura_drift")
-        val value by transition.animateFloat(
-            initialValue = -10f,
-            targetValue = 10f,
+    val driftA: Float
+    val driftB: Float
+    if (auraEnabled) {
+        val transition = rememberInfiniteTransition(label = "stormlight_sky_drift")
+        val a by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 14_000),
+                animation = tween(durationMillis = ZeusMotion.AURORA_DRIFT_MS),
                 repeatMode = RepeatMode.Reverse
             ),
-            label = "hue_aura_angle"
+            label = "aurora_blob_a"
         )
-        value
+        val b by transition.animateFloat(
+            initialValue = 1f,
+            targetValue = 0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = ZeusMotion.AURORA_DRIFT_SECONDARY_MS),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "aurora_blob_b"
+        )
+        driftA = a
+        driftB = b
     } else {
-        0f
+        driftA = 0.2f
+        driftB = 0.8f
     }
 
-    val effectiveHue = normalizeHue(config.themeHue + driftDegrees)
-    val scale = (config.auraIntensity / 0.4f).coerceIn(0f, 1.5f)
+    val skyBrush = if (paper == ZeusPaper.EINK) {
+        Brush.verticalGradient(listOf(ZeusPaper.EINK.bg, ZeusPaper.EINK.bg))
+    } else if (paper == ZeusPaper.OLED) {
+        Brush.verticalGradient(listOf(Color.Black, sky.baseA.copy(alpha = 0.72f)))
+    } else {
+        Brush.linearGradient(colors = listOf(sky.baseA, sky.baseB))
+    }
+
+    val intensityScale = (config.auraIntensity / 0.4f).coerceIn(0.4f, 1.35f)
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
+            .background(skyBrush)
     ) {
-        if (auraEnabled) {
+        if (config.aestheticElements && paper != ZeusPaper.EINK && config.auraIntensity > 0f) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val topLeftColor = if (darkTheme) {
-                    hslColor(effectiveHue, 0.70f, 0.45f, (0.40f * scale).coerceAtMost(0.75f))
-                } else {
-                    hslColor(effectiveHue, 0.75f, 0.78f, (0.60f * scale).coerceAtMost(0.85f))
-                }
-                val rightMiddleColor = if (darkTheme) {
-                    hslColor(effectiveHue + 16f, 0.65f, 0.40f, (0.30f * scale).coerceAtMost(0.65f))
-                } else {
-                    hslColor(effectiveHue + 16f, 0.70f, 0.84f, (0.50f * scale).coerceAtMost(0.75f))
-                }
-
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(topLeftColor, Color.Transparent),
-                        center = Offset(size.width * 0.15f, size.height * 0.12f),
-                        radius = size.maxDimension * 0.58f
-                    ),
-                    center = Offset(size.width * 0.15f, size.height * 0.12f),
-                    radius = size.maxDimension * 0.58f
+                val centerA = Offset(
+                    x = size.width * (0.05f + 0.14f * driftA),
+                    y = size.height * (0.06f + 0.08f * driftA)
+                )
+                val centerB = Offset(
+                    x = size.width * (0.92f - 0.14f * driftB),
+                    y = size.height * (0.46f + 0.08f * driftB)
                 )
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(rightMiddleColor, Color.Transparent),
-                        center = Offset(size.width * 0.90f, size.height * 0.52f),
+                        colors = listOf(
+                            sky.glow1.copy(alpha = (0.45f * intensityScale).coerceAtMost(0.70f)),
+                            Color.Transparent
+                        ),
+                        center = centerA,
                         radius = size.maxDimension * 0.52f
                     ),
-                    center = Offset(size.width * 0.90f, size.height * 0.52f),
+                    center = centerA,
                     radius = size.maxDimension * 0.52f
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            sky.glow2.copy(alpha = (0.36f * intensityScale).coerceAtMost(0.55f)),
+                            Color.Transparent
+                        ),
+                        center = centerB,
+                        radius = size.maxDimension * 0.48f
+                    ),
+                    center = centerB,
+                    radius = size.maxDimension * 0.48f
                 )
             }
         }
@@ -148,7 +172,8 @@ fun ReaderTopVignette(
 ) {
     val palette = buildReaderSurfacePalette(surface, hue)
     if (!palette.allowVignette || intensity <= 0f) return
-    val tint = hslColor(hue, 0.50f, if (palette.isDark) 0.45f else 0.78f, (0.14f * (intensity / 0.4f)).coerceIn(0f, 0.25f))
+    val sky = ZeusSky.fromHue(hue)
+    val tint = sky.glow1.copy(alpha = (0.14f * (intensity / 0.4f)).coerceIn(0f, 0.22f))
     Box(
         modifier = modifier
             .fillMaxWidth()
