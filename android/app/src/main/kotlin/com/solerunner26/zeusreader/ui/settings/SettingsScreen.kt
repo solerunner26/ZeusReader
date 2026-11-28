@@ -61,6 +61,9 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenStats: () -> Unit = {},
     onOpenOnlineSearch: () -> Unit = {},
+    updateState: AppUpdateUiState = AppUpdateUiState(),
+    onCheckForUpdate: () -> Unit = {},
+    onInstallUpdate: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val config by viewModel.config.collectAsStateWithLifecycle()
@@ -76,6 +79,9 @@ fun SettingsScreen(
         onBack = onBack,
         onOpenStats = onOpenStats,
         onOpenOnlineSearch = onOpenOnlineSearch,
+        updateState = updateState,
+        onCheckForUpdate = onCheckForUpdate,
+        onInstallUpdate = onInstallUpdate,
         onSelectAppTheme = viewModel::setAppTheme,
         onSelectLanguage = viewModel::setAppLanguage,
         onSelectPreset = viewModel::setPreset,
@@ -98,6 +104,9 @@ internal fun SettingsScreenContent(
     onBack: () -> Unit,
     onOpenStats: () -> Unit = {},
     onOpenOnlineSearch: () -> Unit = {},
+    updateState: AppUpdateUiState = AppUpdateUiState(),
+    onCheckForUpdate: () -> Unit = {},
+    onInstallUpdate: () -> Unit = {},
     onSelectAppTheme: (AppTheme) -> Unit,
     onSelectLanguage: (AppLanguage) -> Unit,
     onSelectPreset: (HuePreset) -> Unit,
@@ -287,6 +296,60 @@ internal fun SettingsScreenContent(
                                     .heightIn(min = 48.dp)
                             ) {
                                 Text("Online & Sync")
+                            }
+                        }
+                    }
+                }
+
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "App Version & GitHub Updates",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "Installed: v${updateState.currentVersion} (build ${updateState.currentVersionCode})",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "What's new in 0.4.0: Ink & Hue Liquid Glass UI, Virtual Racks & Cover Grid, PDF OCR/Selection & Search Highlights, Passages & Card Studio, Cloudflare Relay + SLUM, In-App GitHub Updater.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        updateState.statusMessage?.let { msg ->
+                            Text(
+                                text = msg,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            androidx.compose.material3.OutlinedButton(
+                                onClick = onCheckForUpdate,
+                                enabled = !updateState.isChecking && !updateState.isDownloading,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(min = 48.dp)
+                            ) {
+                                Text(if (updateState.isChecking) "Checking…" else "Check Updates")
+                            }
+                            if (updateState.availableUpdate != null) {
+                                androidx.compose.material3.Button(
+                                    onClick = onInstallUpdate,
+                                    enabled = !updateState.isDownloading,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(min = 48.dp)
+                                ) {
+                                    Text(if (updateState.isDownloading) "${updateState.downloadProgress}%" else "Install ${updateState.availableUpdate.tagName}")
+                                }
                             }
                         }
                     }

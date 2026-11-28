@@ -7,6 +7,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -46,6 +47,7 @@ import com.solerunner26.zeusreader.ui.passages.PassageDetailScreen
 import com.solerunner26.zeusreader.ui.passages.PassagesScreen
 import com.solerunner26.zeusreader.ui.passages.PassagesViewModel
 import com.solerunner26.zeusreader.ui.reader.ReaderActivity
+import com.solerunner26.zeusreader.ui.settings.AppUpdateViewModel
 import com.solerunner26.zeusreader.ui.settings.SettingsScreen
 import com.solerunner26.zeusreader.ui.stats.StatsScreen
 import com.solerunner26.zeusreader.ui.stats.StatsViewModel
@@ -64,6 +66,8 @@ fun MainNavigation(
     val context = LocalContext.current
     val uiConfigViewModel: AppUiConfigViewModel = hiltViewModel()
     val uiConfig by uiConfigViewModel.config.collectAsStateWithLifecycle()
+    val updateViewModel: AppUpdateViewModel = hiltViewModel()
+    val updateState by updateViewModel.uiState.collectAsStateWithLifecycle()
     val darkTheme = when (uiConfig.appTheme) {
         AppTheme.LIGHT -> false
         AppTheme.DARK -> true
@@ -272,7 +276,10 @@ fun MainNavigation(
                             viewModel = viewModel,
                             onBack = { backStack.removeLastOrNull() },
                             onOpenStats = { backStack.add(StatsRoute) },
-                            onOpenOnlineSearch = { backStack.add(OnlineRoute) }
+                            onOpenOnlineSearch = { backStack.add(OnlineRoute) },
+                            updateState = updateState,
+                            onCheckForUpdate = { updateViewModel.checkNow(silentIfUpToDate = false) },
+                            onInstallUpdate = updateViewModel::downloadAndInstall
                         )
                     }
 
@@ -313,6 +320,55 @@ fun MainNavigation(
                     }
                 }
             )
+
+            val pendingUpdate = updateState.availableUpdate
+            if (pendingUpdate != null && !updateState.dismissedForSession) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = updateViewModel::dismissForSession,
+                    title = { Text("Update Available: ${pendingUpdate.tagName}") },
+                    text = {
+                        androidx.compose.foundation.layout.Column(
+                            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Installed: v${updateState.currentVersion} → New: ${pendingUpdate.tagName}",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = pendingUpdate.releaseNotes.take(450),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            if (updateState.isDownloading) {
+                                androidx.compose.material3.LinearProgressIndicator(
+                                    progress = { updateState.downloadProgress / 100f },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Text(
+                                    text = "Downloading… ${updateState.downloadProgress}%",
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                            updateState.statusMessage?.let { msg ->
+                                Text(msg, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(
+                            onClick = updateViewModel::downloadAndInstall,
+                            enabled = !updateState.isDownloading
+                        ) {
+                            Text(if (updateState.isDownloading) "Downloading…" else "Update Now")
+                        }
+                    },
+                    dismissButton = {
+                        androidx.compose.material3.TextButton(onClick = updateViewModel::dismissForSession) {
+                            Text("Later")
+                        }
+                    }
+                )
+            }
         }
     }
 }
