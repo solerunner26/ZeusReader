@@ -2,42 +2,54 @@ package com.solerunner26.zeusreader.ui.reader
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.TextDecrease
+import androidx.compose.material.icons.rounded.TextIncrease
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import com.solerunner26.zeusreader.reader.prefs.PdfFitMode
 import com.solerunner26.zeusreader.reader.prefs.ReaderFontChoice
 import com.solerunner26.zeusreader.reader.prefs.ReaderSettings
 import com.solerunner26.zeusreader.reader.prefs.ReaderThemeMode
+import com.solerunner26.zeusreader.ui.components.GlassIconButton
+import com.solerunner26.zeusreader.ui.components.GlassSection
+import com.solerunner26.zeusreader.ui.components.MetaLabel
+import com.solerunner26.zeusreader.ui.components.ZeusBottomSheet
+import com.solerunner26.zeusreader.ui.components.ZeusChip
+import com.solerunner26.zeusreader.ui.components.ZeusDivider
+import com.solerunner26.zeusreader.ui.components.ZeusSegmented
+import com.solerunner26.zeusreader.ui.components.ZeusSliderRow
+import com.solerunner26.zeusreader.ui.components.ZeusSwitchRow
 import com.solerunner26.zeusreader.ui.theme.ReaderSurface
+import com.solerunner26.zeusreader.ui.theme.ZeusShapes
+import com.solerunner26.zeusreader.ui.theme.ZeusSizes
+import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
+import com.solerunner26.zeusreader.ui.theme.ZeusTheme
+import com.solerunner26.zeusreader.ui.theme.ZeusType
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Vibe check (DESIGN.md §2): paper, size, font, spacing, warm light, one-handed & PDF layout. */
 @Composable
 fun TypographyBottomSheet(
     settings: ReaderSettings,
@@ -47,7 +59,7 @@ fun TypographyBottomSheet(
     onSettingsChange: ((ReaderSettings) -> ReaderSettings) -> Unit,
     onDismiss: () -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ZeusBottomSheet(onDismissRequest = onDismiss, title = "Vibe check", subtitle = "Paper, type and comfort") {
         TypographyPanelContent(
             settings = settings,
             isPdfMode = isPdfMode,
@@ -58,6 +70,7 @@ fun TypographyBottomSheet(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun TypographyPanelContent(
     settings: ReaderSettings,
@@ -67,186 +80,134 @@ internal fun TypographyPanelContent(
     onSettingsChange: ((ReaderSettings) -> ReaderSettings) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = ZeusTheme.colors
+    val type = ZeusTheme.type
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 12.dp)
             .testTag("typography_panel_root"),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
     ) {
-        Text("Reading Appearance & Ergonomics", style = MaterialTheme.typography.titleLarge)
-
-        // Live preview so font size, line height, font family, surface, and warm filter are visible immediately
-        val previewSp = (16f * settings.fontSizePercent / 100f).sp
+        // Live preview on the chosen paper
+        val previewSp = ZeusType.readingSize(settings.fontSizePercent)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(MaterialTheme.shapes.large)
+                .clip(ZeusShapes.cardCompact)
                 .background(settings.theme.backgroundColor)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.large)
-                .padding(14.dp)
+                .border(ZeusSpacing.hairline, colors.glassBorder, ZeusShapes.cardCompact)
                 .testTag("typography_live_preview")
         ) {
             Text(
-                text = "Live Preview (${settings.fontSizePercent}%): The quick brown fox reads calmly across every page.",
+                text = "Capillary action draws water upward through narrow soil pores — ${settings.fontSizePercent}%.",
                 fontFamily = settings.fontChoice.toComposeFontFamily(),
                 fontSize = previewSp,
                 lineHeight = previewSp * settings.lineHeightMultiplier,
-                color = settings.theme.textColor
+                color = settings.theme.textColor,
+                modifier = Modifier.padding(ZeusSpacing.lg)
             )
-            if (settings.warmLightStrength > 0.01f) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(Color(0xFFFFA726).copy(alpha = settings.warmLightStrength))
-                )
-            }
+            WarmLightOverlay(settings.warmLightStrength)
         }
 
-        Text("Reading Surface", style = MaterialTheme.typography.titleMedium)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        MetaLabel(text = "Paper", accent = true)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             ReaderThemeMode.entries.forEach { mode ->
-                val surfaceLabel = ReaderSurface.fromLegacyThemeMode(mode).label
-                FilterChip(
-                    selected = settings.theme == mode,
-                    onClick = { onSettingsChange { it.copy(theme = mode) } },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                    label = { Text(surfaceLabel) }
-                )
-            }
-        }
-
-        Text("Font Family", style = MaterialTheme.typography.titleMedium)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            ReaderFontChoice.entries.forEach { font ->
-                FilterChip(
-                    selected = settings.fontChoice == font,
-                    onClick = { onSettingsChange { it.copy(fontChoice = font) } },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                    label = { Text(font.label) }
-                )
-            }
-        }
-
-        Text(
-            text = "Font Size: ${settings.fontSizePercent}%",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Slider(
-            value = settings.fontSizePercent.toFloat(),
-            onValueChange = { value ->
-                onSettingsChange { it.copy(fontSizePercent = (value / 10f).roundToInt() * 10) }
-            },
-            valueRange = 80f..220f
-        )
-
-        Text(
-            text = "Line Height: ${String.format("%.2f", settings.lineHeightMultiplier)}x",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Slider(
-            value = settings.lineHeightMultiplier,
-            onValueChange = { value ->
-                onSettingsChange { it.copy(lineHeightMultiplier = value) }
-            },
-            valueRange = 1.1f..2.0f
-        )
-
-        Text(
-            text = "Warm Light Filter: ${(settings.warmLightStrength * 100).roundToInt()}%",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Slider(
-            value = settings.warmLightStrength,
-            onValueChange = { value ->
-                onSettingsChange { it.copy(warmLightStrength = value) }
-            },
-            valueRange = 0f..0.45f
-        )
-
-        HorizontalDivider()
-        Text("One-Handed Controls", style = MaterialTheme.typography.titleMedium)
-
-        SettingsToggleRow(
-            title = "Focus ribbon (3-line reading band)",
-            checked = focusRibbon,
-            onCheckedChange = onToggleFocusRibbon
-        )
-        SettingsToggleRow(
-            title = "Lock screen rotation",
-            checked = settings.rotationLocked,
-            onCheckedChange = { checked -> onSettingsChange { it.copy(rotationLocked = checked) } }
-        )
-        SettingsToggleRow(
-            title = "Volume keys turn pages",
-            checked = settings.volumeKeyPageTurn,
-            onCheckedChange = { checked -> onSettingsChange { it.copy(volumeKeyPageTurn = checked) } }
-        )
-        SettingsToggleRow(
-            title = "Left-edge brightness swipe",
-            checked = settings.edgeBrightnessSwipe,
-            onCheckedChange = { checked -> onSettingsChange { it.copy(edgeBrightnessSwipe = checked) } }
-        )
-
-        if (isPdfMode) {
-            HorizontalDivider()
-            Text("PDF Layout Extras", style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PdfFitMode.entries.forEach { fit ->
-                    FilterChip(
-                        selected = settings.pdfFitMode == fit,
-                        onClick = { onSettingsChange { it.copy(pdfFitMode = fit) } },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                        label = { Text(fit.label) }
-                    )
+                val selected = settings.theme == mode
+                val label = ReaderSurface.fromLegacyThemeMode(mode).label
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)) {
+                    Box(
+                        modifier = Modifier
+                            .size(ZeusSizes.swatch)
+                            .clip(ZeusShapes.circle)
+                            .background(mode.backgroundColor)
+                            .border(if (selected) ZeusSpacing.selectedBorderWidth else ZeusSpacing.hairline, if (selected) colors.accentOnSky else colors.glassBorder, ZeusShapes.circle)
+                            .clickable(role = Role.RadioButton) { onSettingsChange { it.copy(theme = mode) } }
+                            .semantics {
+                                this.selected = selected
+                                contentDescription = "$label paper"
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (selected) {
+                            Icon(Icons.Rounded.Check, contentDescription = null, tint = mode.textColor, modifier = Modifier.size(ZeusSizes.iconMd))
+                        } else {
+                            Text("Aa", style = type.label, color = mode.textColor)
+                        }
+                    }
+                    Text(label, style = type.labelSmall, color = colors.textOnSkySecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            SettingsToggleRow(
-                title = "Auto-crop white margins",
-                checked = settings.pdfAutoCropMargins,
-                onCheckedChange = { checked -> onSettingsChange { it.copy(pdfAutoCropMargins = checked) } }
+        }
+
+        MetaLabel(text = "Font", accent = true)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)) {
+            ReaderFontChoice.entries.forEach { font ->
+                ZeusChip(
+                    label = font.label,
+                    selected = settings.fontChoice == font,
+                    onClick = { onSettingsChange { it.copy(fontChoice = font) } },
+                    labelStyle = type.label.copy(fontFamily = font.toComposeFontFamily())
+                )
+            }
+        }
+
+        GlassSection {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
+                GlassIconButton(Icons.Rounded.TextDecrease, "Smaller text", {
+                    onSettingsChange { it.copy(fontSizePercent = (it.fontSizePercent - 10).coerceAtLeast(80)) }
+                })
+                ZeusSliderRow(
+                    title = "Size",
+                    valueLabel = "${settings.fontSizePercent}%",
+                    value = settings.fontSizePercent.toFloat(),
+                    onValueChange = { v -> onSettingsChange { it.copy(fontSizePercent = (v / 10f).roundToInt() * 10) } },
+                    valueRange = 80f..220f,
+                    modifier = Modifier.weight(1f)
+                )
+                GlassIconButton(Icons.Rounded.TextIncrease, "Bigger text", {
+                    onSettingsChange { it.copy(fontSizePercent = (it.fontSizePercent + 10).coerceAtMost(220)) }
+                })
+            }
+            ZeusSliderRow(
+                title = "Line height",
+                valueLabel = "${String.format("%.2f", settings.lineHeightMultiplier)}×",
+                value = settings.lineHeightMultiplier,
+                onValueChange = { v -> onSettingsChange { it.copy(lineHeightMultiplier = v) } },
+                valueRange = 1.1f..2.0f
             )
-            SettingsToggleRow(
-                title = "Retain zoom across pages",
-                checked = settings.pdfRetainZoomAcrossPages,
-                onCheckedChange = { checked -> onSettingsChange { it.copy(pdfRetainZoomAcrossPages = checked) } }
-            )
-            SettingsToggleRow(
-                title = "Structured text reflow",
-                checked = settings.pdfReflowMode,
-                onCheckedChange = { checked -> onSettingsChange { it.copy(pdfReflowMode = checked) } }
+            ZeusSliderRow(
+                title = "Warm light",
+                valueLabel = "${(settings.warmLightStrength * 100).roundToInt()}%",
+                value = settings.warmLightStrength,
+                onValueChange = { v -> onSettingsChange { it.copy(warmLightStrength = v) } },
+                valueRange = 0f..0.45f
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        GlassSection(title = "One-handed") {
+            ZeusSwitchRow("Focus ribbon", focusRibbon, onToggleFocusRibbon, subtitle = "Three bright lines, the rest dimmed")
+            ZeusDivider()
+            ZeusSwitchRow("Lock rotation", settings.rotationLocked, { c -> onSettingsChange { it.copy(rotationLocked = c) } })
+            ZeusDivider()
+            ZeusSwitchRow("Volume keys turn pages", settings.volumeKeyPageTurn, { c -> onSettingsChange { it.copy(volumeKeyPageTurn = c) } })
+            ZeusDivider()
+            ZeusSwitchRow("Left-edge brightness swipe", settings.edgeBrightnessSwipe, { c -> onSettingsChange { it.copy(edgeBrightnessSwipe = c) } })
+        }
+
+        if (isPdfMode) {
+            GlassSection(title = "PDF layout") {
+                ZeusSegmented(
+                    options = PdfFitMode.entries.map { it.label },
+                    selectedIndex = PdfFitMode.entries.indexOf(settings.pdfFitMode),
+                    onSelect = { idx -> onSettingsChange { it.copy(pdfFitMode = PdfFitMode.entries[idx]) } }
+                )
+                ZeusSwitchRow("Auto-crop white margins", settings.pdfAutoCropMargins, { c -> onSettingsChange { it.copy(pdfAutoCropMargins = c) } })
+                ZeusDivider()
+                ZeusSwitchRow("Keep zoom across pages", settings.pdfRetainZoomAcrossPages, { c -> onSettingsChange { it.copy(pdfRetainZoomAcrossPages = c) } })
+                ZeusDivider()
+                ZeusSwitchRow("Text reflow", settings.pdfReflowMode, { c -> onSettingsChange { it.copy(pdfReflowMode = c) } }, subtitle = "Re-flow the page into readable text")
+            }
+        }
     }
 }
 
-@Composable
-private fun SettingsToggleRow(
-    title: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(text = title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
-}
