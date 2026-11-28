@@ -1,0 +1,719 @@
+<title>ZeusReader Redesign</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&family=Noto+Sans+Devanagari:wght@500;700&family=Noto+Sans+Gujarati:wght@500;700&display=swap">
+<style>
+/* Layout: review board — controls, then a wrapping wall of phone screens grouped by journey. */
+:root{
+  --page:#ECEBE8;--page-ink:#1A1D24;--page-muted:#5E616B;--page-card:#FFFFFF;--page-line:#DAD8D3;
+  --font-ui:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-read:"Literata",Georgia,"Times New Roman",serif;
+  --font-hi:"Noto Sans Devanagari","Plus Jakarta Sans",sans-serif;
+  --font-gu:"Noto Sans Gujarati","Plus Jakarta Sans",sans-serif;
+  --spring:cubic-bezier(.34,1.56,.64,1);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--page:#08090B;--page-ink:#ECEDF1;--page-muted:#9EA2AC;--page-card:#15171C;--page-line:#262932;color-scheme:dark}}
+:root[data-theme="dark"]{--page:#08090B;--page-ink:#ECEDF1;--page-muted:#9EA2AC;--page-card:#15171C;--page-line:#262932;color-scheme:dark}
+
+/* ---------- App tokens: neutrals (day/night) + one accent pair per pack ---------- */
+.app{
+  --canvas:#FAF9F6;--card:#FFFFFF;--ink:#1A1D24;--muted:#646873;--line:#EEEBE5;
+  --shadow:0 8px 24px rgba(0,0,0,.05);--shadow-lift:0 14px 32px -10px rgba(0,0,0,.18);
+  --g1:#FF7A00;--g2:#FFB800;--tint:#FFF0E5;--on-acc:#1A1D24;--acc-ink:#B85400;--glow:rgba(255,122,0,.35);
+  --paper:#FFFFFF;--paper-ink:#1A1D24;--hl:#FFE2C2;
+  --ok:#14A35A;--ok-tint:#E5F6EC;--info:#3B6FE0;--info-tint:#E8EEFC;--rose:#E0436A;--rose-tint:#FDE8EE;
+}
+.app[data-mode="night"]{--canvas:#0D0F12;--card:#1A1D24;--ink:#F3F4F6;--muted:#A3A7B1;--line:#262A33;--shadow:0 8px 24px rgba(0,0,0,.35);--shadow-lift:0 14px 32px -10px rgba(0,0,0,.6);
+  --tint:rgba(255,122,0,.12);--acc-ink:#FF9A3D;--paper:#15171C;--paper-ink:#E7E8EC;--hl:rgba(255,184,0,.22);
+  --ok:#3DD68C;--ok-tint:rgba(61,214,140,.12);--info:#7DA2FF;--info-tint:rgba(125,162,255,.12);--rose:#FF7A99;--rose-tint:rgba(255,122,153,.12)}
+.app[data-pack="emerald"]{--g1:#10B981;--g2:#A3E635;--tint:#E3F8EE;--on-acc:#0B2A1D;--acc-ink:#047857;--glow:rgba(16,185,129,.35);--hl:#D6F5C4}
+.app[data-pack="emerald"][data-mode="night"]{--tint:rgba(16,185,129,.12);--acc-ink:#34D399;--hl:rgba(163,230,53,.2)}
+.app[data-pack="ocean"]{--g1:#0EA5E9;--g2:#67E8F9;--tint:#E3F4FD;--on-acc:#062A3A;--acc-ink:#0369A1;--glow:rgba(14,165,233,.35);--hl:#CFF1FB}
+.app[data-pack="ocean"][data-mode="night"]{--tint:rgba(14,165,233,.12);--acc-ink:#38BDF8;--hl:rgba(103,232,249,.2)}
+.app[data-pack="iris"]{--g1:#6D28D9;--g2:#A855F7;--tint:#F1EAFE;--on-acc:#FFFFFF;--acc-ink:#6D28D9;--glow:rgba(124,58,237,.35);--hl:#EADCFE}
+.app[data-pack="iris"][data-mode="night"]{--tint:rgba(168,85,247,.14);--acc-ink:#C4A1FF;--hl:rgba(168,85,247,.25)}
+.app[data-pack="rose"]{--g1:#F43F5E;--g2:#FDBA74;--tint:#FFE9EC;--on-acc:#2A0A12;--acc-ink:#BE123C;--glow:rgba(244,63,94,.35);--hl:#FFDDE3}
+.app[data-pack="rose"][data-mode="night"]{--tint:rgba(244,63,94,.13);--acc-ink:#FB7185;--hl:rgba(253,186,116,.22)}
+.app{--grad:linear-gradient(135deg,var(--g1),var(--g2))}
+
+*{box-sizing:border-box}
+html,body{background:var(--page);color:var(--page-ink)}
+body{font-family:var(--font-ui);font-size:14px;line-height:1.45}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 64px;max-width:2000px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+header.top{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:end;justify-content:space-between}
+header.top h1{font-size:clamp(22px,3vw,32px);font-weight:800;letter-spacing:-.03em;margin:0;text-wrap:balance}
+header.top p{margin:6px 0 0;color:var(--page-muted);max-width:66ch}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.pack-btn{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px 0 6px;border-radius:999px;border:1px solid var(--page-line);background:var(--page-card);color:var(--page-ink);font:700 13px var(--font-ui);cursor:pointer;transition:transform .25s var(--spring)}
+.pack-btn:active{transform:scale(.96)}
+.pack-btn .dot{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--b))}
+.pack-btn[aria-pressed="true"]{border-color:var(--page-ink);box-shadow:0 0 0 1px var(--page-ink)}
+.seg{display:flex;padding:3px;border-radius:999px;background:var(--page-card);border:1px solid var(--page-line)}
+.seg button{height:34px;padding:0 16px;border-radius:999px;border:0;background:transparent;color:var(--page-muted);font:700 13px var(--font-ui);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--page-ink);color:var(--page)}
+button:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.group-title{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--page-muted);margin:6px 0 -8px}
+.board{display:flex;flex-wrap:wrap;gap:30px 26px;justify-content:center}
+.shot{display:flex;flex-direction:column;gap:10px;align-items:center;max-width:100%}
+.cap{font-size:12px;font-weight:700;color:var(--page-muted)}
+
+/* ---------- Phone frame ---------- */
+.app{width:360px;max-width:100%;height:760px;border-radius:42px;overflow:hidden;position:relative;background:var(--canvas);color:var(--ink);font-family:var(--font-ui);
+  box-shadow:0 0 0 8px #050608,0 34px 60px -24px rgba(0,0,0,.45);display:flex;flex-direction:column;transition:background .4s ease,color .4s ease;isolation:isolate}
+.status{height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font-size:12px;font-weight:800;position:relative;z-index:3}
+.status .isl{width:86px;height:24px;border-radius:14px;background:#050608}
+.body{flex:1;overflow:hidden;padding:6px 18px 12px;display:flex;flex-direction:column;gap:14px;position:relative;z-index:1}
+.ico{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ico.sm{width:16px;height:16px}.ico.lg{width:24px;height:24px}
+.fill-ico{fill:currentColor;stroke:none}
+.row{display:flex;align-items:center;gap:12px}.col{display:flex;flex-direction:column;gap:6px}.grow{flex:1;min-width:0}
+.mut{color:var(--muted);font-size:12px}
+.h1{font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin:0;text-wrap:balance}
+.h2{font-size:17px;font-weight:800;letter-spacing:-.02em;margin:0}
+.eyebrow{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.acc{color:var(--acc-ink)}
+
+/* press + entrance motion */
+.press{transition:transform .35s var(--spring),box-shadow .25s ease;cursor:pointer}
+.press:active{transform:scale(.96)}
+.stagger>*{animation:rise .6s var(--spring) both}
+.stagger>*:nth-child(2){animation-delay:.06s}.stagger>*:nth-child(3){animation-delay:.12s}.stagger>*:nth-child(4){animation-delay:.18s}.stagger>*:nth-child(5){animation-delay:.24s}.stagger>*:nth-child(6){animation-delay:.3s}
+@keyframes rise{from{opacity:.35;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(var(--r,0deg))}50%{transform:translateY(-7px) rotate(var(--r,0deg))}}
+@keyframes shine{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fall{0%{transform:translateY(-20px) rotate(0)}100%{transform:translateY(220px) rotate(300deg)}}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:.75}50%{transform:scale(1.08);opacity:1}}
+@media (prefers-reduced-motion:reduce){.app *{animation:none!important;transition:none!important}}
+
+/* surfaces */
+.card{background:var(--card);border-radius:20px;padding:14px;box-shadow:var(--shadow);border:1px solid var(--line)}
+.app[data-mode="night"] .card{border-color:var(--line)}
+.tint{background:var(--tint);color:var(--acc-ink)}
+.icon-box{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:none}
+.ibtn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--card);box-shadow:var(--shadow);border:1px solid var(--line);color:var(--ink);flex:none;position:relative}
+.badge-dot{position:absolute;top:9px;right:10px;width:9px;height:9px;border-radius:50%;background:var(--g1);box-shadow:0 0 0 2px var(--card)}
+.btn{height:54px;border-radius:999px;border:0;font:800 15px var(--font-ui);display:flex;align-items:center;justify-content:center;gap:8px;width:100%}
+.btn.grad{background:linear-gradient(110deg,var(--g1),var(--g2),var(--g1));background-size:200% 100%;color:var(--on-acc);box-shadow:0 12px 24px -10px var(--glow);animation:shine 6s linear infinite}
+.btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line);box-shadow:var(--shadow)}
+.pill-btn{height:38px;padding:0 16px;border-radius:999px;border:0;font:800 13px var(--font-ui);display:inline-flex;align-items:center;gap:6px;background:var(--card);color:var(--ink);box-shadow:0 6px 14px -6px rgba(0,0,0,.35)}
+.chip{height:36px;padding:0 14px;border-radius:999px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;background:var(--tint);color:var(--acc-ink);border:1px solid transparent}
+.chip.on{background:var(--grad);color:var(--on-acc);box-shadow:0 6px 14px -8px var(--glow)}
+.chip.line{background:var(--card);color:var(--ink);border-color:var(--line)}
+.neon{border-color:var(--g1)!important;box-shadow:0 0 0 1.5px var(--g1),0 0 22px -4px var(--glow)!important}
+.bar{height:8px;border-radius:8px;background:var(--tint);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:8px;background:var(--grad);width:var(--w);animation:grow 1.2s var(--spring) both}
+@keyframes grow{from{width:0}}
+.input{height:52px;border-radius:14px;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 14px;color:var(--muted);font-size:13.5px;box-shadow:var(--shadow)}
+
+/* Header banner with fade */
+.banner{margin:-46px -18px 0;padding:56px 18px 22px;background:var(--grad);color:var(--on-acc);position:relative;overflow:hidden;border-radius:0 0 30px 30px}
+.banner::after{content:"";position:absolute;inset:auto 0 0 0;height:60%;background:linear-gradient(to bottom,transparent,rgba(255,255,255,.18))}
+.halo{position:absolute;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,var(--glow),transparent)}
+.starburst{position:absolute;border-radius:50%;pointer-events:none;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.22) 0 7deg,transparent 7deg 18deg);-webkit-mask:radial-gradient(closest-side,#000 40%,transparent);mask:radial-gradient(closest-side,#000 40%,transparent);animation:spin 40s linear infinite}
+
+/* Bottom nav: 4 tabs, filled active */
+.nav{flex:none;height:76px;margin:0 14px 14px;border-radius:26px;background:var(--card);box-shadow:var(--shadow-lift);border:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);align-items:center;position:relative;z-index:2}
+.nav .n{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:var(--muted)}
+.nav .n .pillbg{width:52px;height:30px;border-radius:999px;display:grid;place-items:center;transition:background .3s}
+.nav .n.on{color:var(--ink)}
+.nav .n.on .pillbg{background:var(--grad);color:var(--on-acc);box-shadow:0 6px 14px -6px var(--glow)}
+
+/* Mascot & artifacts */
+.mascot{display:block;filter:drop-shadow(0 14px 16px rgba(0,0,0,.22));animation:floaty 4s ease-in-out infinite}
+.art{position:absolute;pointer-events:none}
+.float{animation:floaty 5s ease-in-out infinite}
+.confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.confetti i{position:absolute;top:-10px;width:8px;height:12px;border-radius:2px;animation:fall 3.6s linear infinite}
+
+/* Specific bits */
+.hero{border-radius:26px;padding:18px;position:relative;overflow:hidden;background:var(--grad);color:var(--on-acc);box-shadow:0 18px 32px -16px var(--glow);min-height:178px}
+.hero .txt{max-width:62%;position:relative;z-index:2;display:flex;flex-direction:column;gap:6px}
+.hero h3{margin:0;font-size:19px;line-height:1.2;font-weight:800;letter-spacing:-.02em}
+.hero .mascot-wrap{position:absolute;right:-6px;bottom:-10px;z-index:1}
+.metric{display:flex;flex-direction:column;gap:8px}
+.metric .num{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.covers{display:flex;gap:12px;overflow:hidden}
+.cv{width:86px;height:126px;flex:none;border-radius:12px;position:relative;overflow:hidden;box-shadow:0 10px 20px -10px rgba(0,0,0,.45);display:flex;align-items:flex-end;padding:8px;color:#FFF8EE;font-size:10px;font-weight:800;line-height:1.15}
+.cv::before{content:"";position:absolute;inset:0 auto 0 0;width:7px;background:rgba(255,255,255,.16)}
+.cv1{background:linear-gradient(160deg,#5E8C62,#23402B)}.cv2{background:linear-gradient(160deg,#C2533F,#5B211A)}.cv3{background:linear-gradient(160deg,#3F6BA6,#1B2C48)}.cv4{background:linear-gradient(160deg,#C9952F,#5E3F10)}.cv5{background:linear-gradient(160deg,#7A5BA6,#2E2244)}
+
+.ring{--p:0;width:var(--s,130px);height:var(--s,130px);position:relative;display:grid;place-items:center}
+.ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.ring .trk{stroke:var(--tint)}
+.ring .val{stroke:url(#ringGrad);stroke-linecap:round;transition:stroke-dashoffset 1.6s var(--spring)}
+
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.day{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--muted)}
+.day i{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--card);border:1.5px dashed var(--line)}
+.day.done i{background:var(--grad);border:0;color:var(--on-acc);box-shadow:0 6px 12px -6px var(--glow)}
+.day.today i{border:2px solid var(--g1);background:var(--card);color:var(--acc-ink)}
+
+.step{display:flex;gap:12px;align-items:center;padding:12px;border-radius:20px;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow)}
+.step .st{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex:none}
+.step.done .st{background:var(--ok-tint);color:var(--ok)}
+.step.active .st{background:var(--grad);color:var(--on-acc)}
+.step.locked{opacity:.75}
+.step.locked .st{background:var(--line);color:var(--muted)}
+.step .t{font-weight:800;font-size:13.5px}
+.connector{width:2px;height:12px;background:var(--line);margin:-12px 0 -12px 30px}
+
+.reader-card{flex:1;border-radius:24px;background:var(--paper);color:var(--paper-ink);padding:18px 20px;box-shadow:var(--shadow);border:1px solid var(--line);overflow:hidden;font-family:var(--font-read);font-size:16.5px;line-height:1.72;position:relative}
+.reader-card h2{font-weight:500;font-size:22px;line-height:1.25;margin:2px 0 12px;font-family:var(--font-read)}
+.reader-card p{margin:0 0 12px}
+.reader-card::after{content:"";position:absolute;left:0;right:0;bottom:0;height:60px;background:linear-gradient(to bottom,transparent,var(--paper))}
+.mark{background:var(--hl);border-radius:4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.word{all:unset;border-bottom:2px dotted var(--g1);cursor:pointer}
+.toolbar{display:grid;grid-template-columns:repeat(5,1fr);background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow-lift);border-radius:24px;height:64px;align-items:center}
+.tool{display:flex;flex-direction:column;align-items:center;gap:3px;font:700 10px var(--font-ui);color:var(--muted);background:none;border:0;cursor:pointer}
+.tool.on{color:var(--acc-ink)}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.32);opacity:0;pointer-events:none;transition:opacity .3s;z-index:4}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);color:var(--ink);border-radius:30px 30px 0 0;padding:10px 20px 22px;transform:translateY(105%);transition:transform .45s var(--spring);display:flex;flex-direction:column;gap:12px;z-index:5;box-shadow:0 -10px 40px rgba(0,0,0,.2)}
+.app.open .scrim{opacity:1;pointer-events:auto}.app.open .sheet{transform:none}
+.handle{width:42px;height:5px;border-radius:5px;background:var(--line);align-self:center}
+.langs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lang{border-radius:18px;padding:12px;background:var(--canvas);border:1px solid var(--line)}
+.lang .v{font-size:19px;font-weight:700;margin-top:2px}
+
+.opt{display:flex;align-items:center;gap:12px;padding:12px;border-radius:18px;background:var(--card);border:1.5px solid var(--line);box-shadow:var(--shadow);font-weight:600;font-size:13.5px}
+.opt .ab{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:13px;background:var(--tint);color:var(--acc-ink);flex:none}
+.opt.sel .ab{background:var(--grad);color:var(--on-acc)}
+.opt .radio{margin-left:auto;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);flex:none}
+.opt.sel .radio{border:6px solid var(--g1)}
+
+.feed .it{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.feed .it:last-child{border-bottom:0}
+.feed .cb{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;flex:none}
+.feed .t{font-weight:700;font-size:13px}
+.feed .time{font-size:11px;color:var(--muted);white-space:nowrap}
+
+.tags{display:flex;flex-wrap:wrap;gap:8px}
+.range{position:relative;height:56px;margin:0 6px}
+.range .tr{position:absolute;left:0;right:0;top:34px;height:6px;border-radius:6px;background:var(--tint)}
+.range .sel{position:absolute;left:18%;right:30%;top:34px;height:6px;border-radius:6px;background:var(--grad)}
+.range .th{position:absolute;top:26px;width:22px;height:22px;border-radius:50%;background:var(--card);border:3px solid var(--g1);box-shadow:var(--shadow-lift);transform:translateX(-50%)}
+.range .lb{position:absolute;top:0;transform:translateX(-50%);font-size:11px;font-weight:800;padding:3px 8px;border-radius:8px;background:var(--ink);color:var(--canvas)}
+.stars{display:flex;gap:6px;color:var(--g2)}
+
+.avatar-xl{width:92px;height:92px;border-radius:50%;padding:4px;background:var(--grad);position:relative;box-shadow:0 12px 26px -12px var(--glow)}
+.avatar-xl b{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:var(--card);font-size:30px;font-weight:800;color:var(--acc-ink)}
+.avatar-xl .edit{position:absolute;right:0;bottom:2px;width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--canvas);display:grid;place-items:center;border:3px solid var(--canvas)}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border-radius:20px;box-shadow:var(--shadow);border:1px solid var(--line);padding:12px 0}
+.trio div{text-align:center;display:flex;flex-direction:column;gap:2px}
+.trio div+div{border-left:1px solid var(--line)}
+.trio b{font-size:19px;font-weight:800}
+.menu .mi{display:flex;align-items:center;gap:12px;min-height:54px;border-bottom:1px solid var(--line)}
+.menu .mi:last-child{border-bottom:0}
+.menu .mi .t{font-weight:700;font-size:13.5px}
+
+.sw{width:50px;height:30px;border-radius:999px;background:var(--line);position:relative;flex:none;cursor:pointer;transition:background .3s;border:0;padding:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#FFFFFF;box-shadow:0 2px 6px rgba(0,0,0,.25);transition:left .4s var(--spring)}
+.sw[aria-checked="true"]{background:var(--grad)}
+.sw[aria-checked="true"]::after{left:23px}
+.daynight{position:relative;display:grid;grid-template-columns:1fr 1fr;height:50px;border-radius:999px;background:var(--canvas);border:1px solid var(--line);padding:4px;cursor:pointer}
+.daynight .knob{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:999px;background:var(--grad);box-shadow:0 6px 14px -6px var(--glow);transition:transform .5s var(--spring)}
+.app[data-mode="night"] .daynight .knob{transform:translateX(100%)}
+.daynight span{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:800;font-size:13px;color:var(--muted)}
+.app[data-mode="day"] .daynight .d,.app[data-mode="night"] .daynight .nn{color:var(--on-acc)}
+.packrow{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.pk{display:flex;flex-direction:column;align-items:center;gap:6px;font:700 10.5px var(--font-ui);color:var(--ink);background:none;border:0;cursor:pointer;padding:0}
+.pk i{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--b));border:3px solid var(--card);box-shadow:var(--shadow-lift)}
+.pk.on i{box-shadow:0 0 0 2px var(--g1),0 0 18px -2px var(--glow)}
+
+.faq .q{border-radius:18px;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden}
+.faq .q button{all:unset;display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;padding:14px;font-weight:700;font-size:13.5px;cursor:pointer}
+.faq .q .a{max-height:0;overflow:hidden;transition:max-height .45s var(--spring);padding:0 14px;font-size:12.5px;color:var(--muted)}
+.faq .q.open .a{max-height:120px;padding-bottom:14px}
+.faq .q .chev{margin-left:auto;transition:transform .35s var(--spring)}
+.faq .q.open .chev{transform:rotate(90deg)}
+
+/* Onboarding carousel */
+.slides{position:relative;flex:1;overflow:hidden}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding-top:8px;transition:transform .6s var(--spring),opacity .4s}
+.slide[data-pos="next"]{transform:translateX(110%);opacity:0}.slide[data-pos="prev"]{transform:translateX(-110%);opacity:0}
+.dots{display:flex;gap:6px;justify-content:center}
+.dots i{height:8px;width:8px;border-radius:8px;background:var(--line);transition:width .5s var(--spring),background .3s}
+.dots i.on{width:26px;background:var(--grad)}
+.stage{position:relative;width:250px;height:250px;display:grid;place-items:center}
+.stage .halo{inset:0}
+
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.note{background:var(--page-card);border:1px solid var(--page-line);border-radius:16px;padding:16px;min-width:0}
+.note h3{margin:0 0 6px;font-size:14px;font-weight:800}
+.note p{margin:0;color:var(--page-muted);font-size:13px;max-width:62ch}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--g1)"/><stop offset="1" style="stop-color:var(--g2)"/></linearGradient>
+  </defs>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-lib" viewBox="0 0 24 24"><path d="M4 4h4v16H4zM10 4h4v16h-4zM16.5 5l3.5 1-3.5 14-3.4-1"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6c-2-1.5-5-2-8-1.5V19c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V4.5C17 4 14 4.5 12 6zM12 6v14.5"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></symbol>
+  <symbol id="i-words" viewBox="0 0 24 24"><path d="M4 19 9 5l5 14M6 14h6M15 11h6M18 8v9"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol>
+  <symbol id="i-toc" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+  <symbol id="i-trans" viewBox="0 0 24 24"><path d="M3 5h10M8 3v2M5 5c0 4 3 7 7 8M11 5c0 4-3 7-7 8M13 21l4-10 4 10M14.5 18h5"/></symbol>
+  <symbol id="i-dict" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11M9 8h6"/></symbol>
+  <symbol id="i-listen" viewBox="0 0 24 24"><path d="M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v6H5a1 1 0 0 1-1-1zM20 14h-3v6h2a1 1 0 0 0 1-1z"/></symbol>
+  <symbol id="i-aa" viewBox="0 0 24 24"><path d="M3 18 8 6l5 12M5 14h6M14 18l3.5-8 3.5 8M15 16h5"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM17 9a4 4 0 0 1 0 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5 10 17 19 7"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 2.5s5.5 4.8 5.5 10.2a5.5 5.5 0 0 1-11 0c0-2.8 1.7-4.6 1.7-4.6S9 10.6 11 10.6c0-3.4 1-6.3 1-8.1z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-page" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h5"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 21h8M9 17h6"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.5-8A5.5 5.5 0 0 1 17 8.5 4.5 4.5 0 0 1 17 18zM12 11v6M9.5 14.5 12 17l2.5-2.5"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></symbol>
+  <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-1-1.5-1-2.5 1-2 2.5-2H18a3 3 0 0 0 3-3c0-4.5-4-8.5-9-8.5z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 1-1 1.7M12 16.5h.01"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>ZeusReader · Sunset redesign</h1>
+      <p>Warm alabaster by day, obsidian by night, with one glowing accent pair per pack. Bolt the owl, confetti, crowns and trophies celebrate progress. Buttons spring when pressed, rings fill on load and lists rise in. Try the theme buttons, the dotted word in the reader, the FAQ rows and the Day/Night switch in Settings.</p>
+    </div>
+    <div class="controls">
+      <div class="controls" id="packs">
+        <button class="pack-btn" data-pack="sunset" aria-pressed="true" style="--a:#FF7A00;--b:#FFB800"><span class="dot"></span>Sunset</button>
+        <button class="pack-btn" data-pack="emerald" aria-pressed="false" style="--a:#10B981;--b:#A3E635"><span class="dot"></span>Emerald</button>
+        <button class="pack-btn" data-pack="ocean" aria-pressed="false" style="--a:#0EA5E9;--b:#67E8F9"><span class="dot"></span>Ocean</button>
+        <button class="pack-btn" data-pack="iris" aria-pressed="false" style="--a:#6D28D9;--b:#A855F7"><span class="dot"></span>Iris</button>
+        <button class="pack-btn" data-pack="rose" aria-pressed="false" style="--a:#F43F5E;--b:#FDBA74"><span class="dot"></span>Rose</button>
+      </div>
+      <div class="seg" id="mode"><button data-mode="day" aria-pressed="true">Day</button><button data-mode="night" aria-pressed="false">Night</button></div>
+    </div>
+  </header>
+
+  <div class="group-title">First run</div>
+  <div class="board">
+    <!-- SPLASH -->
+    <div class="shot"><div class="app" data-pack="sunset" data-mode="day">
+      <div class="status"><span>9:41</span><span class="isl"></span><span>100%</span></div>
+      <div class="body" style="align-items:center;justify-content:center;gap:18px">
+        <div class="halo" style="width:420px;height:420px;top:120px;left:-30px;animation:pulse 4s ease-in-out infinite"></div>
+        <div style="position:relative;width:120px;height:120px;border-radius:34px;background:var(--grad);display:grid;place-items:center;box-shadow:0 22px 40px -14px var(--glow);color:var(--on-acc)">
+          <div class="starburst" style="inset:-40px"></div>
+          <svg class="ico fill-ico" style="width:58px;height:58px"><use href="#i-bolt"/></svg>
+        </div>
+        <div style="text-align:center;position:relative"><div class="h1" style="font-size:30px">ZeusReader</div><div class="mut" style="font-size:14px;margin-top:4px">Read anything. Understand everything.</div></div>
+        <div class="dots" style="position:absolute;bottom:70px"><i class="on"></i><i></i><i></i></div>
+      </div>
+    </div><div class="cap">Splash</div></div>
+
+    <!-- ONBOARDING -->
+    <div class="shot"><div class="app" data-pack="sunset" data-mode="day" id="onb">
+      <div class="status"><span>9:41</span><span class="isl"></span><span>100%</span></div>
+      <div class="body">
+        <div class="row"><div class="grow"></div><span class="mut" style="font-weight:700;font-size:13px">Skip</span></div>
+        <div class="slides">
+          <div class="slide" data-pos="cur">
+            <div class="stage"><div class="halo"></div><div class="starburst" style="inset:10px"></div><div data-mascot="170"></div>
+              <div class="art float" style="left:6px;top:40px;--r:-12deg" data-crown="40"></div>
+              <div class="art float" style="right:10px;top:62px;animation-delay:.6s" data-flame="34"></div>
+            </div>
+            <div class="h1">Meet Bolt, your reading buddy</div>
+            <div class="mut" style="font-size:14px;max-width:28ch">EPUB, PDF, comics and scans in one calm, offline library.</div>
+          </div>
+          <div class="slide" data-pos="next">
+            <div class="stage"><div class="halo"></div>
+              <div class="card" style="width:200px;padding:14px;text-align:left;transform:rotate(-4deg)"><div class="eyebrow acc">Dictionary</div><div style="font-size:22px;font-weight:800">loam</div><div style="font-family:var(--font-hi);font-weight:700;font-size:18px">दोमट मिट्टी</div><div style="font-family:var(--font-gu);font-weight:700;font-size:18px">ગોરાડુ માટી</div></div>
+            </div>
+            <div class="h1">Tap any word. Get it in three languages.</div>
+            <div class="mut" style="font-size:14px;max-width:28ch">English, हिन्दी and ગુજરાતી meanings, plus read-aloud, all offline.</div>
+          </div>
+          <div class="slide" data-pos="next">
+            <div class="stage"><div class="halo"></div><div data-trophy="150"></div><div class="art float" style="left:20px;top:40px" data-flame="40"></div></div>
+            <div class="h1">Build a streak you're proud of</div>
+            <div class="mut" style="font-size:14px;max-width:28ch">Daily goals, word quizzes and badges keep you coming back.</div>
+          </div>
+        </div>
+        <div class="dots" id="onbDots"><i class="on"></i><i></i><i></i></div>
+        <button class="btn grad press" id="onbNext">Next <svg class="ico"><use href="#i-arrow"/></svg></button>
+      </div>
+    </div><div class="cap">Onboarding · auto-plays</div></div>
+
+    <!-- HOME -->
+    <div class="shot"><div class="app" data-pack="sunset" data-mode="day">
+      <div class="status"><span>9:41</span><span class="isl"></span><span>100%</span></div>
+      <div class="body stagger">
+        <div class="row">
+          <div style="width:44px;height:44px;border-radius:50%;background:var(--grad);display:grid;place-items:center;font-weight:800;color:var(--on-acc)">R</div>
+          <div class="grow"><div class="mut">Good evening 👋</div><div class="h2">Ready for chapter 5?</div></div>
+          <div class="ibtn"><svg class="ico"><use href="#i-bell"/></svg><span class="badge-dot"></span></div>
+        </div>
+        <div class="hero press">
+          <div class="starburst" style="width:240px;height:240px;right:-70px;top:-40px"></div>
+          <div class="txt">
+            <span class="eyebrow">Continue reading</span>
+            <h3>Soil Science for Beginners</h3>
+            <span style="font-size:12px;opacity:.85">Ch 4 · 12 min left</span>
+            <span><button class="pill-btn" style="margin-top:6px">Resume <svg class="ico sm"><use href="#i-play"/></svg></button></span>
+          </div>
+          <div class="mascot-wrap" data-mascot="130"></div>
+        </div>
+        <div class="card col">
+          <div class="row"><span class="h2" style="font-size:14px">Today's goal</span><span class="grow"></span><span class="acc" style="font-weight:800">18 / 25 min</span></div>
+          <div class="bar" style="--w:72%"><i></i></div>
+          <span class="mut">7 more minutes keeps your streak alive</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="card metric press"><div class="icon-box tint"><svg class="ico fill-ico"><use href="#i-flame"/></svg></div><div class="num">12</div><div class="mut">day streak</div></div>
+          <div class="card metric press"><div class="icon-box" style="background:var(--info-tint);color:var(--info)"><svg class="ico"><use href="#i-words"/></svg></div><div class="num">6</div><div class="mut">words to review</div></div>
+        </div>
+      </div>
+      <nav class="nav"><div class="n on"><span class="pillbg"><svg class="ico fill-ico"><use href="#i-home"/></svg></span>Home</div><div class="n"><span class="pillbg"><svg class="ico"><use href="#i-lib"/></svg></span>Library</div><div class="n"><span class="pillbg"><svg class="ico"><use href="#i-words"/></svg></span>Words</div><div class="n"><span class="pillbg"><svg class="ico"><use href="#i-user"/></svg></span>Me</div></nav>
+    </div><div class="cap">Home dashboard</div></div>
+
+    <!-- STREAK -->
+    <div class="shot"><div class="app" data-pack="sunset" data-mode="day">
+      <div class="status" style="color:var(--on-acc)"><span>9:41</span><span class="isl"></span><span>100%</span></div>
+      <div class="body">
+        <div class="banner" style="text-align:center">
+          <div class="starburst" style="width:300px;height:300px;left:30px;top:-30px"></div>
+          <div class="row" style="position:relative"><div class="ibtn" style="background:rgba(255,255,255,.25);border:0;box-shadow:none;color:var(--on-acc)"><svg class="ico"><use href="#i-back"/></svg></div><span class="grow"></span></div>
+          <div style="position:relative;display:grid;place-items:center" data-flame="96"></div>
+          <div style="position:relative;font-size:46px;font-weight:800;letter-spacing:-.04em;line-height:1">12</div>
+          <div style="position:relative;font-weight:800">day reading streak</div>
+        </div>
+        <div class="card col" style="gap:12px">
+          <div class="row"><span class="h2" style="font-size:14px">This week</span><span class="grow"></span><span class="mut">5 of 7</span></div>
+          <div class="week">
+            <div class="day done"><i><svg class="ico sm"><use href="#i-check"/></svg></i>M</div><div class="day done"><i><svg class="ico sm"><use href="#i-check"/></svg></i>T</div><div class="day done"><i><svg class="ico sm"><use href="#i-check"/></svg></i>W</div><div class="day done"><i><svg class="ico sm"><use href="#i-check"/></svg></i>T</div><div class="day done"><i><svg class="ico sm"><use href="#i-check"/></svg></i>F</div><div class="day today"><i><svg class="ico sm fill-ico"><use href="#i-flame"/></svg></i>S</div><div class="day"><i></i>S</div>
+          </div>
+        </div>
+        <div class="card row" style="background:var(--tint);border-color:transparent;overflow:hidden;position:relative;min-height:104px">
+          <div class="grow" style="max-width:62%"><div class="h2" style="font-size:15px;color:var(--ink)">Read 7 more minutes</div><div class="mut" style="margin-top:4px">and you'll beat last week's record of 4 days.</div></div>
+          <div style="position:absolute;right:-6px;bottom:-14px" data-mascot="96"></div>
+        </div>
+        <div class="row" style="gap:10px"><div class="card grow col" style="align-items:flex-start"><span class="mut">Best streak</span><b style="font-size:20px">21 days</b></div><div class="card grow col" style="align-items:flex-start"><span class="mut">Freeze days</span><b style="font-size:20px">2 left</b></div></div>
+      </div>
+    </div><div class="cap">Streak tracker</div></div>
+  </div>
+
+  <div class="group-title">Read &amp; learn</div>
+  <div class="board">
+    <!-- LIBRARY SEARCH + FILTER -->
+    <div class="shot"><div class="app open" data-pack="sunset" data-mode="day" id="filterApp">
+      <div class="status"><span>9:41</span><span class="isl"></span><span>100%</span></div>
+      <div class="body">
+        <div class="row"><h2 class="h1 grow">Library</h2><div class="ibtn" id="openFilter" style="cursor:pointer"><svg class="ico"><use href="#i-filter"/></svg></div><div class="ibtn" style="background:var(--grad);color:var(--on-acc);border:0"><svg class="ico"><use href="#i-plus"/></svg></div></div>
+        <div class="input"><svg class="ico"><use href="#i-search"/></svg>soil, chemistry, physics…</div>
+        <div class="tags"><span class="chip on">All 24</span><span class="chip">Reading 3</span><span class="chip">Finished</span><span class="chip">EPUB</span><span class="chip">PDF</span></div>
+        <div class="covers"><div class="cv cv1">Soil Science</div><div class="cv cv2">Organic Chemistry</div><div class="cv cv3">Physics II</div><div class="cv cv4">Ethics</div></div>
+      </div>
+      <div class="scrim" id="filterScrim"></div>
+      <div class="sheet">
+        <div class="handle"></div>
+        <div class="row"><span class="h2 grow">Filter books</span><span class="acc" style="font-weight:800;font-size:13px">Reset</span></div>
+        <div class="eyebrow mut">Format</div>
+        <div class="tags"><span class="chip on">EPUB</span><span class="chip on">PDF</span><span class="chip line">Comics</span><span class="chip line">Images</span><span class="chip line">HTML</span></div>
+        <div class="eyebrow mut">Length (pages)</div>
+        <div class="range"><div class="tr"></div><div class="sel"></div><div class="th" style="left:18%"></div><div class="th" style="left:70%"></div><span class="lb" style="left:18%">120</span><span class="lb" style="left:70%">480</span></div>
+        <div class="eyebrow mut">Your rating</div>
+        <div class="stars"><svg class="ico lg fill-ico"><use href="#i-star"/></svg><svg class="ico lg fill-ico"><use href="#i-star"/></svg><svg class="ico lg fill-ico"><use href="#i-star"/></svg><svg class="ico lg fill-ico"><use href="#i-star"/></svg><svg class="ico lg" style="color:var(--line)"><use href="#i-star"/></svg><span class="mut" style="align-self:center;margin-left:6px">& up</span></div>
+        <button class="btn grad press">Show 9 books</button>
+      </div>
+    </div><div class="cap">Library search + filter sheet</div></div>
+
+    <!-- ROADMAP -->
+    <div class="shot"><div class="app" data-pack="sunset" data-mode="day">
+      <div class="status"><span>9:41</span><span class="isl"></span><span>100%</span></div>
+      <div class="body stagger">
+        <div class="hero" style="min-height:0;display:flex;gap:14px;align-items:center">
+          <div class="cv cv1" style="width:62px;height:90px">Soil</div>
+          <div class="grow col" style="position:relative;z-index:2"><span class="eyebrow">Reading plan</span><b style="font-size:16px">Soil Science for Beginners</b><span style="font-size:12px;opacity:.9">Chapter 4 of 12 · 37%</span><div class="bar" style="--w:37%;background:rgba(255,255,255,.35)"><i style="background:var(--card)"></i></div></div>
+        </div>
+        <div class="step done"><div class="st"><svg class="ico"><use href="#i-check"/></svg></div><div class="grow"><div class="t">3 · Life underground</div><div class="mut">Finished · quiz 9/10</div></div></div>
+        <div class="step active neon"><div class="st"><svg class="ico fill-ico"><use href="#i-play"/></svg></div><div class="grow"><div class="t">4 · Water in soil</div><div class="mut">Page 84 · 12 min left</div><div class="bar" style="--w:55%;margin-top:6px"><i></i></div></div></div>
+        <div class="step locked"><div class="st"><svg class="ico"><use href="#i-lock"/></svg></div><div class="grow"><div class="t">Chapter 4 quiz</div><div class="mut">Unlocks when you finish chapter 4</div></div></div>
+        <div class="step"><div class="st" style="background:var(--tint);color:var(--acc-ink);font-weight:800">5</div><div class="grow"><div class="t">5 · Weather and soil</div><div class="mut">18 pages · 22 min</div></div></div>
+      </div>
+    </div><div class="cap">Chapter roadmap</div></div>
+
+    <!-- READER -->
+    <div class="shot"><div class="app open" data-pack="sunset" data-mode="day" id="reader">
+      <div class="status"><span>9:41</span><span class="isl"></span><span>100%</span></div>
+      <div class="body">
+        <div class="row"><div class="ibtn"><svg class="ico"><use href="#i-back"/></svg></div><div class="grow col" style="gap:6px"><div class="row" style="gap:8px"><span style="font-weight:800;font-size:12.5px" class="grow">Ch 4 · Water in soil</span><span class="acc" style="font-weight:800;font-size:12px">84 / 312</span></div><div class="bar" style="--w:27%;height:6px"><i></i></div></div></div>
+        <div class="reader-card">
+          <div class="eyebrow mut" style="font-family:var(--font-ui)">Chapter 4</div>
+          <h2>How water moves upward</h2>
+          <p>Soil is not a solid block but a maze of particles and the spaces between them.</p>
+          <p><span class="mark"><button class="word" id="w">Capillary</button> action draws water upward through narrow soil pores against gravity, supplying plant roots during dry intervals.</span></p>
+          <p>The finer the pores, the higher the water climbs. In sandy soil the pores are wide, so water drains quickly.</p>
+        </div>
+        <div class="toolbar">
+          <button class="tool"><svg class="ico"><use href="#i-toc"/></svg>Contents</button>
+          <button class="tool"><svg class="ico"><use href="#i-trans"/></svg>Translate</button>
+          <button class="tool on" id="dictbtn"><svg class="ico"><use href="#i-dict"/></svg>Dictionary</button>
+          <button class="tool"><svg class="ico"><use href="#i-listen"/></svg>Listen</button>
+          <button class="tool"><svg class="ico"><use href="#i-aa"/></svg>Appearance</button>
+        </div>
+      </div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" role="dialog" aria-label="Dictionary">
+        <div class="handle"></div>
+        <div class="row"><div class="icon-box tint"><svg class="ico"><use href="#i-dict"/></svg></div><div class="grow"><div style="font-size:24px;font-weight:800;letter-spacing:-.02em">capillary</div><div class="mut">adjective · /kəˈpɪl.ər.i/</div></div><div class="ibtn"><svg class="ico"><use href="#i-vol"/></svg></div></div>
+        <div style="font-size:14px">Relating to very fine tubes or spaces that liquid moves through by surface tension.</div>
+        <div class="langs"><div class="lang neon"><div class="eyebrow mut">हिन्दी</div><div class="v" style="font-family:var(--font-hi)">केशिका</div></div><div class="lang"><div class="eyebrow mut">ગુજરાતી</div><div class="v" style="font-family:var(--font-gu)">કેશિકા</div></div></div>
+        <div class="row" style="gap:10px"><button class="btn ghost press">Translate line</button><button class="btn grad press"><svg class="ico sm"><use href="#i-plus"/></svg>Save word</button></div>
+      </div>
+    </div><div class="cap">Reader + dictionary · tap the dotted word</div></div>
+
+    <!-- QUIZ -->
+    <div class="shot"><div class="app" data-pack="sunset" data-mode="day">
+      <div class="status"><span>9:41</span><span class="isl"></span><span>100%</span></div>
+      <div class="body">
+        <div class="row"><div class="ibtn"><svg class="ico"><use href="#i-back"/></svg></div><div class="grow col" style="gap:6px"><div class="row"><span style="font-weight:800;font-size:12.5px" class="grow">Word quiz</span><span class="acc" style="font-weight:800;font-size:12px">3 / 10</span></div><div class="bar" style="--w:30%;height:6px"><i></i></div></div></div>
+        <div class="card col" style="padding:18px;gap:10px;position:relative;overflow:hidden">
+          <div class="halo" style="width:220px;height:220px;right:-80px;top:-80px"></div>
+          <span class="eyebrow acc">From Soil Science · p. 61</span>
+          <div style="font-size:19px;font-weight:800;line-height:1.3;position:relative">What does <span style="background:var(--hl);border-radius:6px;padding:0 4px">loam</span> mean?</div>
+          <div class="quote mut" style="font-family:var(--font-read);font-style:italic">“Loam holds water without turning to mud.”</div>
+        </div>
+        <div class="col stagger" style="gap:10px" id="opts">
+          <div class="opt press"><span class="ab">A</span>A type of rock formed by heat<span class="radio"></span></div>
+          <div class="opt press sel neon"><span class="ab">B</span>Fertile soil of clay, sand and humus<span class="radio"></span></div>
+          <div class="opt press"><span class="ab">C</span>Water stored deep underground<span class="radio"></span></div>
+          <div class="opt press"><span class="ab">D</span>A layer of fallen leaves<span class="radio"></span></div>
+        </div>
+        <div class="grow"></div>
+        <button class="btn grad press">Check answer</button>
+      </div>
+    </div><div class="cap">Word quiz · tap an option</div></div>
+
+    <!-- RESULT -->
+    <div class="shot"><div class="app" data-pack="sunset" data-mode="day">
+      <div class="status"><span>9:41</span><span class="isl"></span><span>100%</span></div>
+      <div class="body" style="align-items:center;text-align:center">
+        <div class="confetti" data-confetti="26"></div>
+        <div class="stage" style="margin-top:10px"><div class="halo"></div><div class="starburst" style="inset:0"></div><div data-trophy="150"></div><div class="art float" style="left:30px;top:30px;--r:-14deg" data-crown="44"></div></div>
+        <span class="eyebrow acc">Chapter 4 quiz</span>
+        <div style="font-size:54px;font-weight:800;letter-spacing:-.05em;line-height:1">9<span class="mut" style="font-size:28px">/10</span></div>
+        <div class="h2">You mastered “Water in soil”!</div>
+        <div class="mut" style="max-width:30ch">+40 minutes this week · 6 new words saved to review.</div>
+        <div class="grow"></div>
+        <button class="btn grad press">Continue to chapter 5</button>
+        <button class="btn ghost press">Review my answers</button>
+      </div>
+    </div><div class="cap">Celebration result</div></div>
+  </div>
+
+  <div class="group-title">Progress &amp; you</div>
+  <div class="board">
+    <!-- STATS -->
+    <div class="shot"><div class="app" data-pack="sunset" data-mode="day">
+      <div class="status"><span>9:41</span><span class="isl"></span><span>100%</span></div>
+      <div class="body">
+        <div class="row"><h2 class="h1 grow">Your month</h2><span class="chip">November</span></div>
+        <div class="card" style="display:grid;place-items:center;padding:18px;position:relative;overflow:hidden">
+          <div class="halo" style="width:260px;height:260px"></div>
+          <div class="ring" style="--s:150px" data-ring="68"><svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="50" fill="none" stroke-width="14"/><circle class="val" cx="60" cy="60" r="50" fill="none" stroke-width="14" stroke-dasharray="314.16" stroke-dashoffset="314.16"/></svg><div style="text-align:center;position:relative"><div style="font-size:30px;font-weight:800;letter-spacing:-.03em">68%</div><div class="mut">of 20 h goal</div></div></div>
+        </div>
+        <div class="card col stagger" style="gap:0;padding:4px 14px">
+          <div class="row" style="min-height:52px"><div class="icon-box tint"><svg class="ico"><use href="#i-clock"/></svg></div><span class="grow" style="font-weight:700">Time read</span><b>13 h 36 m</b></div>
+          <div class="row" style="min-height:52px;border-top:1px solid var(--line)"><div class="icon-box" style="background:var(--info-tint);color:var(--info)"><svg class="ico"><use href="#i-page"/></svg></div><span class="grow" style="font-weight:700">Pages</span><b>642</b></div>
+          <div class="row" style="min-height:52px;border-top:1px solid var(--line)"><div class="icon-box" style="background:var(--ok-tint);color:var(--ok)"><svg class="ico"><use href="#i-book"/></svg></div><span class="grow" style="font-weight:700">Books finished</span><b>3</b></div>
+        </div>
+        <div class="card col" style="gap:12px">
+          <span class="h2" style="font-size:14px">Badges</span>
+          <div class="row"><div data-crown="34"></div><div class="grow col" style="gap:5px"><div class="row"><b class="grow" style="font-size:13px">Bookworm · 5 books</b><span class="mut">3/5</span></div><div class="bar" style="--w:60%;height:6px"><i></i></div></div></div>
+          <div class="row"><div data-flame="34"></div><div class="grow col" style="gap:5px"><div class="row"><b class="grow" style="font-size:13px">On fire · 30-day streak</b><span class="mut">12/30</span></div><div class="bar" style="--w:40%;height:6px"><i></i></div></div></div>
+        </div>
+      </div>
+    </div><div class="cap">Stats + badges</div></div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="shot"><div class="app" data-pack="sunset" data-mode="day">
+      <div class="status"><span>9:41</span><span class="isl"></span><span>100%</span></div>
+      <div class="body">
+        <div class="row"><div class="ibtn"><svg class="ico"><use href="#i-back"/></svg></div><h2 class="h1 grow" style="font-size:22px">Activity</h2><span class="acc" style="font-weight:800;font-size:12.5px">Mark read</span></div>
+        <div class="tags"><span class="chip on">All</span><span class="chip">Reading</span><span class="chip">Words</span><span class="chip">Downloads</span></div>
+        <div class="card feed stagger" style="padding:2px 14px">
+          <div class="it"><div class="cb tint"><svg class="ico fill-ico"><use href="#i-flame"/></svg></div><div class="grow"><div class="t">12-day streak! 🔥</div><div class="mut">Read 7 more minutes to keep it going.</div></div><span class="time">2m</span></div>
+          <div class="it"><div class="cb" style="background:var(--info-tint);color:var(--info)"><svg class="ico"><use href="#i-words"/></svg></div><div class="grow"><div class="t">6 words are ready to review</div><div class="mut">loam, capillary, humus…</div></div><span class="time">1h</span></div>
+          <div class="it"><div class="cb" style="background:var(--ok-tint);color:var(--ok)"><svg class="ico"><use href="#i-cloud"/></svg></div><div class="grow"><div class="t">Physics, Volume Two downloaded</div><div class="mut">Added to your library · PDF</div></div><span class="time">3h</span></div>
+          <div class="it"><div class="cb" style="background:var(--rose-tint);color:var(--rose)"><svg class="ico"><use href="#i-trophy"/></svg></div><div class="grow"><div class="t">New badge: Night owl</div><div class="mut">5 sessions after 10 pm</div></div><span class="time">1d</span></div>
+          <div class="it"><div class="cb tint"><svg class="ico"><use href="#i-star"/></svg></div><div class="grow"><div class="t">A highlight resurfaced</div><div class="mut">“Every gram of healthy soil…”</div></div><span class="time">2d</span></div>
+        </div>
+      </div>
+    </div><div class="cap">Activity feed</div></div>
+
+    <!-- PROFILE -->
+    <div class="shot"><div class="app" data-pack="sunset" data-mode="day">
+      <div class="status"><span>9:41</span><span class="isl"></span><span>100%</span></div>
+      <div class="body" style="align-items:center">
+        <div class="halo" style="width:360px;height:300px;top:-40px;left:0"></div>
+        <div class="avatar-xl"><b>R</b><span class="edit"><svg class="ico sm"><use href="#i-pen"/></svg></span></div>
+        <div style="text-align:center;position:relative"><div class="h2" style="font-size:19px">Riya</div><div class="mut">Reading since March · Level 7</div></div>
+        <div class="trio" style="width:100%"><div><b>24</b><span class="mut">Books</span></div><div><b>86 h</b><span class="mut">Read</span></div><div><b>312</b><span class="mut">Words</span></div></div>
+        <div class="card menu" style="width:100%;padding:2px 14px">
+          <div class="mi"><div class="icon-box tint"><svg class="ico"><use href="#i-target"/></svg></div><span class="t grow">Reading goals</span><svg class="ico sm mut"><use href="#i-chev"/></svg></div>
+          <div class="mi"><div class="icon-box tint"><svg class="ico"><use href="#i-palette"/></svg></div><span class="t grow">Theme packs</span><span class="mut">Sunset</span><svg class="ico sm mut"><use href="#i-chev"/></svg></div>
+          <div class="mi"><div class="icon-box tint"><svg class="ico"><use href="#i-cloud"/></svg></div><span class="t grow">Offline language packs</span><svg class="ico sm mut"><use href="#i-chev"/></svg></div>
+          <div class="mi"><div class="icon-box tint"><svg class="ico"><use href="#i-globe"/></svg></div><span class="t grow">Online books</span><svg class="ico sm mut"><use href="#i-chev"/></svg></div>
+          <div class="mi"><div class="icon-box tint"><svg class="ico"><use href="#i-help"/></svg></div><span class="t grow">Help &amp; support</span><svg class="ico sm mut"><use href="#i-chev"/></svg></div>
+        </div>
+      </div>
+      <nav class="nav"><div class="n"><span class="pillbg"><svg class="ico"><use href="#i-home"/></svg></span>Home</div><div class="n"><span class="pillbg"><svg class="ico"><use href="#i-lib"/></svg></span>Library</div><div class="n"><span class="pillbg"><svg class="ico"><use href="#i-words"/></svg></span>Words</div><div class="n on"><span class="pillbg"><svg class="ico fill-ico"><use href="#i-user"/></svg></span>Me</div></nav>
+    </div><div class="cap">Profile hub</div></div>
+
+    <!-- SETTINGS -->
+    <div class="shot"><div class="app" data-pack="sunset" data-mode="day" id="settingsApp">
+      <div class="status"><span>9:41</span><span class="isl"></span><span>100%</span></div>
+      <div class="body">
+        <div class="row"><div class="ibtn"><svg class="ico"><use href="#i-back"/></svg></div><h2 class="h1 grow" style="font-size:22px">Settings</h2></div>
+        <div class="card col" style="gap:12px">
+          <span class="h2" style="font-size:14px">Appearance</span>
+          <div class="daynight" id="dn" role="switch" aria-checked="false" tabindex="0" aria-label="Night mode"><span class="knob"></span><span class="d"><svg class="ico sm"><use href="#i-sun"/></svg>Day</span><span class="nn"><svg class="ico sm"><use href="#i-moon"/></svg>Night</span></div>
+          <div class="packrow" id="pk">
+            <button class="pk on" data-pack="sunset" style="--a:#FF7A00;--b:#FFB800"><i></i>Sunset</button>
+            <button class="pk" data-pack="emerald" style="--a:#10B981;--b:#A3E635"><i></i>Emerald</button>
+            <button class="pk" data-pack="ocean" style="--a:#0EA5E9;--b:#67E8F9"><i></i>Ocean</button>
+            <button class="pk" data-pack="iris" style="--a:#6D28D9;--b:#A855F7"><i></i>Iris</button>
+            <button class="pk" data-pack="rose" style="--a:#F43F5E;--b:#FDBA74"><i></i>Rose</button>
+          </div>
+        </div>
+        <div class="card col" style="gap:0;padding:4px 14px">
+          <div class="row" style="min-height:58px"><div class="grow"><b style="font-size:13.5px">Celebrations</b><div class="mut">Confetti and Bolt when you hit a goal</div></div><button class="sw" role="switch" aria-checked="true" aria-label="Celebrations"></button></div>
+          <div class="row" style="min-height:58px;border-top:1px solid var(--line)"><div class="grow"><b style="font-size:13.5px">Daily reminder</b><div class="mut">8:30 pm · gentle nudge</div></div><button class="sw" role="switch" aria-checked="true" aria-label="Daily reminder"></button></div>
+          <div class="row" style="min-height:58px;border-top:1px solid var(--line)"><div class="grow"><b style="font-size:13.5px">Reduce motion</b><div class="mut">Turn off all animation</div></div><button class="sw" role="switch" aria-checked="false" aria-label="Reduce motion"></button></div>
+          <div class="row" style="min-height:58px;border-top:1px solid var(--line)"><div class="grow"><b style="font-size:13.5px">Volume keys turn pages</b><div class="mut">In the reader</div></div><button class="sw" role="switch" aria-checked="false" aria-label="Volume keys turn pages"></button></div>
+        </div>
+      </div>
+    </div><div class="cap">Settings · tap Day/Night, a pack, a switch</div></div>
+
+    <!-- HELP -->
+    <div class="shot"><div class="app" data-pack="sunset" data-mode="day">
+      <div class="status"><span>9:41</span><span class="isl"></span><span>100%</span></div>
+      <div class="body">
+        <div class="row"><div class="ibtn"><svg class="ico"><use href="#i-back"/></svg></div><h2 class="h1 grow" style="font-size:22px">Help</h2></div>
+        <div class="hero" style="min-height:120px">
+          <div class="txt" style="max-width:64%"><span class="eyebrow">Ask Bolt</span><h3 style="font-size:16px">How can we help you read better today?</h3></div>
+          <div class="mascot-wrap" data-mascot="104"></div>
+        </div>
+        <div class="input"><svg class="ico"><use href="#i-search"/></svg>Search help topics</div>
+        <div class="faq col" style="gap:10px" id="faq">
+          <div class="q open"><button><span class="icon-box tint" style="width:34px;height:34px;border-radius:12px"><svg class="ico sm"><use href="#i-cloud"/></svg></span>How do I read offline in Hindi?<svg class="ico sm chev"><use href="#i-chev"/></svg></button><div class="a">Open Me → Offline language packs and download Hindi once. Dictionary and translation then work in airplane mode.</div></div>
+          <div class="q"><button><span class="icon-box tint" style="width:34px;height:34px;border-radius:12px"><svg class="ico sm"><use href="#i-book"/></svg></span>Which file types can I import?<svg class="ico sm chev"><use href="#i-chev"/></svg></button><div class="a">EPUB, PDF, CBZ comics, XPS, HTML and folders of JPG/PNG pages.</div></div>
+          <div class="q"><button><span class="icon-box tint" style="width:34px;height:34px;border-radius:12px"><svg class="ico sm fill-ico"><use href="#i-flame"/></svg></span>How does my streak work?<svg class="ico sm chev"><use href="#i-chev"/></svg></button><div class="a">Read at least your daily goal any time before midnight. Freeze days protect your streak twice a month.</div></div>
+        </div>
+      </div>
+    </div><div class="cap">Help · tap a question</div></div>
+  </div>
+
+  <section class="notes" aria-label="Design notes">
+    <div class="note"><h3>Palette with a job</h3><p>Alabaster and white by day, obsidian and charcoal by night. The accent pair is the only colour, and it marks what you can do next: active tabs, progress, the main button.</p></div>
+    <div class="note"><h3>Depth, not clutter</h3><p>Soft 24px shadows lift cards off the canvas, and radial glows sit behind the hero objects. Starburst halos are reserved for wins and the reading card.</p></div>
+    <div class="note"><h3>Rewarding motion</h3><p>Buttons spring to 96% when pressed, rings and bars fill on load, lists rise in a stagger and confetti falls only on results. Reduce motion turns it all off.</p></div>
+    <div class="note"><h3>Reading stays quiet</h3><p>The page itself is plain paper with Literata type. Decoration lives around it, never on top of the words.</p></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  /* ---------- Inline SVG artifacts (inline so they pick up the pack colours) ---------- */
+  var uid=0;
+  function mascot(size){
+    var i=++uid;
+    return '<svg class="mascot" width="'+size+'" height="'+size+'" viewBox="0 0 200 200" aria-hidden="true">'+
+    '<defs>'+
+    '<radialGradient id="mb'+i+'" cx="38%" cy="30%" r="75%"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".25" style="stop-color:var(--g2)"/><stop offset="1" style="stop-color:var(--g1)"/></radialGradient>'+
+    '<radialGradient id="mbelly'+i+'" cx="45%" cy="35%" r="70%"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FFE9D2"/></radialGradient>'+
+    '<radialGradient id="meye'+i+'" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E9E4DC"/></radialGradient>'+
+    '<linearGradient id="mbook'+i+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2F3542"/><stop offset="1" stop-color="#11141A"/></linearGradient>'+
+    '</defs>'+
+    '<ellipse cx="100" cy="188" rx="52" ry="7" fill="rgba(0,0,0,.18)"/>'+
+    '<path d="M58 44 70 18 84 40Z" fill="url(#mb'+i+')"/><path d="M142 44 130 18 116 40Z" fill="url(#mb'+i+')"/>'+
+    '<ellipse cx="100" cy="108" rx="62" ry="70" fill="url(#mb'+i+')"/>'+
+    '<ellipse cx="100" cy="128" rx="40" ry="44" fill="url(#mbelly'+i+')"/>'+
+    '<circle cx="78" cy="82" r="22" fill="url(#meye'+i+')"/><circle cx="122" cy="82" r="22" fill="url(#meye'+i+')"/>'+
+    '<circle cx="81" cy="84" r="10" fill="#1A1D24"/><circle cx="119" cy="84" r="10" fill="#1A1D24"/>'+
+    '<circle cx="84" cy="80" r="3.5" fill="#FFFFFF"/><circle cx="122" cy="80" r="3.5" fill="#FFFFFF"/>'+
+    '<path d="M92 100 100 112 108 100Z" fill="#1A1D24"/>'+
+    '<path d="M100 30 92 46h8l-4 12 14-18h-8l4-10z" fill="#FFFFFF" opacity=".95"/>'+
+    '<g transform="rotate(-8 100 150)"><rect x="62" y="136" width="76" height="40" rx="6" fill="url(#mbook'+i+')"/><path d="M100 138v36" stroke="#FFFFFF" stroke-opacity=".35" stroke-width="2"/><rect x="68" y="143" width="26" height="3" rx="1.5" fill="#FFFFFF" opacity=".5"/><rect x="106" y="143" width="26" height="3" rx="1.5" fill="#FFFFFF" opacity=".5"/></g>'+
+    '<ellipse cx="66" cy="150" rx="13" ry="9" fill="url(#mb'+i+')"/><ellipse cx="134" cy="150" rx="13" ry="9" fill="url(#mb'+i+')"/>'+
+    '<ellipse cx="74" cy="60" rx="14" ry="6" fill="#FFFFFF" opacity=".35" transform="rotate(-25 74 60)"/>'+
+    '</svg>';
+  }
+  function crown(size){var i=++uid;return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="cg'+i+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE58A"/><stop offset=".55" stop-color="#FFB800"/><stop offset="1" stop-color="#E08600"/></linearGradient></defs><path d="M8 22 20 34 32 14 44 34 56 22 52 50H12Z" fill="url(#cg'+i+')" stroke="#C26C00" stroke-width="2" stroke-linejoin="round"/><rect x="12" y="48" width="40" height="8" rx="3" fill="url(#cg'+i+')" stroke="#C26C00" stroke-width="2"/><circle cx="32" cy="38" r="4" fill="#FF4D6D"/><circle cx="8" cy="22" r="3.5" fill="#FFE58A"/><circle cx="32" cy="14" r="3.5" fill="#FFE58A"/><circle cx="56" cy="22" r="3.5" fill="#FFE58A"/><path d="M16 30 20 34" stroke="#FFFFFF" stroke-opacity=".6" stroke-width="2.5" stroke-linecap="round"/></svg>';}
+  function flame(size){var i=++uid;return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 64 64" aria-hidden="true"><defs><radialGradient id="fg'+i+'" cx="50%" cy="75%" r="70%"><stop offset="0" stop-color="#FFF3B0"/><stop offset=".35" stop-color="#FFB800"/><stop offset="1" stop-color="#FF5A1F"/></radialGradient></defs><path d="M32 4s18 14 18 32a18 18 0 0 1-36 0c0-9 5-14 5-14s3 8 9 8c0-12 4-20 4-26z" fill="url(#fg'+i+')"/><path d="M32 30s8 6 8 14a8 8 0 0 1-16 0c0-5 3-7 3-7s1 3 4 3c0-5 1-7 1-10z" fill="#FFF6D6"/></svg>';}
+  function trophy(size){var i=++uid;return '<svg class="mascot" width="'+size+'" height="'+size+'" viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="tg'+i+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF1A8"/><stop offset=".4" stop-color="#FFC21A"/><stop offset="1" stop-color="#D97800"/></linearGradient><linearGradient id="tb'+i+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3A3F4B"/><stop offset="1" stop-color="#14171D"/></linearGradient></defs><path d="M30 18h60v22a30 30 0 0 1-60 0z" fill="url(#tg'+i+')"/><path d="M30 26H16a14 14 0 0 0 16 20M90 26h14a14 14 0 0 1-16 20" fill="none" stroke="url(#tg'+i+')" stroke-width="8" stroke-linecap="round"/><rect x="52" y="68" width="16" height="16" fill="url(#tg'+i+')"/><rect x="34" y="84" width="52" height="22" rx="6" fill="url(#tb'+i+')"/><rect x="46" y="90" width="28" height="6" rx="3" fill="#FFC21A" opacity=".9"/><path d="M42 26c0 14 4 22 12 28" stroke="#FFFFFF" stroke-opacity=".55" stroke-width="5" stroke-linecap="round" fill="none"/><path d="M60 24l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z" fill="#FFFFFF" opacity=".9"/></svg>';}
+  document.querySelectorAll('[data-mascot]').forEach(function(e){e.innerHTML=mascot(+e.dataset.mascot);});
+  document.querySelectorAll('[data-crown]').forEach(function(e){e.innerHTML=crown(+e.dataset.crown);});
+  document.querySelectorAll('[data-flame]').forEach(function(e){e.innerHTML=flame(+e.dataset.flame);});
+  document.querySelectorAll('[data-trophy]').forEach(function(e){e.innerHTML=trophy(+e.dataset.trophy);});
+  document.querySelectorAll('[data-confetti]').forEach(function(box){
+    var n=+box.dataset.confetti, cols=['var(--g1)','var(--g2)','#FF4D6D','#3B82F6','#22C55E','#FFFFFF'], h='';
+    for(var k=0;k<n;k++){var l=(k*37)%100, d=(k*0.27)%3.6, w=6+(k%3)*3, r=(k%4===0)?'50%':'2px';
+      h+='<i style="left:'+l+'%;background:'+cols[k%cols.length]+';animation-delay:-'+d.toFixed(2)+'s;width:'+w+'px;border-radius:'+r+';top:'+(-10+(k%5)*8)+'px"></i>';}
+    box.innerHTML=h;
+  });
+
+  /* ---------- Rings fill on load ---------- */
+  function fillRings(){document.querySelectorAll('[data-ring]').forEach(function(r){var v=r.querySelector('.val');var c=314.16;v.style.strokeDashoffset=c;requestAnimationFrame(function(){requestAnimationFrame(function(){v.style.strokeDashoffset=(c*(1-r.dataset.ring/100)).toFixed(1);});});});}
+  fillRings();
+
+  /* ---------- Theme switching ---------- */
+  var pack='sunset', mode='day';
+  function apply(){
+    document.querySelectorAll('.app').forEach(function(a){a.dataset.pack=pack;a.dataset.mode=mode;});
+    document.querySelectorAll('#packs .pack-btn').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.pack===pack));});
+    document.querySelectorAll('#mode button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.mode===mode));});
+    document.querySelectorAll('#pk .pk').forEach(function(b){b.classList.toggle('on',b.dataset.pack===pack);});
+    var dn=document.getElementById('dn'); dn.setAttribute('aria-checked',String(mode==='night'));
+  }
+  document.querySelectorAll('#packs .pack-btn, #pk .pk').forEach(function(b){b.addEventListener('click',function(){pack=b.dataset.pack;apply();});});
+  document.querySelectorAll('#mode button').forEach(function(b){b.addEventListener('click',function(){mode=b.dataset.mode;apply();});});
+  var dn=document.getElementById('dn');
+  function toggleDN(){mode=mode==='day'?'night':'day';apply();}
+  dn.addEventListener('click',toggleDN);
+  dn.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleDN();}});
+  document.querySelectorAll('.sw').forEach(function(s){s.addEventListener('click',function(){s.setAttribute('aria-checked',String(s.getAttribute('aria-checked')!=='true'));});});
+
+  /* ---------- Sheets ---------- */
+  var reader=document.getElementById('reader');
+  document.getElementById('w').addEventListener('click',function(){reader.classList.add('open');});
+  document.getElementById('dictbtn').addEventListener('click',function(){reader.classList.toggle('open');});
+  document.getElementById('scrim').addEventListener('click',function(){reader.classList.remove('open');});
+  var fa=document.getElementById('filterApp');
+  document.getElementById('filterScrim').addEventListener('click',function(){fa.classList.remove('open');});
+  document.getElementById('openFilter').addEventListener('click',function(){fa.classList.add('open');});
+
+  /* ---------- Quiz options ---------- */
+  document.querySelectorAll('#opts .opt').forEach(function(o){o.addEventListener('click',function(){document.querySelectorAll('#opts .opt').forEach(function(x){x.classList.remove('sel','neon');});o.classList.add('sel','neon');});});
+
+  /* ---------- FAQ accordion ---------- */
+  document.querySelectorAll('#faq .q button').forEach(function(b){b.addEventListener('click',function(){b.parentElement.classList.toggle('open');});});
+
+  /* ---------- Onboarding carousel with morphing dots ---------- */
+  var slides=[].slice.call(document.querySelectorAll('#onb .slide')), dots=[].slice.call(document.querySelectorAll('#onbDots i')), cur=0, next=document.getElementById('onbNext');
+  function show(i){cur=(i+slides.length)%slides.length;slides.forEach(function(s,k){s.dataset.pos=k===cur?'cur':(k<cur?'prev':'next');});dots.forEach(function(d,k){d.classList.toggle('on',k===cur);});
+    next.firstChild.nodeValue=cur===slides.length-1?'Get started ':'Next ';}
+  next.addEventListener('click',function(){show(cur+1);});
+  dots.forEach(function(d,k){d.style.cursor='pointer';d.addEventListener('click',function(){show(k);});});
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!reduce){setInterval(function(){show(cur+1);},3800);}
+  apply();
+})();
+</script>

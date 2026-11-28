@@ -1,4 +1,7 @@
 ﻿---
+
+> **SUPERSEDED (Nov 2026):** the owner replaced Stormlight with the Sunset design system. Use `.agents/skills/zeus-sunset-design` and `design/sunset/DESIGN.md` instead.
+
 name: stormlight-design
 description: Use for ANY UI, theme, layout, colour, typography, animation, icon or screen work in ZeusReader. This is the app's design system (Stormlight v4) and it OVERRIDES every generic design skill (ui-ux-pro-max, mobile-uiux-promax, Material defaults).
 ---
