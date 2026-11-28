@@ -169,6 +169,19 @@ fun ZeusTopBar(
     }
 }
 
+/**
+ * Caps text scaling for fixed-size artwork (covers, rings, dock) so glyphs never split words or clip.
+ * Content stays readable via its own semantics / the surrounding UI, which scales normally.
+ */
+@Composable
+fun CappedFontScale(max: Float, content: @Composable () -> Unit) {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density, density.fontScale.coerceAtMost(max)),
+        content = content
+    )
+}
+
 /* ---------------------------------------------------------------------------------------------
  * Buttons
  * ------------------------------------------------------------------------------------------- */
@@ -311,14 +324,19 @@ fun QuickActionTile(
         verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xsPlus)
     ) {
         IconTile(icon = icon, size = ZeusSizes.quickActionTile, filled = accent)
-        Text(
-            text = label,
-            style = type.labelSmall,
-            color = colors.textOnSkySecondary,
-            maxLines = 2,
-            textAlign = TextAlign.Center,
-            overflow = TextOverflow.Ellipsis
-        )
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        CompositionLocalProvider(
+            androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density, density.fontScale.coerceAtMost(1.4f))
+        ) {
+            Text(
+                text = label,
+                style = type.labelSmall,
+                color = colors.textOnSkySecondary,
+                maxLines = 2,
+                textAlign = TextAlign.Center,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
@@ -881,7 +899,7 @@ fun ProgressRing(
             drawArc(color = colors.trackInactive, startAngle = -90f, sweepAngle = 360f, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(s, cap = StrokeCap.Round))
             drawArc(brush = arcBrush, startAngle = -90f, sweepAngle = 360f * animated, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(s, cap = StrokeCap.Round))
         }
-        content()
+        CappedFontScale(1.15f) { Box(contentAlignment = Alignment.Center) { content() } }
     }
 }
 

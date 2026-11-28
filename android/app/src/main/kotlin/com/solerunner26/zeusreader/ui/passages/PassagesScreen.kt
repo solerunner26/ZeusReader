@@ -191,9 +191,10 @@ internal fun PassagesContent(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)
                     ) {
-                        GradientHeading(text = "Sparks", modifier = Modifier.weight(1f, fill = false))
-                        StickerChip(text = "${uiState.passages.size} sparks", accentFill = true, rotation = 4f)
-                        Box(modifier = Modifier.weight(1f))
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)) {
+                            GradientHeading(text = "Sparks")
+                            StickerChip(text = "${uiState.passages.size} sparks", accentFill = true, rotation = 3f)
+                        }
                         GlassIconButton(Icons.Rounded.Search, "Search sparks", { showSearch = !showSearch }, highlighted = showSearch)
                         Box {
                             Box(

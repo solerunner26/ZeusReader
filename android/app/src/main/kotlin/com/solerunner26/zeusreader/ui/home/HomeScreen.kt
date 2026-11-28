@@ -7,6 +7,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,6 +52,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -183,43 +185,49 @@ internal fun HomeContent(
     ) {
         // Header: settings avatar · greeting + wordmark · streak sticker
         item(key = "header") {
-            Row(
+            val largeText = LocalDensity.current.fontScale > 1.3f
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = ZeusSpacing.gutter),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
+                verticalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(ZeusSizes.avatar)
-                        .shadow(ZeusSizes.shadowSoft, ZeusShapes.circle, ambientColor = ZeusTheme.sky.glow2, spotColor = ZeusTheme.sky.glow2)
-                        .clip(ZeusShapes.circle)
-                        .background(rememberPrimaryGradient(animate = false))
-                        .clickable(role = Role.Button, onClick = onOpenSettings)
-                        .semantics { contentDescription = "Profile and settings" },
-                    contentAlignment = Alignment.Center
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
                 ) {
-                    Icon(Icons.Rounded.Settings, contentDescription = null, tint = colors.textOnAccent, modifier = Modifier.size(ZeusSizes.iconMd))
-                }
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xxs)) {
-                    Text(greeting, style = type.caption, color = colors.textOnSkySecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Image(
-                        painter = painterResource(id = R.drawable.zeus_home_banner),
-                        contentDescription = "ZeusReader",
-                        contentScale = ContentScale.Fit,
-                        alignment = Alignment.CenterStart,
+                    Box(
                         modifier = Modifier
-                            .height(ZeusSizes.bannerHeight)
-                            .aspectRatio(BANNER_ASPECT, matchHeightConstraintsFirst = true)
-                    )
+                            .size(ZeusSizes.avatar)
+                            .shadow(ZeusSizes.shadowSoft, ZeusShapes.circle, ambientColor = ZeusTheme.sky.glow2, spotColor = ZeusTheme.sky.glow2)
+                            .clip(ZeusShapes.circle)
+                            .background(rememberPrimaryGradient(animate = false))
+                            .clickable(role = Role.Button, onClick = onOpenSettings)
+                            .semantics { contentDescription = "Profile and settings" },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Rounded.Settings, contentDescription = null, tint = colors.textOnAccent, modifier = Modifier.size(ZeusSizes.iconMd))
+                    }
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xxs)) {
+                        Text(greeting, style = type.caption, color = colors.textOnSkySecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Image(
+                            painter = painterResource(id = R.drawable.zeus_home_banner),
+                            contentDescription = "ZeusReader",
+                            contentScale = ContentScale.Fit,
+                            alignment = Alignment.CenterStart,
+                            modifier = Modifier
+                                .height(ZeusSizes.bannerHeight)
+                                .aspectRatio(BANNER_ASPECT, matchHeightConstraintsFirst = true)
+                        )
+                    }
+                    if (!largeText) {
+                        StickerChip(text = "$streakDays-day streak", icon = Icons.Rounded.Bolt, rotation = 3f, onClick = onOpenStats)
+                    }
                 }
-                StickerChip(
-                    text = "${streakDays}-day streak",
-                    icon = Icons.Rounded.Bolt,
-                    rotation = 3f,
-                    onClick = onOpenStats
-                )
+                if (largeText) {
+                    StickerChip(text = "$streakDays-day streak", icon = Icons.Rounded.Bolt, rotation = 2f, onClick = onOpenStats)
+                }
             }
         }
 
@@ -527,6 +535,7 @@ private fun WordsSticker(count: Int, onClick: () -> Unit, modifier: Modifier = M
                 .padding(end = ZeusSizes.stickerOffset, bottom = ZeusSizes.stickerOffset)
                 .clip(ZeusShapes.cardCompact)
                 .background(colors.stickerLightBg)
+                .then(if (ZeusTheme.paper.isEink) Modifier.border(ZeusSpacing.hairline, colors.textOnSky, ZeusShapes.cardCompact) else Modifier)
                 .clickable(role = Role.Button, onClick = onClick)
                 .padding(ZeusSpacing.mdPlus),
             verticalArrangement = Arrangement.SpaceBetween

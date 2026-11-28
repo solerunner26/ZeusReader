@@ -59,6 +59,7 @@ fun BookCover(
                 modifier = Modifier.fillMaxSize()
             )
         } else {
+            CappedFontScale(1f) {
             val sky = remember(title) { ZeusSky.entries[abs(title.hashCode()) % ZeusSky.entries.size] }
             val eink = ZeusTheme.paper.isEink
             Box(
@@ -112,6 +113,7 @@ fun BookCover(
                         }
                     }
                 }
+            }
             }
         }
     }
