@@ -86,7 +86,10 @@ class OnlineAcquisitionViewModel @Inject constructor(
                 serverClient.getSlumStatus(state.serverUrl, state.pairingToken)
                     .onSuccess { slum -> _uiState.update { it.copy(slumStatus = slum) } }
                 serverClient.listTransfers(state.serverUrl, state.pairingToken)
-                    .onSuccess { jobs -> _uiState.update { it.copy(transfers = jobs) } }
+                    .onSuccess { jobs ->
+                        val hidden = prefs.getStringSet("downloaded_job_ids", emptySet()).orEmpty()
+                        _uiState.update { it.copy(transfers = jobs.filterNot { j -> j.job_id in hidden }) }
+                    }
             } else {
                 _uiState.update { it.copy(statusMessage = "Private server unreachable. Offline reading unaffected.") }
             }
@@ -256,17 +259,20 @@ class OnlineAcquisitionViewModel @Inject constructor(
             ).onSuccess { file ->
                 timerJob.cancel()
                 val report = libraryImporter.importUris(listOf(Uri.fromFile(file)), origin = "server_transfer")
+                val hidden = prefs.getStringSet("downloaded_job_ids", emptySet()).orEmpty().toMutableSet()
+                hidden.add(job.job_id)
+                prefs.edit().putStringSet("downloaded_job_ids", hidden).apply()
                 _uiState.update { s ->
                     s.copy(
                         query = "",
                         searchResults = emptyList(),
-                        transfers = s.transfers.filterNot { it.job_id == job.job_id },
+                        transfers = s.transfers.filterNot { it.job_id == job.job_id || it.job_id in hidden },
                         downloadHistory = listOf(job.copy(state = "AvailableOffline", progress_percent = 100)) +
                             s.downloadHistory.filterNot { it.job_id == job.job_id },
                         activeActionLabel = null,
                         activeProgressPercent = null,
                         activeElapsedSeconds = 0,
-                        statusMessage = "Downloaded & added to Library: ${job.title} (imported=${report.importedFileCount}, skipped=${report.duplicates.size})"
+                        statusMessage = "Book added to Library (imported=${report.importedFileCount}, skipped=${report.duplicates.size})."
                     )
                 }
             }.onFailure { err ->

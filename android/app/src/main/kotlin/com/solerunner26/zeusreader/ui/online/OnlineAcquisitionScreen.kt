@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Download
@@ -272,7 +273,7 @@ fun OnlineAcquisitionScreen(
                     item {
                         Text("Editions Found (${state.searchResults.size})", style = MaterialTheme.typography.titleMedium)
                     }
-                    items(state.searchResults, key = { it.idempotency_key }) { item ->
+                    itemsIndexed(state.searchResults, key = { idx, item -> "${idx}_${item.idempotency_key}" }) { _, item ->
                         val isQueuingThis = state.queuingKey == item.idempotency_key
                         ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                             Column(
@@ -305,7 +306,7 @@ fun OnlineAcquisitionScreen(
                     item {
                         Text("Transfers (${state.transfers.size})", style = MaterialTheme.typography.titleMedium)
                     }
-                    items(state.transfers, key = { it.job_id }) { job ->
+                    itemsIndexed(state.transfers, key = { idx, job -> "${idx}_${job.job_id}" }) { _, job ->
                         ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                             Column(
                                 modifier = Modifier.padding(14.dp),
