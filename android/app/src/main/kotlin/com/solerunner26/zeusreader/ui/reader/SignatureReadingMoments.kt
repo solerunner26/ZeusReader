@@ -34,7 +34,15 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Bolt
+import com.solerunner26.zeusreader.ui.components.GlassPillButton
+import com.solerunner26.zeusreader.ui.components.PrimaryPillButton
+import com.solerunner26.zeusreader.ui.components.StickerChip
+import com.solerunner26.zeusreader.ui.theme.GlassSurface
+import com.solerunner26.zeusreader.ui.theme.ZeusSizes
+import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
+import com.solerunner26.zeusreader.ui.theme.ZeusTheme
 import com.solerunner26.zeusreader.ui.theme.LocalZeusPalette
 import kotlin.math.roundToInt
 
@@ -54,7 +62,7 @@ fun ForeEdgeProgress(
 
     Box(
         modifier = modifier
-            .width(48.dp)
+            .width(ZeusSpacing.touchMin)
             .fillMaxHeight()
             .testTag("fore_edge_progress")
             .semantics { contentDescription = "$percent percent read" }
@@ -75,9 +83,9 @@ fun ForeEdgeProgress(
     ) {
         Canvas(
             modifier = Modifier
-                .width(12.dp)
+                .width(ZeusSizes.foreEdgeVisual)
                 .fillMaxHeight()
-                .padding(vertical = 32.dp)
+                .padding(vertical = ZeusSizes.foreEdgePadding)
         ) {
             val lineCount = 40
             val activeIndex = (clamped * (lineCount - 1)).roundToInt()
@@ -90,19 +98,19 @@ fun ForeEdgeProgress(
                         color = palette.hue,
                         start = Offset(0f, y),
                         end = Offset(size.width, y),
-                        strokeWidth = 3.dp.toPx()
+                        strokeWidth = ZeusSpacing.xs.toPx() * 0.75f
                     )
                     i < activeIndex -> drawLine(
                         color = palette.ink.copy(alpha = 0.28f),
                         start = Offset(size.width * 0.35f, y),
                         end = Offset(size.width, y),
-                        strokeWidth = 1.dp.toPx()
+                        strokeWidth = ZeusSpacing.hairline.toPx()
                     )
                     else -> drawLine(
                         color = palette.inkSoft.copy(alpha = 0.50f),
                         start = Offset(size.width * 0.2f, y),
                         end = Offset(size.width, y),
-                        strokeWidth = 2.dp.toPx()
+                        strokeWidth = ZeusSpacing.xxs.toPx()
                     )
                 }
             }
@@ -139,13 +147,13 @@ fun FocusRibbonOverlay(
                 .weight(topWeight)
                 .background(dimColor)
         )
-        HorizontalDivider(thickness = 1.dp, color = palette.hue)
+        HorizontalDivider(thickness = ZeusSpacing.hairline, color = palette.hue)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(84.dp)
+                .height(ZeusSizes.focusBandHeight)
         )
-        HorizontalDivider(thickness = 1.dp, color = palette.hue)
+        HorizontalDivider(thickness = ZeusSpacing.hairline, color = palette.hue)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -166,8 +174,8 @@ fun MarginMarkBar(
     val palette = LocalZeusPalette.current
     Box(
         modifier = modifier
-            .width(48.dp)
-            .heightIn(min = 48.dp)
+            .width(ZeusSpacing.touchMin)
+            .heightIn(min = ZeusSpacing.touchMin)
             .clickable(onClick = onClick)
             .testTag("margin_mark_bar")
             .semantics { contentDescription = "Open saved passage or highlight" },
@@ -175,9 +183,9 @@ fun MarginMarkBar(
     ) {
         Box(
             modifier = Modifier
-                .padding(start = 6.dp)
-                .width(4.dp)
-                .height(36.dp)
+                .padding(start = ZeusSpacing.xsPlus)
+                .width(ZeusSizes.marginMarkWidth)
+                .height(ZeusSizes.marginMarkHeight)
                 .background(palette.hue, shape = MaterialTheme.shapes.small)
         )
     }
@@ -195,7 +203,7 @@ fun RibbonBookmark(
     modifier: Modifier = Modifier
 ) {
     val palette = LocalZeusPalette.current
-    val ribbonHeight = if (chromeVisible) 64.dp else 40.dp
+    val ribbonHeight = if (chromeVisible) ZeusSizes.ribbonHeightActive else ZeusSizes.ribbonHeightIdle
     val ribbonShape = GenericShape { size, _ ->
         moveTo(0f, 0f)
         lineTo(size.width, 0f)
@@ -207,8 +215,8 @@ fun RibbonBookmark(
 
     Box(
         modifier = modifier
-            .width(48.dp)
-            .heightIn(min = 48.dp)
+            .width(ZeusSpacing.touchMin)
+            .heightIn(min = ZeusSpacing.touchMin)
             .testTag("ribbon_bookmark")
             .semantics {
                 contentDescription = if (isBookmarked) "Remove ribbon bookmark" else "Add ribbon bookmark"
@@ -232,7 +240,7 @@ fun RibbonBookmark(
     ) {
         Box(
             modifier = Modifier
-                .width(24.dp)
+                .width(ZeusSizes.ribbonWidth)
                 .height(ribbonHeight)
                 .clip(ribbonShape)
                 .background(if (isBookmarked) palette.hue else palette.hueContainer)
@@ -241,8 +249,8 @@ fun RibbonBookmark(
 }
 
 /**
- * 5. Chapter breath: end-of-chapter card showing time read, passages saved, words learned,
- * and next chapter action.
+ * 5. Chapter Strike: end-of-chapter celebration — one bolt glow, time read, sparks saved,
+ * words learned and the next-chapter action.
  */
 @Composable
 fun ChapterBreathCard(
@@ -254,63 +262,45 @@ fun ChapterBreathCard(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    ElevatedCard(
+    val colors = ZeusTheme.colors
+    val type = ZeusTheme.type
+    GlassSurface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp)
-            .testTag("chapter_breath_card")
+            .padding(ZeusSpacing.lg)
+            .testTag("chapter_breath_card"),
+        neon = true
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(ZeusSpacing.xl),
+            verticalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
         ) {
-            Text(
-                text = "Chapter complete",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = chapterTitle,
-                style = MaterialTheme.typography.headlineMedium
-            )
+            StickerChip(text = "Chapter Strike", icon = Icons.Rounded.Bolt, accentFill = true, rotation = -3f)
+            Text(text = chapterTitle, style = type.headline, color = colors.textOnSky)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
             ) {
-                BreathStat("Time read", "${minutesRead.coerceAtLeast(1)} min")
-                BreathStat("Passages saved this chapter", "$passagesSaved")
-                BreathStat("Words learned", "$wordsLearned")
+                BreathStat("Time read", "${minutesRead.coerceAtLeast(1)} min", Modifier.weight(1f))
+                BreathStat("Passages saved this chapter", "$passagesSaved", Modifier.weight(1f))
+                BreathStat("Words learned", "$wordsLearned", Modifier.weight(1f))
             }
-            Spacer(Modifier.height(4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
             ) {
-                OutlinedButton(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 48.dp)
-                ) {
-                    Text("Stay here")
-                }
-                Button(
-                    onClick = onNextChapter,
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 48.dp)
-                ) {
-                    Text("Next chapter")
-                }
+                GlassPillButton(label = "Stay here", onClick = onDismiss, modifier = Modifier.weight(1f))
+                PrimaryPillButton(label = "Next chapter", onClick = onNextChapter, height = ZeusSpacing.secondaryButtonHeight, modifier = Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
-private fun BreathStat(label: String, value: String) {
-    Column {
-        Text(value, style = MaterialTheme.typography.titleLarge)
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun BreathStat(label: String, value: String, modifier: Modifier = Modifier) {
+    val colors = ZeusTheme.colors
+    Column(modifier = modifier) {
+        Text(value, style = ZeusTheme.type.numberMedium, color = colors.textOnSky, maxLines = 1)
+        Text(label, style = ZeusTheme.type.labelSmall, color = colors.textOnSkySecondary, maxLines = 3)
     }
 }

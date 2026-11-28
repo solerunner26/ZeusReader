@@ -12,6 +12,10 @@ import com.solerunner26.zeusreader.data.local.PassageFolderEntity
 import com.solerunner26.zeusreader.data.local.ReadingProgressEntity
 import com.solerunner26.zeusreader.ui.theme.ActiveCoverHueHolder
 import com.solerunner26.zeusreader.ml.StudyTargetLanguage
+import com.solerunner26.zeusreader.ml.TranslationService
+import com.solerunner26.zeusreader.dictionary.DictionaryLookupResult
+import com.solerunner26.zeusreader.dictionary.OfflineDictionaryRepository
+import com.solerunner26.zeusreader.data.local.VocabWordEntity
 import com.solerunner26.zeusreader.reader.core.ReaderCapabilities
 import com.solerunner26.zeusreader.reader.core.UnifiedLocator
 import com.solerunner26.zeusreader.reader.epub.EpubSearchResultItem
@@ -69,8 +73,71 @@ class EpubReaderViewModel @Inject constructor(
     private val preferencesRepository: ReaderPreferencesRepository,
     private val translatedReadingEngine: TranslatedReadingEngine,
     private val passageRepository: PassageRepository,
-    private val activeCoverHueHolder: ActiveCoverHueHolder
+    private val activeCoverHueHolder: ActiveCoverHueHolder,
+    private val dictionaryRepository: OfflineDictionaryRepository,
+    private val translationService: TranslationService
 ) : ViewModel() {
+
+    private var currentBookTitle: String = ""
+
+    private val _dictionaryResult = MutableStateFlow<DictionaryLookupResult?>(null)
+    val dictionaryResult: StateFlow<DictionaryLookupResult?> = _dictionaryResult.asStateFlow()
+
+    private val _sentenceTranslation = MutableStateFlow<String?>(null)
+    val sentenceTranslation: StateFlow<String?> = _sentenceTranslation.asStateFlow()
+
+    /** Zap: offline word lookup (+ optional sentence translation) for EPUB selections. */
+    fun lookupWord(word: String, sentenceContext: String = "") {
+        _dictionaryResult.value = null
+        viewModelScope.launch {
+            _dictionaryResult.value = dictionaryRepository.lookup(word)
+            if (sentenceContext.isNotBlank()) {
+                _sentenceTranslation.value = translationService
+                    .translateFromEnglish(sentenceContext, _targetLanguage.value)
+                    .getOrNull()
+            }
+        }
+    }
+
+    fun translateSentence(sentence: String, lang: StudyTargetLanguage) {
+        _targetLanguage.value = lang
+        if (sentence.isBlank()) return
+        _sentenceTranslation.value = null
+        viewModelScope.launch {
+            _sentenceTranslation.value = translationService.translateFromEnglish(sentence, lang).getOrNull()
+        }
+    }
+
+    fun saveLookupToVocabulary(result: DictionaryLookupResult, lang: StudyTargetLanguage, sentenceContext: String) {
+        val now = System.currentTimeMillis()
+        val gloss = if (lang == StudyTargetLanguage.HINDI) {
+            result.hindiGlosses.joinToString("; ") { it.gloss }
+        } else {
+            result.gujaratiGlosses.joinToString("; ") { it.gloss }
+        }
+        viewModelScope.launch {
+            libraryRepository.saveVocabularyWord(
+                VocabWordEntity(
+                    id = UUID.randomUUID().toString(),
+                    word = result.queryWord,
+                    lemma = result.matchedLemma,
+                    targetLang = lang.code,
+                    englishMeaning = result.englishSenses.firstOrNull()?.definition.orEmpty(),
+                    translatedMeaning = gloss,
+                    bookTitle = currentBookTitle,
+                    editionId = editionIdFlow.value,
+                    sentenceContext = sentenceContext,
+                    nextReviewEpochMs = now,
+                    createdAtEpochMs = now,
+                    updatedAtEpochMs = now
+                )
+            )
+        }
+    }
+
+    /** Listen: plain text of the section currently on screen. */
+    suspend fun currentSectionPlainText(): String =
+        runCatching { session?.extractSectionPlainText(latestLocator?.href?.toString()).orEmpty() }.getOrDefault("")
 
     private var session: ReadiumEpubSession? = null
     private val editionIdFlow = MutableStateFlow<String?>(null)
@@ -132,6 +199,7 @@ class EpubReaderViewModel @Inject constructor(
     fun openBook(editionId: String, title: String, localPath: String) {
         if (editionIdFlow.value == editionId && session?.publication != null) return
         editionIdFlow.value = editionId
+        currentBookTitle = title
         session?.close()
         val newSession = ReadiumEpubSession(context)
         session = newSession
