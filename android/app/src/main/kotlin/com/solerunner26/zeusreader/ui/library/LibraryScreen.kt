@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -201,11 +202,14 @@ internal fun LibraryScreenContent(
     onOpenBook: (LibraryBookSummary) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = com.solerunner26.zeusreader.ui.theme.ZeusTheme.colors
+    val sky = com.solerunner26.zeusreader.ui.theme.ZeusTheme.sky
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         contentWindowInsets = WindowInsets(0),
         modifier = modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .testTag("library_screen_root"),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
@@ -213,7 +217,7 @@ internal fun LibraryScreenContent(
                 windowInsets = WindowInsets(0),
                 title = {
                     Text(
-                        text = stringResource(R.string.app_name),
+                        text = "Olympus",
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.semantics { heading() }
                     )
@@ -270,7 +274,9 @@ internal fun LibraryScreenContent(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = androidx.compose.ui.graphics.Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                    titleContentColor = colors.textOnSky,
+                    actionIconContentColor = colors.textOnSky,
+                    navigationIconContentColor = colors.textOnSky
                 )
             )
         },
@@ -278,7 +284,11 @@ internal fun LibraryScreenContent(
             if (uiState is LibraryUiState.Populated) {
                 FloatingActionButton(
                     onClick = onImportClick,
-                    modifier = Modifier.heightIn(min = 56.dp)
+                    containerColor = sky.accent,
+                    contentColor = sky.baseA,
+                    modifier = Modifier
+                        .padding(bottom = com.solerunner26.zeusreader.ui.theme.ZeusSpacing.dockBottomClearance)
+                        .heightIn(min = 56.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.FileOpen,

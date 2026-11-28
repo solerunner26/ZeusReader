@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -95,11 +96,14 @@ fun PassagesScreen(
         }
     }
 
+    val colors = com.solerunner26.zeusreader.ui.theme.ZeusTheme.colors
+    val sky = com.solerunner26.zeusreader.ui.theme.ZeusTheme.sky
     Scaffold(
         containerColor = Color.Transparent,
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         modifier = modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .testTag("passages_screen_root"),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -115,20 +119,31 @@ fun PassagesScreen(
                             Text("Cancel")
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = colors.textOnSky,
+                        actionIconContentColor = colors.textOnSky
+                    )
                 )
             } else {
                 TopAppBar(
                     windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
-                    title = { Text("Passages (${uiState.passages.size})") },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    title = { Text("Sparks (${uiState.passages.size})") },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = colors.textOnSky
+                    )
                 )
             }
         },
         floatingActionButton = {
-            Box {
-                FloatingActionButton(onClick = { showFabMenu = true }) {
-                    Icon(Icons.Rounded.Add, contentDescription = "New passage or folder")
+            Box(modifier = Modifier.padding(bottom = com.solerunner26.zeusreader.ui.theme.ZeusSpacing.dockBottomClearance)) {
+                FloatingActionButton(
+                    onClick = { showFabMenu = true },
+                    containerColor = sky.accent,
+                    contentColor = sky.baseA
+                ) {
+                    Icon(Icons.Rounded.Add, contentDescription = "New spark or constellation")
                 }
                 DropdownMenu(expanded = showFabMenu, onDismissRequest = { showFabMenu = false }) {
                     DropdownMenuItem(
@@ -215,7 +230,7 @@ fun PassagesScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 88.dp),
+                    contentPadding = PaddingValues(bottom = com.solerunner26.zeusreader.ui.theme.ZeusSpacing.dockBottomClearance),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(uiState.passages, key = { it.passage.id }) { item ->

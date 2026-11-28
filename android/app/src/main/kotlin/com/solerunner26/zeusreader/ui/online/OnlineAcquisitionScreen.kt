@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -67,19 +69,26 @@ fun OnlineAcquisitionScreen(
     var showHistorySheet by remember { mutableStateOf(false) }
     var pairingJsonInput by remember { mutableStateOf("") }
 
+    val colors = com.solerunner26.zeusreader.ui.theme.ZeusTheme.colors
     HueAuraBackground(
         config = uiConfig,
         darkTheme = darkTheme,
         modifier = modifier
     ) {
         Scaffold(
+            modifier = Modifier.statusBarsPadding().navigationBarsPadding(),
             containerColor = Color.Transparent,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             topBar = {
                 TopAppBar(
                     windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
                     title = { Text("Online Books") },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = colors.textOnSky,
+                        navigationIconContentColor = colors.textOnSky,
+                        actionIconContentColor = colors.textOnSky
+                    ),
                     navigationIcon = {
                         IconButton(onClick = onBack, modifier = Modifier.heightIn(min = 48.dp)) {
                             Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")

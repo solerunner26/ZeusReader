@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -119,8 +121,10 @@ internal fun SettingsScreenContent(
     onToggleMasterAnimations: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = com.solerunner26.zeusreader.ui.theme.ZeusTheme.colors
     HueAuraBackground(config = config, darkTheme = darkTheme, modifier = modifier) {
         Scaffold(
+            modifier = Modifier.statusBarsPadding().navigationBarsPadding(),
             containerColor = Color.Transparent,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             topBar = {
@@ -135,7 +139,11 @@ internal fun SettingsScreenContent(
                             Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = colors.textOnSky,
+                        navigationIconContentColor = colors.textOnSky
+                    )
                 )
             }
         ) { padding ->

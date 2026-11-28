@@ -11,6 +11,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import com.solerunner26.zeusreader.ui.theme.LiquidGlassCard
+import com.solerunner26.zeusreader.ui.theme.ZeusTheme
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -45,19 +49,25 @@ fun StatsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
+    val colors = ZeusTheme.colors
     HueAuraBackground(
         config = uiConfig,
         darkTheme = darkTheme,
         modifier = modifier
     ) {
         Scaffold(
+            modifier = Modifier.statusBarsPadding().navigationBarsPadding(),
             containerColor = Color.Transparent,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             topBar = {
                 TopAppBar(
                     windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
                     title = { Text("Reading Stats") },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = colors.textOnSky,
+                        navigationIconContentColor = colors.textOnSky
+                    ),
                     navigationIcon = {
                         IconButton(
                             onClick = onBack,
@@ -78,7 +88,7 @@ fun StatsScreen(
                     .testTag("stats_screen"),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                LiquidGlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(
                             text = "${state.currentStreakDays} day streak",

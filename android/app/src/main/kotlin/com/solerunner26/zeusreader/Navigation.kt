@@ -4,33 +4,45 @@ import android.app.Activity
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.AutoStories
-import androidx.compose.material.icons.rounded.FormatQuote
 import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.School
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.solerunner26.zeusreader.ui.theme.ZeusShapes
+import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
+import com.solerunner26.zeusreader.ui.theme.ZeusTheme
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.entryProvider
@@ -77,8 +89,7 @@ fun MainNavigation(
     val isRootTab = currentTop is HomeRoute ||
         currentTop is LibraryRoute ||
         currentTop is PassagesRoute ||
-        currentTop is VocabularyRoute ||
-        currentTop is SettingsRoute
+        currentTop is VocabularyRoute
 
     var lastBackPressMs by remember { mutableLongStateOf(0L) }
 
@@ -103,59 +114,8 @@ fun MainNavigation(
         }
     }
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        bottomBar = {
-            if (isRootTab) {
-                NavigationBar(
-                    containerColor = if (uiConfig.glassUi) Color.Transparent else MaterialTheme.colorScheme.surface,
-                    modifier = Modifier
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                        .liquidGlass(
-                            enabled = uiConfig.glassUi,
-                            shape = RoundedCornerShape(28.dp),
-                            alpha = 0.78f
-                        )
-                ) {
-                    NavigationBarItem(
-                        selected = currentTop is HomeRoute,
-                        onClick = { backStack.clear(); backStack.add(HomeRoute) },
-                        icon = { Icon(Icons.Rounded.Home, contentDescription = "Home") },
-                        label = { Text("Home") }
-                    )
-                    NavigationBarItem(
-                        selected = currentTop is LibraryRoute,
-                        onClick = { backStack.clear(); backStack.add(LibraryRoute) },
-                        icon = { Icon(Icons.Rounded.AutoStories, contentDescription = "Library") },
-                        label = { Text("Library") }
-                    )
-                    NavigationBarItem(
-                        selected = currentTop is PassagesRoute,
-                        onClick = { backStack.clear(); backStack.add(PassagesRoute) },
-                        icon = { Icon(Icons.Rounded.FormatQuote, contentDescription = "Passages") },
-                        label = { Text("Passages") }
-                    )
-                    NavigationBarItem(
-                        selected = currentTop is VocabularyRoute,
-                        onClick = { backStack.clear(); backStack.add(VocabularyRoute) },
-                        icon = { Icon(Icons.Rounded.School, contentDescription = "Vocab") },
-                        label = { Text("Vocab") }
-                    )
-                    NavigationBarItem(
-                        selected = currentTop is SettingsRoute,
-                        onClick = { backStack.clear(); backStack.add(SettingsRoute) },
-                        icon = { Icon(Icons.Rounded.Settings, contentDescription = "Settings") },
-                        label = { Text("Settings") }
-                    )
-                }
-            }
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize()) {
             NavDisplay(
                 backStack = backStack,
                 onBack = {
@@ -198,7 +158,8 @@ fun MainNavigation(
                             onOpenVocab = { backStack.clear(); backStack.add(VocabularyRoute) },
                             onOpenOnline = { backStack.add(OnlineRoute) },
                             onOpenStats = { backStack.add(StatsRoute) },
-                            onOpenPrepareOffline = { backStack.add(PrepareOfflineRoute) }
+                            onOpenPrepareOffline = { backStack.add(PrepareOfflineRoute) },
+                            onOpenSettings = { backStack.add(SettingsRoute) }
                         )
                     }
 
@@ -370,5 +331,125 @@ fun MainNavigation(
                 )
             }
         }
+
+        if (isRootTab) {
+            StormlightBottomDock(
+                currentTop = currentTop,
+                glassEnabled = uiConfig.glassUi,
+                onSelectHome = { backStack.clear(); backStack.add(HomeRoute) },
+                onSelectOlympus = { backStack.clear(); backStack.add(LibraryRoute) },
+                onSelectSparks = { backStack.clear(); backStack.add(PassagesRoute) },
+                onSelectWords = { backStack.clear(); backStack.add(VocabularyRoute) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(horizontal = ZeusSpacing.dockInset, vertical = ZeusSpacing.dockInset)
+            )
+        }
+    }
+}
+
+@Composable
+private fun StormlightBottomDock(
+    currentTop: Any?,
+    glassEnabled: Boolean,
+    onSelectHome: () -> Unit,
+    onSelectOlympus: () -> Unit,
+    onSelectSparks: () -> Unit,
+    onSelectWords: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val sky = ZeusTheme.sky
+    val colors = ZeusTheme.colors
+    val type = ZeusTheme.type
+    val bgColor = if (glassEnabled) colors.dockFill else colors.glassFallback
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(ZeusSpacing.dockHeight)
+            .clip(ZeusShapes.dock)
+            .background(bgColor)
+            .border(BorderStroke(ZeusSpacing.glassBorderWidth, colors.glassBorder), ZeusShapes.dock)
+            .padding(horizontal = ZeusSpacing.sm),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        DockTabItem(
+            label = "Home",
+            selected = currentTop is HomeRoute,
+            onClick = onSelectHome,
+            modifier = Modifier.weight(1f),
+            icon = { tint ->
+                Icon(Icons.Rounded.Home, contentDescription = "Home", tint = tint, modifier = Modifier.size(22.dp))
+            }
+        )
+        DockTabItem(
+            label = "Olympus",
+            selected = currentTop is LibraryRoute,
+            onClick = onSelectOlympus,
+            modifier = Modifier.weight(1f),
+            icon = { tint ->
+                Icon(Icons.Rounded.AutoStories, contentDescription = "Olympus", tint = tint, modifier = Modifier.size(22.dp))
+            }
+        )
+        DockTabItem(
+            label = "Sparks",
+            selected = currentTop is PassagesRoute,
+            onClick = onSelectSparks,
+            modifier = Modifier.weight(1f),
+            icon = { tint ->
+                Icon(Icons.Rounded.AutoAwesome, contentDescription = "Sparks", tint = tint, modifier = Modifier.size(22.dp))
+            }
+        )
+        DockTabItem(
+            label = "Words",
+            selected = currentTop is VocabularyRoute,
+            onClick = onSelectWords,
+            modifier = Modifier.weight(1f),
+            icon = { tint ->
+                Text(
+                    text = "अ",
+                    style = type.title.copy(fontFamily = type.Unbounded, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp),
+                    color = tint
+                )
+            }
+        )
+    }
+}
+
+@Composable
+private fun DockTabItem(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: @Composable (Color) -> Unit
+) {
+    val sky = ZeusTheme.sky
+    val colors = ZeusTheme.colors
+    val type = ZeusTheme.type
+    val tint = if (selected) sky.accent else colors.textOnSky.copy(alpha = 0.72f)
+
+    Column(
+        modifier = modifier
+            .heightIn(min = ZeusSpacing.touchMin)
+            .clip(ZeusShapes.pill)
+            .clickable(onClick = onClick)
+            .padding(vertical = ZeusSpacing.xs),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        icon(tint)
+        Text(
+            text = label,
+            style = type.meta.copy(
+                fontFamily = type.BricolageGrotesque,
+                fontSize = 11.sp,
+                fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold
+            ),
+            color = tint,
+            maxLines = 1
+        )
     }
 }

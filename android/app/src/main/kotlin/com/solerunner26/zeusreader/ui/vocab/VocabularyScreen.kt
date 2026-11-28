@@ -9,7 +9,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import com.solerunner26.zeusreader.ui.theme.LiquidGlassCard
+import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
+import com.solerunner26.zeusreader.ui.theme.ZeusTheme
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -189,17 +194,22 @@ fun VocabularyScreen(
     val words by viewModel.words.collectAsStateWithLifecycle()
     var flashcardMode by remember { mutableStateOf(false) }
 
+    val colors = ZeusTheme.colors
     Scaffold(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .statusBarsPadding(),
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         topBar = {
             TopAppBar(
                 windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
                 colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                    containerColor = androidx.compose.ui.graphics.Color.Transparent
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    titleContentColor = colors.textOnSky,
+                    navigationIconContentColor = colors.textOnSky
                 ),
-                title = { Text("Vocabulary & Flashcards") },
+                title = { Text("Words") },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -241,9 +251,8 @@ fun VocabularyScreen(
                 val card = due.first()
                 var revealed by remember(card.id) { mutableStateOf(false) }
 
-                ElevatedCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+                LiquidGlassCard(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
@@ -290,9 +299,12 @@ fun VocabularyScreen(
                     }
                 }
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                LazyColumn(
+                    contentPadding = PaddingValues(bottom = ZeusSpacing.dockBottomClearance),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     items(words, key = { it.id }) { item ->
-                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                        LiquidGlassCard(modifier = Modifier.fillMaxWidth()) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
