@@ -365,7 +365,7 @@ fun CardStudioScreen(
                         )
                     }
                     val contrast = contrastRatio(rendered.effectiveTextColor, rendered.effectiveBackdropSample)
-                    MetaLabel(text = "Readability ${String.format("%.1f", contrast)}:1" + if (contrast >= 4.5) " · passes" else " · low", accent = contrast >= 4.5)
+                    MetaLabel(text = "Readability ${String.format(java.util.Locale.US, "%.1f", contrast)}:1" + if (contrast >= 4.5) " · passes" else " · low", accent = contrast >= 4.5)
                     if (rendered.needsTrimHint) {
                         Text("This spark is long — trim it in the editor for best legibility.", style = type.caption, color = colors.accentOnSky)
                     }

@@ -170,7 +170,7 @@ internal fun TypographyPanelContent(
             }
             ZeusSliderRow(
                 title = "Line height",
-                valueLabel = "${String.format("%.2f", settings.lineHeightMultiplier)}×",
+                valueLabel = "${String.format(java.util.Locale.US, "%.2f", settings.lineHeightMultiplier)}×",
                 value = settings.lineHeightMultiplier,
                 onValueChange = { v -> onSettingsChange { it.copy(lineHeightMultiplier = v) } },
                 valueRange = 1.1f..2.0f
