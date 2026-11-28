@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
@@ -61,6 +62,7 @@ fun OnlineAcquisitionScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showPairingDialog by remember { mutableStateOf(false) }
+    var showServerSettings by remember { mutableStateOf(false) }
     var pairingJsonInput by remember { mutableStateOf("") }
 
     HueAuraBackground(
@@ -74,7 +76,7 @@ fun OnlineAcquisitionScreen(
             topBar = {
                 TopAppBar(
                     windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
-                    title = { Text("Private Server & Online") },
+                    title = { Text("Online Books") },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                     navigationIcon = {
                         IconButton(onClick = onBack, modifier = Modifier.heightIn(min = 48.dp)) {
@@ -88,6 +90,12 @@ fun OnlineAcquisitionScreen(
                         ) {
                             Icon(Icons.Rounded.Sync, contentDescription = "Sync passages")
                         }
+                        IconButton(
+                            onClick = { showServerSettings = !showServerSettings },
+                            modifier = Modifier.heightIn(min = 48.dp)
+                        ) {
+                            Icon(Icons.Rounded.Tune, contentDescription = "Server settings")
+                        }
                     }
                 )
             }
@@ -100,85 +108,90 @@ fun OnlineAcquisitionScreen(
                     .testTag("online_acquisition_screen"),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                item {
-                    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text("Server Pairing (Tailscale / LAN)", style = MaterialTheme.typography.titleMedium)
-                            OutlinedTextField(
-                                value = state.serverUrl,
-                                onValueChange = { viewModel.updateServerConfig(it, state.pairingToken) },
-                                label = { Text("Server URL") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            OutlinedTextField(
-                                value = state.pairingToken,
-                                onValueChange = { viewModel.updateServerConfig(state.serverUrl, it) },
-                                label = { Text("Pairing Token") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                if (showServerSettings) {
+                    item {
+                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Button(
-                                    onClick = viewModel::checkServerAndLoad,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .heightIn(min = 48.dp)
-                                ) {
-                                    Text("Connect & Refresh")
-                                }
-                                OutlinedButton(
-                                    onClick = viewModel::syncPassagesNow,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .heightIn(min = 48.dp)
-                                ) {
-                                    Text("Sync Now")
-                                }
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                OutlinedButton(
-                                    onClick = { showPairingDialog = true },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .heightIn(min = 48.dp)
-                                ) {
-                                    Text("Paste QR JSON")
-                                }
-                                OutlinedButton(
-                                    onClick = viewModel::backupToServer,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .heightIn(min = 48.dp)
-                                ) {
-                                    Text("Backup Data")
-                                }
-                            }
-                            state.slumStatus?.let { slum ->
-                                val staleText = if (slum.stale) " (cached/stale)" else ""
-                                Text(
-                                    text = "Open SLUM: ${slum.providers.size} providers tracked$staleText",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary
+                                Text("Server Settings (Saved Automatically)", style = MaterialTheme.typography.titleMedium)
+                                OutlinedTextField(
+                                    value = state.serverUrl,
+                                    onValueChange = { viewModel.updateServerConfig(it, state.pairingToken) },
+                                    label = { Text("Server URL") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
-                            }
-                            state.statusMessage?.let { msg ->
-                                Text(
-                                    text = msg,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                OutlinedTextField(
+                                    value = state.pairingToken,
+                                    onValueChange = { viewModel.updateServerConfig(state.serverUrl, it) },
+                                    label = { Text("Pairing Token") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = viewModel::checkServerAndLoad,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .heightIn(min = 48.dp)
+                                    ) {
+                                        Text("Reconnect")
+                                    }
+                                    OutlinedButton(
+                                        onClick = viewModel::syncPassagesNow,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .heightIn(min = 48.dp)
+                                    ) {
+                                        Text("Sync Now")
+                                    }
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { showPairingDialog = true },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .heightIn(min = 48.dp)
+                                    ) {
+                                        Text("Paste QR JSON")
+                                    }
+                                    OutlinedButton(
+                                        onClick = viewModel::backupToServer,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .heightIn(min = 48.dp)
+                                    ) {
+                                        Text("Backup Data")
+                                    }
+                                }
+                                state.slumStatus?.let { slum ->
+                                    val staleText = if (slum.stale) " (cached/stale)" else ""
+                                    Text(
+                                        text = "Catalogue: ${slum.providers.size} sources tracked$staleText",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
                         }
+                    }
+                }
+
+                state.statusMessage?.let { msg ->
+                    item {
+                        Text(
+                            text = msg,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 

@@ -42,10 +42,29 @@ class OnlineAcquisitionViewModel @Inject constructor(
     private val syncRepository: SyncAndBackupRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(OnlineAcquisitionUiState())
+    private val prefs by lazy {
+        context.getSharedPreferences("zeus_server_config", Context.MODE_PRIVATE)
+    }
+
+    private val _uiState = MutableStateFlow(
+        OnlineAcquisitionUiState(
+            serverUrl = prefs.getString("server_url", "https://zeusreader-relay.jaldip-sac.workers.dev")
+                ?: "https://zeusreader-relay.jaldip-sac.workers.dev",
+            pairingToken = prefs.getString("pairing_token", "zeus-dev-pairing-token")
+                ?: "zeus-dev-pairing-token"
+        )
+    )
     val uiState: StateFlow<OnlineAcquisitionUiState> = _uiState.asStateFlow()
 
+    init {
+        checkServerAndLoad()
+    }
+
     fun updateServerConfig(url: String, token: String) {
+        prefs.edit()
+            .putString("server_url", url)
+            .putString("pairing_token", token)
+            .apply()
         _uiState.update { it.copy(serverUrl = url, pairingToken = token) }
     }
 
@@ -155,11 +174,16 @@ class OnlineAcquisitionViewModel @Inject constructor(
             val url = obj.optString("url").ifBlank { obj.optString("host") }
             val token = obj.optString("token")
             require(url.isNotBlank() && token.isNotBlank()) { "Missing url or token" }
+            val cleanUrl = url.trimEnd('/')
+            prefs.edit()
+                .putString("server_url", cleanUrl)
+                .putString("pairing_token", token)
+                .apply()
             _uiState.update {
                 it.copy(
-                    serverUrl = url.trimEnd('/'),
+                    serverUrl = cleanUrl,
                     pairingToken = token,
-                    statusMessage = "Pairing config applied. Tap Connect & Refresh."
+                    statusMessage = "Pairing config saved."
                 )
             }
         }.onFailure { err ->

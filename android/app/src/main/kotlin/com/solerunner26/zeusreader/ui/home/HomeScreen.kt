@@ -203,7 +203,7 @@ fun HomeScreen(
                         QuickActionPill("Library", Icons.Rounded.AutoStories, glassEnabled, onOpenLibrary)
                     }
                     item {
-                        QuickActionPill("Online & SLUM", Icons.Rounded.CloudDownload, glassEnabled, onOpenOnline)
+                        QuickActionPill("Online Books", Icons.Rounded.CloudDownload, glassEnabled, onOpenOnline)
                     }
                     item {
                         QuickActionPill("Offline Packs", Icons.Rounded.Translate, glassEnabled, onOpenPrepareOffline)
