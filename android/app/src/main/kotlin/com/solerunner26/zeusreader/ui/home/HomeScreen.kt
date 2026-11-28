@@ -5,18 +5,17 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,22 +24,24 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.FileOpen
-import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Insights
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,31 +49,56 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import com.solerunner26.zeusreader.R
 import com.solerunner26.zeusreader.data.local.LibraryBookSummary
+import com.solerunner26.zeusreader.ui.components.BookCover
+import com.solerunner26.zeusreader.ui.components.MetaLabel
+import com.solerunner26.zeusreader.ui.components.PrimaryPillButton
+import com.solerunner26.zeusreader.ui.components.ProgressRing
+import com.solerunner26.zeusreader.ui.components.QuickActionTile
+import com.solerunner26.zeusreader.ui.components.StickerChip
+import com.solerunner26.zeusreader.ui.components.ZeusSectionHeader
+import com.solerunner26.zeusreader.ui.components.rememberDockClearance
 import com.solerunner26.zeusreader.ui.library.LibraryUiState
 import com.solerunner26.zeusreader.ui.library.LibraryViewModel
 import com.solerunner26.zeusreader.ui.passages.PassagesViewModel
 import com.solerunner26.zeusreader.ui.stats.StatsViewModel
-import com.solerunner26.zeusreader.ui.theme.LiquidGlassCard
+import com.solerunner26.zeusreader.ui.theme.GlassSurface
 import com.solerunner26.zeusreader.ui.theme.ZeusShapes
+import com.solerunner26.zeusreader.ui.theme.ZeusSizes
 import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
 import com.solerunner26.zeusreader.ui.theme.ZeusTheme
-import com.solerunner26.zeusreader.ui.theme.liquidGlass
-import java.io.File
+import com.solerunner26.zeusreader.ui.theme.rememberPrimaryGradient
+import java.time.LocalTime
+
+private const val BANNER_ASPECT = 1024f / 215f
+
+/** Reading progress (0..1) when it is known: EPUB stores ‰ of the book in lastPageIndex. */
+internal fun LibraryBookSummary.knownProgress(): Float? {
+    val idx = lastPageIndex ?: return null
+    return if (primaryFormat.equals("EPUB", ignoreCase = true)) (idx / 1000f).coerceIn(0f, 1f) else null
+}
+
+internal fun LibraryBookSummary.progressLabel(): String {
+    val idx = lastPageIndex ?: return "Not started"
+    return knownProgress()?.let { "${(it * 100).toInt()}% read" } ?: "p.${idx + 1}"
+}
+
+private fun greetingFor(hour: Int): String = when (hour) {
+    in 5..11 -> "Good morning"
+    in 12..16 -> "Good afternoon"
+    in 17..21 -> "Good evening"
+    else -> "Late-night reading"
+}
 
 @Composable
 fun HomeScreen(
@@ -95,247 +121,144 @@ fun HomeScreen(
     val statsState by statsViewModel.uiState.collectAsStateWithLifecycle()
 
     val books = (libState as? LibraryUiState.Populated)?.books.orEmpty()
-    val continueBook = books.firstOrNull { (it.lastPageIndex ?: 0) > 0 } ?: books.firstOrNull()
-    val featuredSpark = passagesState.passages.firstOrNull()
+    HomeContent(
+        books = books,
+        featuredSparkText = passagesState.passages.firstOrNull()?.passage?.text,
+        streakDays = statsState.currentStreakDays,
+        totalBooks = statsState.totalBooks,
+        booksInProgress = statsState.booksInProgress,
+        dueVocabWords = statsState.dueVocabWords,
+        glassEnabled = glassEnabled,
+        onOpenBook = onOpenBook,
+        onOpenLibrary = onOpenLibrary,
+        onOpenPassages = onOpenPassages,
+        onOpenVocab = onOpenVocab,
+        onOpenOnline = onOpenOnline,
+        onOpenStats = onOpenStats,
+        onOpenPrepareOffline = onOpenPrepareOffline,
+        onOpenSettings = onOpenSettings,
+        modifier = modifier
+    )
+}
 
-    val sky = ZeusTheme.sky
+@Composable
+internal fun HomeContent(
+    books: List<LibraryBookSummary>,
+    featuredSparkText: String?,
+    streakDays: Int,
+    totalBooks: Int,
+    booksInProgress: Int,
+    dueVocabWords: Int,
+    glassEnabled: Boolean,
+    onOpenBook: (LibraryBookSummary) -> Unit,
+    onOpenLibrary: () -> Unit,
+    onOpenPassages: () -> Unit,
+    onOpenVocab: () -> Unit,
+    onOpenOnline: () -> Unit,
+    onOpenStats: () -> Unit,
+    onOpenPrepareOffline: () -> Unit,
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val continueBook = remember(books) {
+        books.filter { (it.lastPageIndex ?: 0) > 0 }.maxByOrNull { it.updatedAtEpochMs } ?: books.firstOrNull()
+    }
+    val shelf = remember(books, continueBook) {
+        books.filter { it.editionId != continueBook?.editionId }.sortedByDescending { it.updatedAtEpochMs }.take(12)
+    }
+    val greeting = remember { greetingFor(LocalTime.now().hour) }
+
     val colors = ZeusTheme.colors
     val type = ZeusTheme.type
-    val reduceMotion = ZeusTheme.reduceMotion
-
-    val bobOffsetY = if (!reduceMotion) {
-        val transition = rememberInfiniteTransition(label = "home_cover_bob")
-        val y by transition.animateFloat(
-            initialValue = 0f,
-            targetValue = -10f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = ZeusTheme.motion.COVER_BOB_MS),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "cover_bob_y"
-        )
-        y
-    } else {
-        0f
-    }
+    val dockClearance = rememberDockClearance()
 
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
             .testTag("home_screen"),
-        contentPadding = PaddingValues(
-            start = ZeusSpacing.lg,
-            end = ZeusSpacing.lg,
-            top = ZeusSpacing.md,
-            bottom = ZeusSpacing.dockBottomClearance
-        ),
-        verticalArrangement = Arrangement.spacedBy(ZeusSpacing.lg)
+        contentPadding = PaddingValues(top = ZeusSpacing.md, bottom = dockClearance),
+        verticalArrangement = Arrangement.spacedBy(ZeusSpacing.section),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Top Header: Brand Banner + Streak Sticker + Settings/Profile Avatar
-        item {
+        // Header: settings avatar · greeting + wordmark · streak sticker
+        item(key = "header") {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.zeus_home_banner),
-                    contentDescription = "ZeusReader",
-                    contentScale = ContentScale.FillHeight,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(ZeusShapes.pill)
-                )
-
-                Surface(
-                    onClick = onOpenStats,
-                    shape = ZeusShapes.sticker,
-                    color = colors.stickerLightBg,
-                    contentColor = colors.stickerInk,
-                    modifier = Modifier
-                        .heightIn(min = ZeusSpacing.touchMin)
-                        .rotate(2.5f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = ZeusSpacing.md, vertical = ZeusSpacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Bolt,
-                            contentDescription = null,
-                            tint = colors.stickerInk,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "${statsState.currentStreakDays}d streak",
-                            style = type.sticker,
-                            color = colors.stickerInk,
-                            maxLines = 1
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(ZeusSpacing.touchMin)
-                        .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(sky.accent, sky.glow2)))
-                        .clickable(onClick = onOpenSettings),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Person,
-                        contentDescription = "Profile and settings",
-                        tint = sky.baseA,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
-        }
-
-        // Hero Floating Book Cover + Charge Ring
-        item {
-            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(228.dp),
-                contentAlignment = Alignment.Center
+                    .padding(horizontal = ZeusSpacing.gutter),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
             ) {
-                Canvas(modifier = Modifier.size(220.dp)) {
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(sky.accent.copy(alpha = 0.28f), Color.Transparent)
-                        )
-                    )
-                }
-
-                if (continueBook != null) {
-                    BookCoverThumbnail(
-                        title = continueBook.title,
-                        format = continueBook.primaryFormat,
-                        coverPath = continueBook.coverPath,
-                        modifier = Modifier
-                            .size(width = 144.dp, height = 210.dp)
-                            .graphicsLayer {
-                                translationY = bobOffsetY
-                                rotationY = -12f
-                                rotationX = 4f
-                                cameraDistance = 12f * density
-                            }
-                            .shadow(20.dp, ZeusShapes.cover, clip = false)
-                            .clickable { onOpenBook(continueBook) }
-                    )
-                } else {
-                    Surface(
-                        modifier = Modifier
-                            .size(width = 144.dp, height = 210.dp)
-                            .graphicsLayer {
-                                translationY = bobOffsetY
-                                rotationY = -10f
-                                cameraDistance = 12f * density
-                            }
-                            .clickable(onClick = onOpenLibrary),
-                        shape = ZeusShapes.cover,
-                        color = sky.baseB.copy(alpha = 0.72f),
-                        border = BorderStroke(1.dp, colors.glassBorder)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(ZeusSpacing.lg),
-                            verticalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.AutoStories,
-                                contentDescription = null,
-                                tint = sky.accent,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Text(
-                                text = "Your Reading Sky",
-                                style = type.headline,
-                                color = colors.textOnSky
-                            )
-                        }
-                    }
-                }
-
-                // Charge Ring (bottom-right)
-                val progressFraction = if (statsState.totalBooks > 0) {
-                    (statsState.booksInProgress.toFloat() / statsState.totalBooks.toFloat()).coerceIn(0.15f, 1f)
-                } else {
-                    0.15f
-                }
                 Box(
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = ZeusSpacing.xs, bottom = ZeusSpacing.xs)
-                        .size(84.dp)
-                        .clip(CircleShape)
-                        .background(sky.baseA.copy(alpha = 0.88f))
-                        .clickable(onClick = onOpenStats),
+                        .size(ZeusSizes.avatar)
+                        .shadow(ZeusSizes.shadowSoft, ZeusShapes.circle, ambientColor = ZeusTheme.sky.glow2, spotColor = ZeusTheme.sky.glow2)
+                        .clip(ZeusShapes.circle)
+                        .background(rememberPrimaryGradient(animate = false))
+                        .clickable(role = Role.Button, onClick = onOpenSettings)
+                        .semantics { contentDescription = "Profile and settings" },
                     contentAlignment = Alignment.Center
                 ) {
-                    Canvas(modifier = Modifier.fillMaxSize().padding(5.dp)) {
-                        drawArc(
-                            color = Color.White.copy(alpha = 0.16f),
-                            startAngle = -90f,
-                            sweepAngle = 360f,
-                            useCenter = false,
-                            style = Stroke(width = 7.dp.toPx(), cap = StrokeCap.Round)
-                        )
-                        drawArc(
-                            color = sky.accent,
-                            startAngle = -90f,
-                            sweepAngle = 360f * progressFraction,
-                            useCenter = false,
-                            style = Stroke(width = 7.dp.toPx(), cap = StrokeCap.Round)
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "${statsState.totalBooks}",
-                            style = type.title.copy(fontFamily = type.Unbounded, fontWeight = FontWeight.ExtraBold),
-                            color = colors.textOnSky
-                        )
-                        Text(
-                            text = "books",
-                            style = type.meta.copy(fontSize = 10.sp),
-                            color = colors.textOnSkySecondary
-                        )
-                    }
+                    Icon(Icons.Rounded.Settings, contentDescription = null, tint = colors.textOnAccent, modifier = Modifier.size(ZeusSizes.iconMd))
                 }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xxs)) {
+                    Text(greeting, style = type.caption, color = colors.textOnSkySecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Image(
+                        painter = painterResource(id = R.drawable.zeus_home_banner),
+                        contentDescription = "ZeusReader",
+                        contentScale = ContentScale.Fit,
+                        alignment = Alignment.CenterStart,
+                        modifier = Modifier
+                            .height(ZeusSizes.bannerHeight)
+                            .aspectRatio(BANNER_ASPECT, matchHeightConstraintsFirst = true)
+                    )
+                }
+                StickerChip(
+                    text = "${streakDays}-day streak",
+                    icon = Icons.Rounded.Bolt,
+                    rotation = 3f,
+                    onClick = onOpenStats
+                )
             }
         }
 
-        // Glass Resume Card + Gradient Pill CTA
-        item {
-            LiquidGlassCard(glassEnabled = glassEnabled, modifier = Modifier.fillMaxWidth()) {
+        // Hero stage: floating 3D cover + charge ring
+        item(key = "hero") {
+            HeroStage(
+                book = continueBook,
+                totalBooks = totalBooks,
+                booksInProgress = booksInProgress,
+                onOpenBook = onOpenBook,
+                onOpenLibrary = onOpenLibrary,
+                onOpenStats = onOpenStats
+            )
+        }
+
+        // Resume card
+        item(key = "resume") {
+            GlassSurface(
+                modifier = Modifier
+                    .padding(horizontal = ZeusSpacing.gutter)
+                    .widthIn(max = ZeusSizes.contentMaxWidth)
+                    .fillMaxWidth(),
+                neon = true,
+                glassEnabled = glassEnabled
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(ZeusSpacing.lg),
+                        .padding(horizontal = ZeusSpacing.cardPadding, vertical = ZeusSpacing.lg),
                     verticalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
                 ) {
                     if (continueBook != null) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = continueBook.primaryFormat.ifBlank { "BOOK" }.uppercase(),
-                                style = type.meta,
-                                color = sky.accent
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)) {
+                            MetaLabel(
+                                text = continueBook.primaryFormat.ifBlank { "Book" } + " · " + continueBook.category.ifBlank { "General" },
+                                accent = true,
+                                modifier = Modifier.weight(1f)
                             )
-                            Text(
-                                text = "p.${(continueBook.lastPageIndex ?: 0) + 1}",
-                                style = type.meta,
-                                color = colors.textOnSkySecondary
-                            )
+                            MetaLabel(text = continueBook.progressLabel())
                         }
                         Text(
                             text = continueBook.title,
@@ -347,216 +270,306 @@ fun HomeScreen(
                         if (continueBook.authors.isNotBlank()) {
                             Text(
                                 text = continueBook.authors,
-                                style = type.body.copy(fontStyle = FontStyle.Italic),
+                                style = type.quoteSmall,
                                 color = colors.textOnSkySecondary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                        StormlightGradientPillButton(
+                        PrimaryPillButton(
                             label = "Jump back in",
                             icon = Icons.AutoMirrored.Rounded.ArrowForward,
                             onClick = { onOpenBook(continueBook) },
                             modifier = Modifier.fillMaxWidth()
                         )
                     } else {
+                        MetaLabel(text = "Your reading sky", accent = true)
+                        Text("Start your sanctuary", style = type.headline, color = colors.textOnSky)
                         Text(
-                            text = "Start your sanctuary",
-                            style = type.headline,
-                            color = colors.textOnSky
-                        )
-                        Text(
-                            text = "Import EPUB, PDF, CBZ, or XPS books in Olympus, or search online sources.",
+                            text = "Import EPUB, PDF, CBZ or XPS books into Olympus, or find one online.",
                             style = type.body,
                             color = colors.textOnSkySecondary
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)
-                        ) {
-                            StormlightGradientPillButton(
-                                label = "Open Olympus",
-                                icon = Icons.Rounded.FileOpen,
-                                onClick = onOpenLibrary,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                        PrimaryPillButton(
+                            label = "Open Olympus",
+                            icon = Icons.Rounded.FileOpen,
+                            leadingIcon = true,
+                            onClick = onOpenLibrary,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }
         }
 
-        // Bento Row: Resurfaced Spark (1.4f) + Words Sticker (1f)
-        item {
+        // Quick actions
+        item(key = "quick") {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .padding(horizontal = ZeusSpacing.gutter)
+                    .widthIn(max = ZeusSizes.contentMaxWidth)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)
+            ) {
+                QuickActionTile(Icons.Rounded.AutoStories, "Olympus", onOpenLibrary, Modifier.weight(1f), accent = true)
+                QuickActionTile(Icons.Rounded.CloudDownload, "Online books", onOpenOnline, Modifier.weight(1f))
+                QuickActionTile(Icons.Rounded.Translate, "Offline packs", onOpenPrepareOffline, Modifier.weight(1f))
+                QuickActionTile(Icons.Rounded.Insights, "Stats", onOpenStats, Modifier.weight(1f))
+            }
+        }
+
+        // Bento: resurfaced spark + words waiting
+        item(key = "bento") {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = ZeusSpacing.gutter)
+                    .widthIn(max = ZeusSizes.contentMaxWidth)
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
                 horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
             ) {
-                LiquidGlassCard(
-                    glassEnabled = glassEnabled,
-                    cornerRadius = 24.dp,
+                GlassSurface(
                     modifier = Modifier
                         .weight(1.4f)
-                        .heightIn(min = 112.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onOpenPassages)
-                            .padding(ZeusSpacing.md),
-                        verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xs)
-                    ) {
-                        Text(
-                            text = if (featuredSpark != null) "RESURFACED SPARK" else "SPARKS",
-                            style = type.meta.copy(fontSize = 10.sp),
-                            color = sky.accent,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = featuredSpark?.passage?.text?.let { "“$it”" }
-                                ?: "Save memorable lines while reading to resurface them here.",
-                            style = type.bodyReading.copy(fontSize = 14.sp, lineHeight = 20.sp, fontStyle = FontStyle.Italic),
-                            color = colors.textOnSky,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                Surface(
-                    onClick = onOpenVocab,
+                        .fillMaxHeight()
+                        .heightIn(min = ZeusSizes.bentoMinHeight),
                     shape = ZeusShapes.cardCompact,
-                    color = colors.stickerLightBg,
-                    contentColor = colors.stickerInk,
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 112.dp)
-                        .rotate(-2f)
+                    glassEnabled = glassEnabled
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(ZeusSpacing.md),
-                        verticalArrangement = Arrangement.SpaceBetween
+                            .clickable(onClick = onOpenPassages)
+                            .padding(ZeusSpacing.mdPlus),
+                        verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xsPlus)
                     ) {
+                        MetaLabel(text = if (featuredSparkText != null) "A spark resurfaced" else "Sparks", accent = true)
                         Text(
-                            text = "${statsState.dueVocabWords}",
-                            style = type.displayNumber,
-                            color = colors.stickerInk,
+                            text = featuredSparkText?.let { "“$it”" }
+                                ?: "Save lines while reading — they come back here like stars.",
+                            style = type.quoteSmall,
+                            color = colors.textOnSky,
+                            maxLines = 4,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                WordsSticker(
+                    count = dueVocabWords,
+                    onClick = onOpenVocab,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .heightIn(min = ZeusSizes.bentoMinHeight)
+                )
+            }
+        }
+
+        // Shelf of other books
+        if (shelf.isNotEmpty()) {
+            item(key = "shelf_header") {
+                ZeusSectionHeader(
+                    title = "On your shelf",
+                    actionLabel = "See all",
+                    onAction = onOpenLibrary,
+                    modifier = Modifier
+                        .padding(horizontal = ZeusSpacing.gutter)
+                        .widthIn(max = ZeusSizes.contentMaxWidth)
+                )
+            }
+            item(key = "shelf") {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = ZeusSpacing.gutter),
+                    horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.md)
+                ) {
+                    items(shelf, key = { it.editionId }) { book ->
+                        ShelfBook(book = book, onClick = { onOpenBook(book) })
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeroStage(
+    book: LibraryBookSummary?,
+    totalBooks: Int,
+    booksInProgress: Int,
+    onOpenBook: (LibraryBookSummary) -> Unit,
+    onOpenLibrary: () -> Unit,
+    onOpenStats: () -> Unit
+) {
+    val sky = ZeusTheme.sky
+    val colors = ZeusTheme.colors
+    val type = ZeusTheme.type
+    val reduceMotion = ZeusTheme.reduceMotion
+    val bob = if (!reduceMotion) {
+        val transition = rememberInfiniteTransition(label = "home_cover_bob")
+        transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(ZeusTheme.motion.COVER_BOB_MS), RepeatMode.Reverse),
+            label = "cover_bob"
+        )
+    } else {
+        null
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(ZeusSizes.heroStageHeight),
+        contentAlignment = Alignment.Center
+    ) {
+        // Accent glow halo behind the book
+        if (!ZeusTheme.paper.isEink) {
+            Box(
+                modifier = Modifier
+                    .size(ZeusSizes.glowBlob)
+                    .background(Brush.radialGradient(listOf(sky.accent.copy(alpha = if (colors.isLight) 0.30f else 0.34f), Color.Transparent)))
+            )
+        }
+        Box(
+            modifier = Modifier.size(width = ZeusSizes.coverHeroWidth + ZeusSizes.chargeRing - ZeusSpacing.sm, height = ZeusSizes.coverHeroHeight),
+        ) {
+            val coverMod = Modifier
+                .align(Alignment.CenterStart)
+                .size(width = ZeusSizes.coverHeroWidth, height = ZeusSizes.coverHeroHeight)
+                .graphicsLayer {
+                    val p = bob?.value ?: 0.5f
+                    translationY = -8f * density * p
+                    rotationY = -16f + 3f * p
+                    rotationX = 5f - 2f * p
+                    cameraDistance = 14f * density
+                }
+                .shadow(ZeusSizes.shadowCover, ZeusShapes.coverLarge, ambientColor = ZeusTheme.colors.shadow, spotColor = ZeusTheme.colors.shadow)
+            if (book != null) {
+                BookCover(
+                    title = book.title,
+                    authors = book.authors,
+                    format = if (book.isImageBook) "IMG" else book.primaryFormat,
+                    coverPath = book.coverPath,
+                    shape = ZeusShapes.coverLarge,
+                    modifier = coverMod
+                        .clickable(role = Role.Button) { onOpenBook(book) }
+                        .semantics { contentDescription = "Open ${book.title}" }
+                )
+            } else {
+                BookCover(
+                    title = "Your Reading Sky",
+                    authors = "ZeusReader",
+                    format = "Start",
+                    shape = ZeusShapes.coverLarge,
+                    modifier = coverMod.clickable(role = Role.Button, onClick = onOpenLibrary)
+                )
+            }
+
+            // Charge ring
+            val bookProgress = book?.knownProgress()
+            val ringProgress = bookProgress
+                ?: if (totalBooks > 0) booksInProgress.toFloat() / totalBooks.toFloat() else 0f
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(ZeusSizes.chargeRing)
+                    .shadow(ZeusSizes.shadowSoft, ZeusShapes.circle)
+                    .clip(ZeusShapes.circle)
+                    .background(colors.sheetBackground)
+                    .clickable(role = Role.Button, onClick = onOpenStats)
+                    .semantics {
+                        contentDescription = if (bookProgress != null) {
+                            "${(bookProgress * 100).toInt()} percent of this book read"
+                        } else {
+                            "$booksInProgress of $totalBooks books in progress"
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                ProgressRing(progress = ringProgress, size = ZeusSizes.chargeRing, stroke = ZeusSizes.chargeRingStroke) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = if (bookProgress != null) "${(bookProgress * 100).toInt()}%" else "$booksInProgress",
+                            style = type.numberMedium,
+                            color = colors.textOnSky,
                             maxLines = 1
                         )
                         Text(
-                            text = "words waiting",
-                            style = type.sticker,
-                            color = colors.stickerInk,
-                            maxLines = 2
+                            text = if (bookProgress != null) "read" else "of $totalBooks",
+                            style = type.metaSmall,
+                            color = colors.textOnSkySecondary,
+                            maxLines = 1
                         )
                     }
                 }
             }
         }
-
-        // Compact 2-pill utility bar: Online Books + Offline Packs
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)
-            ) {
-                GlassUtilityPill(
-                    label = "Online Books",
-                    icon = Icons.Rounded.CloudDownload,
-                    glassEnabled = glassEnabled,
-                    onClick = onOpenOnline,
-                    modifier = Modifier.weight(1f)
-                )
-                GlassUtilityPill(
-                    label = "Offline Packs",
-                    icon = Icons.Rounded.Translate,
-                    glassEnabled = glassEnabled,
-                    onClick = onOpenPrepareOffline,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
     }
 }
 
 @Composable
-private fun StormlightGradientPillButton(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val sky = ZeusTheme.sky
-    val type = ZeusTheme.type
-    Box(
-        modifier = modifier
-            .heightIn(min = ZeusSpacing.primaryButtonHeight)
-            .clip(ZeusShapes.pill)
-            .background(Brush.linearGradient(listOf(sky.accent, sky.glow2)))
-            .clickable(onClick = onClick)
-            .padding(horizontal = ZeusSpacing.xl),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.sm)
-        ) {
-            Text(
-                text = label,
-                style = type.button,
-                color = sky.baseA,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = sky.baseA,
-                modifier = Modifier.size(18.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun GlassUtilityPill(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    glassEnabled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val sky = ZeusTheme.sky
+private fun WordsSticker(count: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = ZeusTheme.colors
     val type = ZeusTheme.type
-    Row(
-        modifier = modifier
-            .heightIn(min = ZeusSpacing.touchMin)
-            .liquidGlass(enabled = glassEnabled, shape = ZeusShapes.pill)
-            .clickable(onClick = onClick)
-            .padding(horizontal = ZeusSpacing.md, vertical = ZeusSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = sky.accent,
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(Modifier.width(ZeusSpacing.xs))
-        Text(
-            text = label,
-            style = type.sticker,
-            color = colors.textOnSky,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+    Box(modifier = modifier.rotate(-2f)) {
+        if (!ZeusTheme.paper.isEink) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .padding(start = ZeusSizes.stickerOffset, top = ZeusSizes.stickerOffset)
+                    .background(colors.neonB, ZeusShapes.cardCompact)
+            )
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(end = ZeusSizes.stickerOffset, bottom = ZeusSizes.stickerOffset)
+                .clip(ZeusShapes.cardCompact)
+                .background(colors.stickerLightBg)
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(ZeusSpacing.mdPlus),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("$count", style = type.displayNumber, color = colors.stickerInk, maxLines = 1)
+            Text(
+                text = if (count == 1) "word waiting for you" else "words waiting for you",
+                style = type.sticker,
+                color = colors.stickerInk,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
+@Composable
+private fun ShelfBook(book: LibraryBookSummary, onClick: () -> Unit) {
+    val colors = ZeusTheme.colors
+    val type = ZeusTheme.type
+    Column(
+        modifier = Modifier
+            .width(ZeusSizes.coverFlowSideWidth)
+            .clip(ZeusShapes.tile)
+            .clickable(role = Role.Button, onClick = onClick),
+        verticalArrangement = Arrangement.spacedBy(ZeusSpacing.xsPlus)
+    ) {
+        BookCover(
+            title = book.title,
+            authors = book.authors,
+            format = if (book.isImageBook) "IMG" else book.primaryFormat,
+            coverPath = book.coverPath,
+            compact = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(2f / 3f)
+        )
+        Text(book.title, style = type.labelSmall, color = colors.textOnSky, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(book.progressLabel(), style = type.metaSmall, color = colors.textOnSkySecondary, maxLines = 1)
+    }
+}
+
+/** Kept for source compatibility — delegates to the shared [BookCover]. */
 @Composable
 fun BookCoverThumbnail(
     title: String,
@@ -564,49 +577,6 @@ fun BookCoverThumbnail(
     coverPath: String?,
     modifier: Modifier = Modifier
 ) {
-    val hasCover = !coverPath.isNullOrBlank() && File(coverPath).exists()
-    val sky = ZeusTheme.sky
-    val colors = ZeusTheme.colors
-    val type = ZeusTheme.type
-    Box(
-        modifier = modifier.clip(ZeusShapes.cover),
-        contentAlignment = Alignment.Center
-    ) {
-        if (hasCover) {
-            AsyncImage(
-                model = File(coverPath!!),
-                contentDescription = "$title cover",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                shape = ZeusShapes.cover,
-                color = sky.baseB.copy(alpha = 0.88f),
-                border = BorderStroke(1.dp, colors.glassBorder)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(ZeusSpacing.md),
-                    verticalArrangement = Arrangement.SpaceBetween,
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    Text(
-                        text = format.ifBlank { "BOOK" }.uppercase(),
-                        style = type.meta,
-                        color = sky.accent
-                    )
-                    Text(
-                        text = title,
-                        style = type.title,
-                        color = colors.textOnSky,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-        }
-    }
+    BookCover(title = title, format = format, coverPath = coverPath, modifier = modifier)
 }
+

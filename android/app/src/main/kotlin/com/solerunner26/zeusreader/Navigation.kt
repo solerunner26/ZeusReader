@@ -1,10 +1,28 @@
 package com.solerunner26.zeusreader
 
 import android.app.Activity
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import com.solerunner26.zeusreader.ui.components.MetaLabel
+import com.solerunner26.zeusreader.ui.components.ZeusDialog
+import com.solerunner26.zeusreader.ui.components.ZeusLinearProgress
+import com.solerunner26.zeusreader.ui.theme.ZeusSizes
+import com.solerunner26.zeusreader.ui.theme.neonBorder
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,7 +34,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,7 +42,6 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,8 +54,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.solerunner26.zeusreader.ui.theme.ZeusShapes
 import com.solerunner26.zeusreader.ui.theme.ZeusSpacing
 import com.solerunner26.zeusreader.ui.theme.ZeusTheme
@@ -64,11 +78,11 @@ import com.solerunner26.zeusreader.ui.settings.SettingsScreen
 import com.solerunner26.zeusreader.ui.stats.StatsScreen
 import com.solerunner26.zeusreader.ui.stats.StatsViewModel
 import com.solerunner26.zeusreader.ui.theme.AppUiConfigViewModel
-import com.solerunner26.zeusreader.ui.theme.liquidGlass
 import com.solerunner26.zeusreader.ui.vocab.PrepareOfflineScreen
 import com.solerunner26.zeusreader.ui.vocab.VocabularyScreen
 import com.solerunner26.zeusreader.ui.vocab.VocabularyViewModel
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MainNavigation(
     sharedImportUris: List<Uri> = emptyList(),
@@ -284,55 +298,38 @@ fun MainNavigation(
 
             val pendingUpdate = updateState.availableUpdate
             if (pendingUpdate != null && !updateState.dismissedForSession) {
-                androidx.compose.material3.AlertDialog(
+                ZeusDialog(
                     onDismissRequest = updateViewModel::dismissForSession,
-                    title = { Text("Update Available: ${pendingUpdate.tagName}") },
-                    text = {
-                        androidx.compose.foundation.layout.Column(
-                            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = "Installed: v${updateState.currentVersion} → New: ${pendingUpdate.tagName}",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = pendingUpdate.releaseNotes.take(450),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            if (updateState.isDownloading) {
-                                androidx.compose.material3.LinearProgressIndicator(
-                                    progress = { updateState.downloadProgress / 100f },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Text(
-                                    text = "Downloading… ${updateState.downloadProgress}%",
-                                    style = MaterialTheme.typography.labelMedium
-                                )
-                            }
-                            updateState.statusMessage?.let { msg ->
-                                Text(msg, style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        androidx.compose.material3.TextButton(
-                            onClick = updateViewModel::downloadAndInstall,
-                            enabled = !updateState.isDownloading
-                        ) {
-                            Text(if (updateState.isDownloading) "Downloading…" else "Update Now")
-                        }
-                    },
-                    dismissButton = {
-                        androidx.compose.material3.TextButton(onClick = updateViewModel::dismissForSession) {
-                            Text("Later")
-                        }
+                    title = "Update available · ${pendingUpdate.tagName}",
+                    confirmLabel = if (updateState.isDownloading) "Downloading…" else "Update now",
+                    onConfirm = updateViewModel::downloadAndInstall,
+                    confirmEnabled = !updateState.isDownloading,
+                    dismissLabel = "Later",
+                    onDismiss = updateViewModel::dismissForSession
+                ) {
+                    MetaLabel(
+                        text = "Installed v${updateState.currentVersion} → ${pendingUpdate.tagName}",
+                        accent = true,
+                        maxLines = 2
+                    )
+                    Text(
+                        text = pendingUpdate.releaseNotes.take(450),
+                        style = ZeusTheme.type.caption,
+                        color = ZeusTheme.colors.textOnSkySecondary
+                    )
+                    if (updateState.isDownloading) {
+                        ZeusLinearProgress(progress = updateState.downloadProgress / 100f)
+                        MetaLabel(text = "Downloading… ${updateState.downloadProgress}%")
                     }
-                )
+                    updateState.statusMessage?.let { msg ->
+                        Text(msg, style = ZeusTheme.type.caption, color = ZeusTheme.colors.textOnSkySecondary)
+                    }
+                }
             }
         }
 
-        if (isRootTab) {
+        val imeVisible = WindowInsets.isImeVisible
+        if (isRootTab && !imeVisible) {
             StormlightBottomDock(
                 currentTop = currentTop,
                 glassEnabled = uiConfig.glassUi,
@@ -359,62 +356,44 @@ private fun StormlightBottomDock(
     onSelectWords: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val sky = ZeusTheme.sky
     val colors = ZeusTheme.colors
-    val type = ZeusTheme.type
-    val bgColor = if (glassEnabled) colors.dockFill else colors.glassFallback
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(ZeusSpacing.dockHeight)
-            .clip(ZeusShapes.dock)
-            .background(bgColor)
-            .border(BorderStroke(ZeusSpacing.glassBorderWidth, colors.glassBorder), ZeusShapes.dock)
-            .padding(horizontal = ZeusSpacing.sm),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
+    val density = LocalDensity.current
+    // The dock has a fixed 68dp height: cap font scaling for its labels (icons carry content descriptions).
+    CompositionLocalProvider(
+        LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))
     ) {
-        DockTabItem(
-            label = "Home",
-            selected = currentTop is HomeRoute,
-            onClick = onSelectHome,
-            modifier = Modifier.weight(1f),
-            icon = { tint ->
-                Icon(Icons.Rounded.Home, contentDescription = "Home", tint = tint, modifier = Modifier.size(22.dp))
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .widthIn(max = ZeusSizes.contentMaxWidth)
+                .height(ZeusSpacing.dockHeight)
+                .shadow(ZeusSizes.shadowGlow, ZeusShapes.dock, ambientColor = colors.neonA, spotColor = colors.neonA)
+                .neonBorder(shape = ZeusShapes.dock, intensity = 0.7f)
+                .clip(ZeusShapes.dock)
+                .background(if (glassEnabled) colors.dockFill else colors.glassFallback)
+                .border(ZeusSpacing.glassBorderWidth, colors.glassBorder, ZeusShapes.dock)
+                .padding(horizontal = ZeusSpacing.sm, vertical = ZeusSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(ZeusSpacing.xs),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            DockTabItem("Home", currentTop is HomeRoute, onSelectHome, Modifier.weight(1f)) { tint ->
+                Icon(Icons.Rounded.Home, contentDescription = null, tint = tint, modifier = Modifier.size(ZeusSizes.iconLg))
             }
-        )
-        DockTabItem(
-            label = "Olympus",
-            selected = currentTop is LibraryRoute,
-            onClick = onSelectOlympus,
-            modifier = Modifier.weight(1f),
-            icon = { tint ->
-                Icon(Icons.Rounded.AutoStories, contentDescription = "Olympus", tint = tint, modifier = Modifier.size(22.dp))
+            DockTabItem("Olympus", currentTop is LibraryRoute, onSelectOlympus, Modifier.weight(1f)) { tint ->
+                Icon(Icons.Rounded.AutoStories, contentDescription = null, tint = tint, modifier = Modifier.size(ZeusSizes.iconLg))
             }
-        )
-        DockTabItem(
-            label = "Sparks",
-            selected = currentTop is PassagesRoute,
-            onClick = onSelectSparks,
-            modifier = Modifier.weight(1f),
-            icon = { tint ->
-                Icon(Icons.Rounded.AutoAwesome, contentDescription = "Sparks", tint = tint, modifier = Modifier.size(22.dp))
+            DockTabItem("Sparks", currentTop is PassagesRoute, onSelectSparks, Modifier.weight(1f)) { tint ->
+                Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = tint, modifier = Modifier.size(ZeusSizes.iconLg))
             }
-        )
-        DockTabItem(
-            label = "Words",
-            selected = currentTop is VocabularyRoute,
-            onClick = onSelectWords,
-            modifier = Modifier.weight(1f),
-            icon = { tint ->
+            DockTabItem("Words", currentTop is VocabularyRoute, onSelectWords, Modifier.weight(1f)) { tint ->
                 Text(
                     text = "अ",
-                    style = type.title.copy(fontFamily = type.Unbounded, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp),
-                    color = tint
+                    style = ZeusTheme.type.numberMedium,
+                    color = tint,
+                    maxLines = 1
                 )
             }
-        )
+        }
     }
 }
 
@@ -426,30 +405,26 @@ private fun DockTabItem(
     modifier: Modifier = Modifier,
     icon: @Composable (Color) -> Unit
 ) {
-    val sky = ZeusTheme.sky
     val colors = ZeusTheme.colors
     val type = ZeusTheme.type
-    val tint = if (selected) sky.accent else colors.textOnSky.copy(alpha = 0.72f)
-
+    val tint = if (selected) colors.accentOnSky else colors.textOnSkySecondary
     Column(
         modifier = modifier
-            .heightIn(min = ZeusSpacing.touchMin)
-            .clip(ZeusShapes.pill)
-            .clickable(onClick = onClick)
-            .padding(vertical = ZeusSpacing.xs),
+            .fillMaxHeight()
+            .clip(ZeusShapes.cardSmall)
+            .then(if (selected) Modifier.background(colors.glassFillStrong) else Modifier)
+            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+            .semantics { contentDescription = label },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         icon(tint)
         Text(
             text = label,
-            style = type.meta.copy(
-                fontFamily = type.BricolageGrotesque,
-                fontSize = 11.sp,
-                fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold
-            ),
+            style = type.labelSmall.copy(fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold),
             color = tint,
-            maxLines = 1
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

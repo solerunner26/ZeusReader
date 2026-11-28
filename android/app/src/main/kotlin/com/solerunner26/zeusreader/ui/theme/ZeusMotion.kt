@@ -12,6 +12,9 @@ object ZeusMotion {
     const val CONSTELLATION_STAGGER_MS = 40
     const val HUE_TRANSITION_MS = 400
     const val COVER_BOB_MS = 6_000
+    const val NEON_SWEEP_MS = 6_000
+    const val SHIMMER_MS = 5_000
+    const val CARD_FLIP_MS = 420
 
     val standardEasing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
 

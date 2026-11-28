@@ -96,6 +96,69 @@ object ZeusType {
         fontSize = 13.sp,
         lineHeight = 16.sp
     )
+    val displayGiant = TextStyle(
+        fontFamily = Unbounded,
+        fontWeight = FontWeight.Black,
+        fontSize = 72.sp,
+        lineHeight = 74.sp
+    )
+    val screenTitle = TextStyle(
+        fontFamily = Unbounded,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 30.sp,
+        lineHeight = 36.sp
+    )
+    val numberMedium = TextStyle(
+        fontFamily = Unbounded,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 18.sp,
+        lineHeight = 22.sp
+    )
+    val label = TextStyle(
+        fontFamily = BricolageGrotesque,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 14.sp,
+        lineHeight = 18.sp
+    )
+    val labelSmall = TextStyle(
+        fontFamily = BricolageGrotesque,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 11.sp,
+        lineHeight = 14.sp
+    )
+    val caption = TextStyle(
+        fontFamily = BricolageGrotesque,
+        fontWeight = FontWeight.Normal,
+        fontSize = 13.sp,
+        lineHeight = 18.sp
+    )
+    val metaSmall = TextStyle(
+        fontFamily = JetBrainsMono,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 10.sp,
+        lineHeight = 14.sp,
+        letterSpacing = 0.6.sp
+    )
+    val quote = TextStyle(
+        fontFamily = Literata,
+        fontWeight = FontWeight.Normal,
+        fontStyle = FontStyle.Italic,
+        fontSize = 16.sp,
+        lineHeight = 24.sp
+    )
+    val quoteSmall = TextStyle(
+        fontFamily = Literata,
+        fontWeight = FontWeight.Normal,
+        fontStyle = FontStyle.Italic,
+        fontSize = 14.sp,
+        lineHeight = 20.sp
+    )
+    val readingHeadline = TextStyle(
+        fontFamily = Literata,
+        fontWeight = FontWeight.Normal,
+        fontSize = 30.sp,
+        lineHeight = 38.sp
+    )
     val button = TextStyle(
         fontFamily = BricolageGrotesque,
         fontWeight = FontWeight.ExtraBold,
@@ -134,6 +197,13 @@ object ZeusType {
         bodySmall = body.copy(fontSize = 12.sp, lineHeight = 18.sp),
         labelLarge = button,
         labelMedium = sticker,
-        labelSmall = meta
+        labelSmall = meta,
+        titleSmall = label,
+        displayLarge = displayGiant,
+        displayMedium = screenTitle,
+        headlineLarge = screenTitle
     )
+
+    /** Base reading size in sp for a reader font-size percentage (100% = 16sp). */
+    fun readingSize(percent: Int): androidx.compose.ui.unit.TextUnit = (16f * percent / 100f).sp
 }
