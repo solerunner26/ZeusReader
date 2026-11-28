@@ -376,24 +376,42 @@ fun PdfReaderScreen(
                             }
                             if (textSelectionMode && sentences.isNotEmpty()) {
                                 Text(
-                                    text = "Tap a sentence below to Highlight, Save Passage, or Translate:",
+                                    text = "Tap any word to see its meaning (Kindle-style), or save/highlight the sentence:",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 sentences.take(25).forEach { sentence ->
+                                    val words = remember(sentence) {
+                                        sentence.split(Regex("\\s+")).filter { it.isNotBlank() }
+                                    }
                                     ElevatedCard(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                selectedTextBuffer = sentence
-                                                showSavePassageSheet = true
-                                            }
+                                        modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Column(
                                             modifier = Modifier.padding(12.dp),
-                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Text(sentence, style = MaterialTheme.typography.bodyMedium)
+                                            @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+                                            androidx.compose.foundation.layout.FlowRow(
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                words.forEach { rawWord ->
+                                                    val cleanWord = rawWord.trim { !it.isLetterOrDigit() && it != '-' }
+                                                    Text(
+                                                        text = rawWord,
+                                                        style = MaterialTheme.typography.bodyLarge,
+                                                        color = if (cleanWord.isNotBlank()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier
+                                                            .clickable(enabled = cleanWord.isNotBlank()) {
+                                                                selectedTextBuffer = sentence
+                                                                viewModel.lookupWord(cleanWord, sentence)
+                                                                showDictionarySheet = true
+                                                            }
+                                                            .padding(horizontal = 3.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
                                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                                 AssistChip(
                                                     onClick = {
@@ -407,15 +425,6 @@ fun PdfReaderScreen(
                                                         viewModel.addHighlight(sentence, "")
                                                     },
                                                     label = { Text("Highlight") }
-                                                )
-                                                AssistChip(
-                                                    onClick = {
-                                                        val firstWord = sentence.split(Regex("\\s+")).firstOrNull().orEmpty()
-                                                        selectedTextBuffer = sentence
-                                                        viewModel.lookupWord(firstWord, sentence)
-                                                        showDictionarySheet = true
-                                                    },
-                                                    label = { Text("Define") }
                                                 )
                                             }
                                         }

@@ -160,7 +160,14 @@ internal fun DictionarySheetContent(
             }
         }
 
-        if (lookupResult != null) {
+        if (lookupResult == null) {
+            androidx.compose.material3.LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            Text(
+                text = "Looking up \"$wordInput\"…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

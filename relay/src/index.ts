@@ -276,6 +276,12 @@ export default {
       else warnings.push("Memory of the World timed out or unreachable");
       if (gutRes.status === "fulfilled") results.push(...gutRes.value);
       else warnings.push("Gutendex timed out");
+      const formatOrder: Record<string, number> = { pdf: 0, epub: 1, mobi: 2, azw3: 3 };
+      results.sort((a, b) => {
+        const fa = formatOrder[String(a.format || "").toLowerCase()] ?? 99;
+        const fb = formatOrder[String(b.format || "").toLowerCase()] ?? 99;
+        return fa - fb;
+      });
       return jsonResponse({ query: q, results, warnings });
     }
 

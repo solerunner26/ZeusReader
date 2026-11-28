@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.Tune
@@ -63,6 +64,7 @@ fun OnlineAcquisitionScreen(
     val context = LocalContext.current
     var showPairingDialog by remember { mutableStateOf(false) }
     var showServerSettings by remember { mutableStateOf(false) }
+    var showHistorySheet by remember { mutableStateOf(false) }
     var pairingJsonInput by remember { mutableStateOf("") }
 
     HueAuraBackground(
@@ -84,6 +86,12 @@ fun OnlineAcquisitionScreen(
                         }
                     },
                     actions = {
+                        IconButton(
+                            onClick = { showHistorySheet = true },
+                            modifier = Modifier.heightIn(min = 48.dp)
+                        ) {
+                            Icon(Icons.Rounded.History, contentDescription = "Download history")
+                        }
                         IconButton(
                             onClick = viewModel::syncPassagesNow,
                             modifier = Modifier.heightIn(min = 48.dp)
@@ -185,6 +193,36 @@ fun OnlineAcquisitionScreen(
                     }
                 }
 
+                state.activeActionLabel?.let { label ->
+                    item {
+                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                val pct = state.activeProgressPercent
+                                Text(
+                                    text = if (pct != null) {
+                                        "$label  $pct% (${state.activeElapsedSeconds}s)"
+                                    } else {
+                                        "$label (${state.activeElapsedSeconds}s)"
+                                    },
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                if (pct != null) {
+                                    LinearProgressIndicator(
+                                        progress = { pct / 100f },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                } else {
+                                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                                }
+                            }
+                        }
+                    }
+                }
+
                 state.statusMessage?.let { msg ->
                     item {
                         Text(
@@ -226,23 +264,28 @@ fun OnlineAcquisitionScreen(
                         Text("Editions Found (${state.searchResults.size})", style = MaterialTheme.typography.titleMedium)
                     }
                     items(state.searchResults, key = { it.idempotency_key }) { item ->
+                        val isQueuingThis = state.queuingKey == item.idempotency_key
                         ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                             Column(
                                 modifier = Modifier.padding(14.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Text(item.title, style = MaterialTheme.typography.titleSmall)
+                                Text("[${item.format.uppercase()}] ${item.title}", style = MaterialTheme.typography.titleSmall)
                                 Text(
-                                    "${item.authors.joinToString()} • ${item.format.uppercase()} • ${item.source}",
+                                    "${item.authors.joinToString()} • ${item.source}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Button(
                                     onClick = { viewModel.queueDownload(item) },
+                                    enabled = state.queuingKey == null && state.activeProgressPercent == null,
                                     modifier = Modifier.heightIn(min = 48.dp)
                                 ) {
                                     Icon(Icons.Rounded.Download, contentDescription = null)
-                                    Text("  Queue to Server")
+                                    Text(
+                                        if (isQueuingThis) "  Queuing… (${state.activeElapsedSeconds}s)"
+                                        else "  Queue to Server"
+                                    )
                                 }
                             }
                         }
@@ -279,12 +322,17 @@ fun OnlineAcquisitionScreen(
                                         }
                                     }
                                     if (job.state == "ReadyOnServer") {
+                                        val isDownloading = state.activeProgressPercent != null
                                         Button(
                                             onClick = { viewModel.downloadToPhone(job) },
+                                            enabled = !isDownloading,
                                             modifier = Modifier.heightIn(min = 48.dp)
                                         ) {
                                             Icon(Icons.Rounded.Download, contentDescription = null)
-                                            Text("  Download to Phone")
+                                            Text(
+                                                if (isDownloading) "  Downloading ${state.activeProgressPercent}% (${state.activeElapsedSeconds}s)"
+                                                else "  Download to Phone"
+                                            )
                                         }
                                     } else if (job.state == "Failed" || job.state == "Cancelled") {
                                         OutlinedButton(
@@ -308,6 +356,40 @@ fun OnlineAcquisitionScreen(
                 }
 
                 item { Spacer(Modifier.height(24.dp)) }
+            }
+        }
+    }
+
+    if (showHistorySheet) {
+        androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showHistorySheet = false }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text("Download History (${state.downloadHistory.size})", style = MaterialTheme.typography.titleLarge)
+                if (state.downloadHistory.isEmpty()) {
+                    Text(
+                        "No books downloaded in this session yet. Downloaded books appear directly in your Library.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    state.downloadHistory.forEach { h ->
+                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(h.title, style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    "${h.format.uppercase()} • ${h.source} • ${h.state}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
             }
         }
     }

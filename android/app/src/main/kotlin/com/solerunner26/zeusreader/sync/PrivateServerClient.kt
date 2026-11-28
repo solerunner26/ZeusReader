@@ -250,7 +250,8 @@ class PrivateServerClient @Inject constructor() {
         token: String,
         jobId: String,
         destFile: java.io.File,
-        expectedSha256: String? = null
+        expectedSha256: String? = null,
+        onProgressPercent: (Int) -> Unit = {}
     ): Result<java.io.File> = withContext(Dispatchers.IO) {
         runCatching {
             destFile.parentFile?.mkdirs()
@@ -259,6 +260,8 @@ class PrivateServerClient @Inject constructor() {
             try {
                 val code = conn.responseCode
                 if (code !in 200..299) error("Download failed with HTTP $code")
+                val totalBytes = conn.contentLengthLong
+                var downloaded = 0L
                 val digest = java.security.MessageDigest.getInstance("SHA-256")
                 conn.inputStream.use { input ->
                     java.io.FileOutputStream(tempFile).use { output ->
@@ -268,6 +271,10 @@ class PrivateServerClient @Inject constructor() {
                             if (read <= 0) break
                             digest.update(buf, 0, read)
                             output.write(buf, 0, read)
+                            downloaded += read
+                            if (totalBytes > 0) {
+                                onProgressPercent(((downloaded * 100L) / totalBytes).toInt().coerceIn(0, 100))
+                            }
                         }
                     }
                 }

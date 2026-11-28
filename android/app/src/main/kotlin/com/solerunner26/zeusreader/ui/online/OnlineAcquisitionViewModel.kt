@@ -31,6 +31,11 @@ data class OnlineAcquisitionUiState(
     val isSearching: Boolean = false,
     val searchResults: List<OnlineSearchResultDto> = emptyList(),
     val transfers: List<TransferJobDto> = emptyList(),
+    val downloadHistory: List<TransferJobDto> = emptyList(),
+    val activeActionLabel: String? = null,
+    val activeProgressPercent: Int? = null,
+    val activeElapsedSeconds: Int = 0,
+    val queuingKey: String? = null,
     val statusMessage: String? = null
 )
 
@@ -96,10 +101,12 @@ class OnlineAcquisitionViewModel @Inject constructor(
             _uiState.update { it.copy(isSearching = true, statusMessage = null) }
             serverClient.searchOnline(state.serverUrl, state.pairingToken, q)
                 .onSuccess { resp ->
+                    val formatRank = mapOf("pdf" to 0, "epub" to 1, "mobi" to 2, "azw3" to 3)
+                    val sorted = resp.results.sortedBy { formatRank[it.format.lowercase()] ?: 99 }
                     _uiState.update {
                         it.copy(
                             isSearching = false,
-                            searchResults = resp.results,
+                            searchResults = sorted,
                             statusMessage = resp.warnings.firstOrNull()
                         )
                     }
@@ -115,6 +122,8 @@ class OnlineAcquisitionViewModel @Inject constructor(
     fun queueDownload(result: OnlineSearchResultDto) {
         val state = _uiState.value
         viewModelScope.launch {
+            val timerJob = startElapsedTimer("Fetching '${result.title}' (${result.format.uppercase()}) on server…")
+            _uiState.update { it.copy(queuingKey = result.idempotency_key, activeProgressPercent = null) }
             serverClient.enqueueTransfer(
                 state.serverUrl,
                 state.pairingToken,
@@ -129,12 +138,33 @@ class OnlineAcquisitionViewModel @Inject constructor(
                     download_url = result.download_url
                 )
             ).onSuccess { job ->
+                timerJob.cancel()
                 _uiState.update { s ->
                     val updated = (listOf(job) + s.transfers.filterNot { it.job_id == job.job_id })
-                    s.copy(transfers = updated, statusMessage = "Queued: ${job.title} (${job.state})")
+                    s.copy(
+                        transfers = updated,
+                        queuingKey = null,
+                        activeActionLabel = null,
+                        activeProgressPercent = null,
+                        activeElapsedSeconds = 0,
+                        statusMessage = if (job.state == "ReadyOnServer") {
+                            "Ready on server: ${job.title}. Tap Download to Phone."
+                        } else {
+                            "Queued: ${job.title} (${job.state})"
+                        }
+                    )
                 }
             }.onFailure { err ->
-                _uiState.update { it.copy(statusMessage = err.message ?: "Queue failed") }
+                timerJob.cancel()
+                _uiState.update {
+                    it.copy(
+                        queuingKey = null,
+                        activeActionLabel = null,
+                        activeProgressPercent = null,
+                        activeElapsedSeconds = 0,
+                        statusMessage = err.message ?: "Queue failed"
+                    )
+                }
             }
         }
     }
@@ -212,22 +242,55 @@ class OnlineAcquisitionViewModel @Inject constructor(
             val safeTitle = job.title.replace(Regex("[^a-zA-Z0-9._-]"), "_").take(48).ifBlank { job.job_id }
             val ext = job.format.lowercase().ifBlank { "epub" }
             val destFile = File(File(context.filesDir, "downloads"), "$safeTitle.$ext")
-            _uiState.update { it.copy(statusMessage = "Downloading ${job.title} to phone…") }
+            val timerJob = startElapsedTimer("Downloading '${job.title}' to phone…")
+            _uiState.update { it.copy(activeProgressPercent = 0, statusMessage = null) }
             serverClient.downloadTransferFile(
                 baseUrl = state.serverUrl,
                 token = state.pairingToken,
                 jobId = job.job_id,
                 destFile = destFile,
-                expectedSha256 = job.file_sha256
+                expectedSha256 = job.file_sha256,
+                onProgressPercent = { pct ->
+                    _uiState.update { it.copy(activeProgressPercent = pct) }
+                }
             ).onSuccess { file ->
+                timerJob.cancel()
                 val report = libraryImporter.importUris(listOf(Uri.fromFile(file)), origin = "server_transfer")
-                _uiState.update {
-                    it.copy(
-                        statusMessage = "Available offline: ${job.title} (imported=${report.importedFileCount}, skipped=${report.duplicates.size})"
+                _uiState.update { s ->
+                    s.copy(
+                        query = "",
+                        searchResults = emptyList(),
+                        transfers = s.transfers.filterNot { it.job_id == job.job_id },
+                        downloadHistory = listOf(job.copy(state = "AvailableOffline", progress_percent = 100)) +
+                            s.downloadHistory.filterNot { it.job_id == job.job_id },
+                        activeActionLabel = null,
+                        activeProgressPercent = null,
+                        activeElapsedSeconds = 0,
+                        statusMessage = "Downloaded & added to Library: ${job.title} (imported=${report.importedFileCount}, skipped=${report.duplicates.size})"
                     )
                 }
             }.onFailure { err ->
-                _uiState.update { it.copy(statusMessage = "Phone transfer failed: ${err.message}") }
+                timerJob.cancel()
+                _uiState.update {
+                    it.copy(
+                        activeActionLabel = null,
+                        activeProgressPercent = null,
+                        activeElapsedSeconds = 0,
+                        statusMessage = "Phone transfer failed: ${err.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    private fun startElapsedTimer(label: String): kotlinx.coroutines.Job {
+        _uiState.update { it.copy(activeActionLabel = label, activeElapsedSeconds = 0) }
+        return viewModelScope.launch {
+            var secs = 0
+            while (true) {
+                kotlinx.coroutines.delay(1_000L)
+                secs += 1
+                _uiState.update { it.copy(activeElapsedSeconds = secs) }
             }
         }
     }
