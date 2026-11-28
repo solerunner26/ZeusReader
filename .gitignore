@@ -57,3 +57,4 @@ relay/.wrangler/
 
 # Stormlight matrix snapshots: commit only after the design is approved (see docs/CLAUDE_UI_HANDOFF.md)
 android/app/src/test/snapshots/stormlight/
+android/.kotlin/
